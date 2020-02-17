@@ -74,12 +74,13 @@ zlib/adler32.c
 # ./FFmpeg/doc/examples/vaapi_encode.c
 # ./FFmpeg/doc/examples/vaapi_transcode.c
 # ./FFmpeg/doc/print_options.c
-./FFmpeg/fftools/cmdutils.c
-./FFmpeg/fftools/ffmpeg.c
+# ./FFmpeg/fftools/cmdutils.c
+## Cmd line tool
+# ./FFmpeg/fftools/ffmpeg.c
 # ./FFmpeg/fftools/ffmpeg_cuvid.c
-./FFmpeg/fftools/ffmpeg_filter.c
-./FFmpeg/fftools/ffmpeg_hw.c
-./FFmpeg/fftools/ffmpeg_opt.c
+# ./FFmpeg/fftools/ffmpeg_filter.c
+# ./FFmpeg/fftools/ffmpeg_hw.c
+# ./FFmpeg/fftools/ffmpeg_opt.c
 # ./FFmpeg/fftools/ffmpeg_qsv.c
 # ./FFmpeg/fftools/ffmpeg_videotoolbox.c
 # ./FFmpeg/fftools/ffplay.c
@@ -172,7 +173,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/alacenc.c
 ./FFmpeg/libavcodec/aliaspixdec.c
 ./FFmpeg/libavcodec/aliaspixenc.c
-# ./FFmpeg/libavcodec/allcodecs.c
+./FFmpeg/libavcodec/allcodecs.c
 # ./FFmpeg/libavcodec/alpha/blockdsp_alpha.c
 # ./FFmpeg/libavcodec/alpha/hpeldsp_alpha.c
 # ./FFmpeg/libavcodec/alpha/idctdsp_alpha.c
@@ -588,7 +589,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/idctdsp.c
 ./FFmpeg/libavcodec/iff.c
 ./FFmpeg/libavcodec/iirfilter.c
-./FFmpeg/libavcodec/ilbcdec.c
+# ./FFmpeg/libavcodec/ilbcdec.c
 ./FFmpeg/libavcodec/imc.c
 ./FFmpeg/libavcodec/imgconvert.c
 ./FFmpeg/libavcodec/imm4.c
@@ -1510,7 +1511,7 @@ zlib/adler32.c
 ./FFmpeg/libavfilter/af_vibrato.c
 ./FFmpeg/libavfilter/af_volume.c
 ./FFmpeg/libavfilter/af_volumedetect.c
-# ./FFmpeg/libavfilter/allfilters.c
+./FFmpeg/libavfilter/allfilters.c
 ./FFmpeg/libavfilter/asink_anullsink.c
 ./FFmpeg/libavfilter/asrc_anoisesrc.c
 ./FFmpeg/libavfilter/asrc_anullsrc.c
@@ -1841,7 +1842,7 @@ zlib/adler32.c
 ./FFmpeg/libavformat/aiffdec.c
 ./FFmpeg/libavformat/aiffenc.c
 ./FFmpeg/libavformat/aixdec.c
-# ./FFmpeg/libavformat/allformats.c
+./FFmpeg/libavformat/allformats.c
 ./FFmpeg/libavformat/amr.c
 ./FFmpeg/libavformat/anm.c
 ./FFmpeg/libavformat/apc.c
@@ -1985,7 +1986,7 @@ zlib/adler32.c
 ./FFmpeg/libavformat/idroqdec.c
 ./FFmpeg/libavformat/idroqenc.c
 ./FFmpeg/libavformat/iff.c
-./FFmpeg/libavformat/ilbc.c
+# ./FFmpeg/libavformat/ilbc.c
 ./FFmpeg/libavformat/img2.c
 ./FFmpeg/libavformat/img2_alias_pix.c
 ./FFmpeg/libavformat/img2_brender_pix.c
@@ -2022,9 +2023,10 @@ zlib/adler32.c
 ./FFmpeg/libavformat/lvfdec.c
 ./FFmpeg/libavformat/lxfdec.c
 ./FFmpeg/libavformat/m4vdec.c
-./FFmpeg/libavformat/matroska.c
-./FFmpeg/libavformat/matroskadec.c
-./FFmpeg/libavformat/matroskaenc.c
+## BZ2 is missing
+# ./FFmpeg/libavformat/matroska.c
+# ./FFmpeg/libavformat/matroskadec.c
+# ./FFmpeg/libavformat/matroskaenc.c
 ./FFmpeg/libavformat/md5proto.c
 ./FFmpeg/libavformat/metadata.c
 ./FFmpeg/libavformat/mgsts.c
@@ -2153,7 +2155,7 @@ zlib/adler32.c
 ./FFmpeg/libavformat/rtpdec_h263_rfc2190.c
 ./FFmpeg/libavformat/rtpdec_h264.c
 ./FFmpeg/libavformat/rtpdec_hevc.c
-./FFmpeg/libavformat/rtpdec_ilbc.c
+# ./FFmpeg/libavformat/rtpdec_ilbc.c
 ./FFmpeg/libavformat/rtpdec_jpeg.c
 ./FFmpeg/libavformat/rtpdec_latm.c
 ./FFmpeg/libavformat/rtpdec_mpa_robust.c
