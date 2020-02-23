@@ -29,9 +29,9 @@ include_directories(
 add_executable(
     GifTools main.cpp
     zlib/inflate.c
-zlib/test/infcover.c
-zlib/test/example.c
-zlib/test/minigzip.c
+# zlib/test/infcover.c
+# zlib/test/example.c
+# zlib/test/minigzip.c
 zlib/compress.c
 zlib/deflate.c
 zlib/gzread.c
@@ -103,19 +103,19 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/aacenc_pred.c
 ./FFmpeg/libavcodec/aacenc_tns.c
 ./FFmpeg/libavcodec/aacenctab.c
-# ./FFmpeg/libavcodec/aacps.c
-# ./FFmpeg/libavcodec/aacps_fixed.c
+./FFmpeg/libavcodec/aacps.c
+./FFmpeg/libavcodec/aacps_fixed.c
 # ./FFmpeg/libavcodec/aacps_fixed_tablegen.c
 # ./FFmpeg/libavcodec/aacps_float.c
 # ./FFmpeg/libavcodec/aacps_tablegen.c
 # ./FFmpeg/libavcodec/aacps_tablegen_template.c
 # ./FFmpeg/libavcodec/aacpsdata.c
-# ./FFmpeg/libavcodec/aacpsdsp_fixed.c
-# ./FFmpeg/libavcodec/aacpsdsp_float.c
+./FFmpeg/libavcodec/aacpsdsp_fixed.c
+./FFmpeg/libavcodec/aacpsdsp_float.c
 # ./FFmpeg/libavcodec/aacpsdsp_template.c
-# ./FFmpeg/libavcodec/aacpsy.c
-# ./FFmpeg/libavcodec/aacsbr.c
-# ./FFmpeg/libavcodec/aacsbr_fixed.c
+./FFmpeg/libavcodec/aacpsy.c
+./FFmpeg/libavcodec/aacsbr.c
+./FFmpeg/libavcodec/aacsbr_fixed.c
 # ./FFmpeg/libavcodec/aacsbr_template.c
 ./FFmpeg/libavcodec/aactab.c
 ./FFmpeg/libavcodec/aandcttab.c
@@ -307,9 +307,9 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/cavsdsp.c
 ./FFmpeg/libavcodec/cbrt_data.c
 ./FFmpeg/libavcodec/cbrt_data_fixed.c
-./FFmpeg/libavcodec/cbrt_fixed_tablegen.c
-./FFmpeg/libavcodec/cbrt_tablegen.c
-./FFmpeg/libavcodec/cbrt_tablegen_template.c
+# ./FFmpeg/libavcodec/cbrt_fixed_tablegen.c
+# ./FFmpeg/libavcodec/cbrt_tablegen.c
+# ./FFmpeg/libavcodec/cbrt_tablegen_template.c
 ./FFmpeg/libavcodec/cbs.c
 ./FFmpeg/libavcodec/cbs_av1.c
 # ./FFmpeg/libavcodec/cbs_av1_syntax_template.c
@@ -344,7 +344,7 @@ zlib/adler32.c
 # ./FFmpeg/libavcodec/codec_list.c
 ./FFmpeg/libavcodec/cook.c
 ./FFmpeg/libavcodec/cook_parser.c
-./FFmpeg/libavcodec/cos_tablegen.c
+# ./FFmpeg/libavcodec/cos_tablegen.c
 ./FFmpeg/libavcodec/cpia.c
 # ./FFmpeg/libavcodec/crystalhd.c
 ./FFmpeg/libavcodec/cscd.c
@@ -368,19 +368,19 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/dct.c
 ./FFmpeg/libavcodec/dct32_fixed.c
 ./FFmpeg/libavcodec/dct32_float.c
-./FFmpeg/libavcodec/dct32_template.c
+# ./FFmpeg/libavcodec/dct32_template.c
 ./FFmpeg/libavcodec/dctref.c
 ./FFmpeg/libavcodec/dds.c
 ./FFmpeg/libavcodec/decode.c
 ./FFmpeg/libavcodec/dfa.c
 ./FFmpeg/libavcodec/dirac.c
-./FFmpeg/libavcodec/dirac_arith.c
-./FFmpeg/libavcodec/dirac_dwt.c
+# ./FFmpeg/libavcodec/dirac_arith.c
+# ./FFmpeg/libavcodec/dirac_dwt.c
 # ./FFmpeg/libavcodec/dirac_dwt_template.c
-./FFmpeg/libavcodec/dirac_parser.c
-./FFmpeg/libavcodec/dirac_vlc.c
-./FFmpeg/libavcodec/diracdec.c
-./FFmpeg/libavcodec/diracdsp.c
+# ./FFmpeg/libavcodec/dirac_parser.c
+# ./FFmpeg/libavcodec/dirac_vlc.c
+# ./FFmpeg/libavcodec/diracdec.c
+# ./FFmpeg/libavcodec/diracdsp.c
 ./FFmpeg/libavcodec/diractab.c
 ./FFmpeg/libavcodec/dnxhd_parser.c
 ./FFmpeg/libavcodec/dnxhddata.c
@@ -400,7 +400,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/dump_extradata_bsf.c
 ./FFmpeg/libavcodec/dv.c
 ./FFmpeg/libavcodec/dv_profile.c
-./FFmpeg/libavcodec/dv_tablegen.c
+# ./FFmpeg/libavcodec/dv_tablegen.c
 ./FFmpeg/libavcodec/dvaudio_parser.c
 ./FFmpeg/libavcodec/dvaudiodec.c
 ./FFmpeg/libavcodec/dvbsub.c
@@ -461,7 +461,7 @@ zlib/adler32.c
 # ./FFmpeg/libavcodec/ffv1enc_template.c
 ./FFmpeg/libavcodec/ffwavesynth.c
 ./FFmpeg/libavcodec/fic.c
-./FFmpeg/libavcodec/file_open.c
+# ./FFmpeg/libavcodec/file_open.c
 ./FFmpeg/libavcodec/filter_units_bsf.c
 ./FFmpeg/libavcodec/fits.c
 ./FFmpeg/libavcodec/fitsdec.c
@@ -549,7 +549,7 @@ zlib/adler32.c
 # ./FFmpeg/libavcodec/h264qpel_template.c
 ./FFmpeg/libavcodec/h265_metadata_bsf.c
 ./FFmpeg/libavcodec/h265_profile_level.c
-# ./FFmpeg/libavcodec/hap.c
+./FFmpeg/libavcodec/hap.c
 # ./FFmpeg/libavcodec/hapdec.c
 # ./FFmpeg/libavcodec/hapenc.c
 ./FFmpeg/libavcodec/hapqa_extract_bsf.c
@@ -676,7 +676,7 @@ zlib/adler32.c
 # ./FFmpeg/libavcodec/libzvbi-teletextdec.c
 ./FFmpeg/libavcodec/ljpegenc.c
 ./FFmpeg/libavcodec/loco.c
-./FFmpeg/libavcodec/log2_tab.c
+# ./FFmpeg/libavcodec/log2_tab.c
 ./FFmpeg/libavcodec/lossless_audiodsp.c
 ./FFmpeg/libavcodec/lossless_videodsp.c
 ./FFmpeg/libavcodec/lossless_videoencdsp.c
@@ -808,7 +808,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/motion_est.c
 # ./FFmpeg/libavcodec/motion_est_template.c
 ./FFmpeg/libavcodec/motionpixels.c
-./FFmpeg/libavcodec/motionpixels_tablegen.c
+# ./FFmpeg/libavcodec/motionpixels_tablegen.c
 ./FFmpeg/libavcodec/movsub_bsf.c
 ./FFmpeg/libavcodec/movtextdec.c
 ./FFmpeg/libavcodec/movtextenc.c
@@ -831,7 +831,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/mpeg_er.c
 ./FFmpeg/libavcodec/mpegaudio.c
 ./FFmpeg/libavcodec/mpegaudio_parser.c
-./FFmpeg/libavcodec/mpegaudio_tablegen.c
+# ./FFmpeg/libavcodec/mpegaudio_tablegen.c
 ./FFmpeg/libavcodec/mpegaudiodata.c
 ./FFmpeg/libavcodec/mpegaudiodec_fixed.c
 ./FFmpeg/libavcodec/mpegaudiodec_float.c
@@ -921,7 +921,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/pcm-bluray.c
 ./FFmpeg/libavcodec/pcm-dvd.c
 ./FFmpeg/libavcodec/pcm.c
-./FFmpeg/libavcodec/pcm_tablegen.c
+# ./FFmpeg/libavcodec/pcm_tablegen.c
 ./FFmpeg/libavcodec/pcx.c
 ./FFmpeg/libavcodec/pcxenc.c
 # ./FFmpeg/libavcodec/pel_template.c
@@ -982,7 +982,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/ptx.c
 ./FFmpeg/libavcodec/qcelpdec.c
 ./FFmpeg/libavcodec/qdm2.c
-./FFmpeg/libavcodec/qdm2_tablegen.c
+# ./FFmpeg/libavcodec/qdm2_tablegen.c
 ./FFmpeg/libavcodec/qdmc.c
 ./FFmpeg/libavcodec/qdrw.c
 ./FFmpeg/libavcodec/qpeg.c
@@ -1016,7 +1016,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/rdft.c
 ./FFmpeg/libavcodec/realtextdec.c
 ./FFmpeg/libavcodec/remove_extradata_bsf.c
-./FFmpeg/libavcodec/reverse.c
+# ./FFmpeg/libavcodec/reverse.c
 # ./FFmpeg/libavcodec/rkmppdec.c
 ./FFmpeg/libavcodec/rl.c
 ./FFmpeg/libavcodec/rl2.c
@@ -1063,8 +1063,8 @@ zlib/adler32.c
 # ./FFmpeg/libavcodec/simple_idct_template.c
 ./FFmpeg/libavcodec/sinewin.c
 ./FFmpeg/libavcodec/sinewin_fixed.c
-./FFmpeg/libavcodec/sinewin_fixed_tablegen.c
-./FFmpeg/libavcodec/sinewin_tablegen.c
+# ./FFmpeg/libavcodec/sinewin_fixed_tablegen.c
+# ./FFmpeg/libavcodec/sinewin_tablegen.c
 # ./FFmpeg/libavcodec/sinewin_tablegen_template.c
 ./FFmpeg/libavcodec/sipr.c
 ./FFmpeg/libavcodec/sipr16k.c
@@ -1132,7 +1132,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/texturedspenc.c
 ./FFmpeg/libavcodec/tiertexseqv.c
 # ./FFmpeg/libavcodec/tiff.c
-# ./FFmpeg/libavcodec/tiff_common.c
+./FFmpeg/libavcodec/tiff_common.c
 # ./FFmpeg/libavcodec/tiff_data.c
 # ./FFmpeg/libavcodec/tiffenc.c
 ./FFmpeg/libavcodec/tmv.c
@@ -1392,8 +1392,8 @@ zlib/adler32.c
 ./FFmpeg/libavdevice/avdevice.c
 # ./FFmpeg/libavdevice/bktr.c
 # ./FFmpeg/libavdevice/caca.c
-./FFmpeg/libavdevice/decklink_dec_c.c
-./FFmpeg/libavdevice/decklink_enc_c.c
+# ./FFmpeg/libavdevice/decklink_dec_c.c
+# ./FFmpeg/libavdevice/decklink_enc_c.c
 # ./FFmpeg/libavdevice/dshow.c
 # ./FFmpeg/libavdevice/dshow_common.c
 # ./FFmpeg/libavdevice/dshow_crossbar.c
@@ -1404,7 +1404,7 @@ zlib/adler32.c
 # ./FFmpeg/libavdevice/fbdev_common.c
 # ./FFmpeg/libavdevice/fbdev_dec.c
 # ./FFmpeg/libavdevice/fbdev_enc.c
-./FFmpeg/libavdevice/file_open.c
+# ./FFmpeg/libavdevice/file_open.c
 # ./FFmpeg/libavdevice/gdigrab.c
 # ./FFmpeg/libavdevice/iec61883.c
 # ./FFmpeg/libavdevice/indev_list.c
@@ -1424,7 +1424,7 @@ zlib/adler32.c
 # ./FFmpeg/libavdevice/pulse_audio_common.c
 # ./FFmpeg/libavdevice/pulse_audio_dec.c
 # ./FFmpeg/libavdevice/pulse_audio_enc.c
-./FFmpeg/libavdevice/reverse.c
+# ./FFmpeg/libavdevice/reverse.c
 # ./FFmpeg/libavdevice/sdl2.c
 # ./FFmpeg/libavdevice/sndio.c
 # ./FFmpeg/libavdevice/sndio_dec.c
@@ -1571,9 +1571,9 @@ zlib/adler32.c
 ./FFmpeg/libavfilter/graphdump.c
 ./FFmpeg/libavfilter/graphparser.c
 ./FFmpeg/libavfilter/lavfutils.c
-./FFmpeg/libavfilter/log2_tab.c
+# ./FFmpeg/libavfilter/log2_tab.c
 ./FFmpeg/libavfilter/lswsutils.c
-# ./FFmpeg/libavfilter/motion_estimation.c
+./FFmpeg/libavfilter/motion_estimation.c
 # ./FFmpeg/libavfilter/opencl.c
 ./FFmpeg/libavfilter/pthread.c
 # ./FFmpeg/libavfilter/qsvvpp.c
@@ -1931,7 +1931,7 @@ zlib/adler32.c
 ./FFmpeg/libavformat/fifo.c
 ./FFmpeg/libavformat/fifo_test.c
 ./FFmpeg/libavformat/file.c
-./FFmpeg/libavformat/file_open.c
+# ./FFmpeg/libavformat/file_open.c
 ./FFmpeg/libavformat/filmstripdec.c
 ./FFmpeg/libavformat/filmstripenc.c
 ./FFmpeg/libavformat/fitsdec.c
@@ -1957,8 +1957,8 @@ zlib/adler32.c
 ./FFmpeg/libavformat/genh.c
 ./FFmpeg/libavformat/gif.c
 ./FFmpeg/libavformat/gifdec.c
-./FFmpeg/libavformat/golomb_tab.c
-./FFmpeg/libavformat/gopher.c
+# ./FFmpeg/libavformat/golomb_tab.c
+# ./FFmpeg/libavformat/gopher.c
 ./FFmpeg/libavformat/gsmdec.c
 ./FFmpeg/libavformat/gxf.c
 ./FFmpeg/libavformat/gxfenc.c
@@ -1974,9 +1974,9 @@ zlib/adler32.c
 ./FFmpeg/libavformat/hlsplaylist.c
 ./FFmpeg/libavformat/hlsproto.c
 ./FFmpeg/libavformat/hnm.c
-./FFmpeg/libavformat/http.c
-./FFmpeg/libavformat/httpauth.c
-./FFmpeg/libavformat/icecast.c
+# ./FFmpeg/libavformat/http.c
+# ./FFmpeg/libavformat/httpauth.c
+# ./FFmpeg/libavformat/icecast.c
 ./FFmpeg/libavformat/icodec.c
 ./FFmpeg/libavformat/icoenc.c
 ./FFmpeg/libavformat/id3v1.c
@@ -1993,7 +1993,7 @@ zlib/adler32.c
 ./FFmpeg/libavformat/img2dec.c
 ./FFmpeg/libavformat/img2enc.c
 ./FFmpeg/libavformat/ingenientdec.c
-./FFmpeg/libavformat/ip.c
+# ./FFmpeg/libavformat/ip.c
 ./FFmpeg/libavformat/ipmovie.c
 ./FFmpeg/libavformat/ircam.c
 ./FFmpeg/libavformat/ircamdec.c
@@ -2016,7 +2016,7 @@ zlib/adler32.c
 # ./FFmpeg/libavformat/libssh.c
 ./FFmpeg/libavformat/lmlm4.c
 ./FFmpeg/libavformat/loasdec.c
-./FFmpeg/libavformat/log2_tab.c
+# ./FFmpeg/libavformat/log2_tab.c
 ./FFmpeg/libavformat/lrc.c
 ./FFmpeg/libavformat/lrcdec.c
 ./FFmpeg/libavformat/lrcenc.c
@@ -2040,7 +2040,7 @@ zlib/adler32.c
 ./FFmpeg/libavformat/mmf.c
 ./FFmpeg/libavformat/mms.c
 ./FFmpeg/libavformat/mmsh.c
-./FFmpeg/libavformat/mmst.c
+# ./FFmpeg/libavformat/mmst.c
 ./FFmpeg/libavformat/mov.c
 ./FFmpeg/libavformat/mov_chan.c
 ./FFmpeg/libavformat/mov_esds.c
@@ -2074,7 +2074,7 @@ zlib/adler32.c
 ./FFmpeg/libavformat/mxfenc.c
 ./FFmpeg/libavformat/mxg.c
 ./FFmpeg/libavformat/ncdec.c
-./FFmpeg/libavformat/network.c
+# ./FFmpeg/libavformat/network.c
 ./FFmpeg/libavformat/nistspheredec.c
 ./FFmpeg/libavformat/nspdec.c
 ./FFmpeg/libavformat/nsvdec.c
@@ -2144,57 +2144,57 @@ zlib/adler32.c
 # ./FFmpeg/libavformat/rtmppkt.c
 # ./FFmpeg/libavformat/rtmpproto.c
 ./FFmpeg/libavformat/rtp.c
-./FFmpeg/libavformat/rtpdec.c
-./FFmpeg/libavformat/rtpdec_ac3.c
-./FFmpeg/libavformat/rtpdec_amr.c
-./FFmpeg/libavformat/rtpdec_asf.c
-./FFmpeg/libavformat/rtpdec_dv.c
-./FFmpeg/libavformat/rtpdec_g726.c
-./FFmpeg/libavformat/rtpdec_h261.c
-./FFmpeg/libavformat/rtpdec_h263.c
-./FFmpeg/libavformat/rtpdec_h263_rfc2190.c
-./FFmpeg/libavformat/rtpdec_h264.c
-./FFmpeg/libavformat/rtpdec_hevc.c
+# ./FFmpeg/libavformat/rtpdec.c
+# ./FFmpeg/libavformat/rtpdec_ac3.c
+# ./FFmpeg/libavformat/rtpdec_amr.c
+# ./FFmpeg/libavformat/rtpdec_asf.c
+# ./FFmpeg/libavformat/rtpdec_dv.c
+# ./FFmpeg/libavformat/rtpdec_g726.c
+# ./FFmpeg/libavformat/rtpdec_h261.c
+# ./FFmpeg/libavformat/rtpdec_h263.c
+# ./FFmpeg/libavformat/rtpdec_h263_rfc2190.c
+# ./FFmpeg/libavformat/rtpdec_h264.c
+# ./FFmpeg/libavformat/rtpdec_hevc.c
 # ./FFmpeg/libavformat/rtpdec_ilbc.c
-./FFmpeg/libavformat/rtpdec_jpeg.c
-./FFmpeg/libavformat/rtpdec_latm.c
-./FFmpeg/libavformat/rtpdec_mpa_robust.c
-./FFmpeg/libavformat/rtpdec_mpeg12.c
-./FFmpeg/libavformat/rtpdec_mpeg4.c
-./FFmpeg/libavformat/rtpdec_mpegts.c
-./FFmpeg/libavformat/rtpdec_qcelp.c
-./FFmpeg/libavformat/rtpdec_qdm2.c
-./FFmpeg/libavformat/rtpdec_qt.c
-./FFmpeg/libavformat/rtpdec_rfc4175.c
-./FFmpeg/libavformat/rtpdec_svq3.c
-./FFmpeg/libavformat/rtpdec_vc2hq.c
-./FFmpeg/libavformat/rtpdec_vp8.c
-./FFmpeg/libavformat/rtpdec_vp9.c
-./FFmpeg/libavformat/rtpdec_xiph.c
-./FFmpeg/libavformat/rtpenc.c
-./FFmpeg/libavformat/rtpenc_aac.c
-./FFmpeg/libavformat/rtpenc_amr.c
+# ./FFmpeg/libavformat/rtpdec_jpeg.c
+# ./FFmpeg/libavformat/rtpdec_latm.c
+# ./FFmpeg/libavformat/rtpdec_mpa_robust.c
+# ./FFmpeg/libavformat/rtpdec_mpeg12.c
+# ./FFmpeg/libavformat/rtpdec_mpeg4.c
+# ./FFmpeg/libavformat/rtpdec_mpegts.c
+# ./FFmpeg/libavformat/rtpdec_qcelp.c
+# ./FFmpeg/libavformat/rtpdec_qdm2.c
+# ./FFmpeg/libavformat/rtpdec_qt.c
+# ./FFmpeg/libavformat/rtpdec_rfc4175.c
+# ./FFmpeg/libavformat/rtpdec_svq3.c
+# ./FFmpeg/libavformat/rtpdec_vc2hq.c
+# ./FFmpeg/libavformat/rtpdec_vp8.c
+# ./FFmpeg/libavformat/rtpdec_vp9.c
+# ./FFmpeg/libavformat/rtpdec_xiph.c
+# ./FFmpeg/libavformat/rtpenc.c
+# ./FFmpeg/libavformat/rtpenc_aac.c
+# ./FFmpeg/libavformat/rtpenc_amr.c
 ./FFmpeg/libavformat/rtpenc_chain.c
-./FFmpeg/libavformat/rtpenc_h261.c
-./FFmpeg/libavformat/rtpenc_h263.c
-./FFmpeg/libavformat/rtpenc_h263_rfc2190.c
-./FFmpeg/libavformat/rtpenc_h264_hevc.c
-./FFmpeg/libavformat/rtpenc_jpeg.c
-./FFmpeg/libavformat/rtpenc_latm.c
-./FFmpeg/libavformat/rtpenc_mpegts.c
-./FFmpeg/libavformat/rtpenc_mpv.c
-./FFmpeg/libavformat/rtpenc_vc2hq.c
-./FFmpeg/libavformat/rtpenc_vp8.c
-./FFmpeg/libavformat/rtpenc_vp9.c
-./FFmpeg/libavformat/rtpenc_xiph.c
-./FFmpeg/libavformat/rtpproto.c
-./FFmpeg/libavformat/rtsp.c
-./FFmpeg/libavformat/rtspdec.c
-./FFmpeg/libavformat/rtspenc.c
+# ./FFmpeg/libavformat/rtpenc_h261.c
+# ./FFmpeg/libavformat/rtpenc_h263.c
+# ./FFmpeg/libavformat/rtpenc_h263_rfc2190.c
+# ./FFmpeg/libavformat/rtpenc_h264_hevc.c
+# ./FFmpeg/libavformat/rtpenc_jpeg.c
+# ./FFmpeg/libavformat/rtpenc_latm.c
+# ./FFmpeg/libavformat/rtpenc_mpegts.c
+# ./FFmpeg/libavformat/rtpenc_mpv.c
+# ./FFmpeg/libavformat/rtpenc_vc2hq.c
+# ./FFmpeg/libavformat/rtpenc_vp8.c
+# ./FFmpeg/libavformat/rtpenc_vp9.c
+# ./FFmpeg/libavformat/rtpenc_xiph.c
+# ./FFmpeg/libavformat/rtpproto.c
+# ./FFmpeg/libavformat/rtsp.c
+# ./FFmpeg/libavformat/rtspdec.c
+# ./FFmpeg/libavformat/rtspenc.c
 ./FFmpeg/libavformat/s337m.c
 ./FFmpeg/libavformat/samidec.c
-./FFmpeg/libavformat/sapdec.c
-./FFmpeg/libavformat/sapenc.c
+# ./FFmpeg/libavformat/sapdec.c
+# ./FFmpeg/libavformat/sapenc.c
 ./FFmpeg/libavformat/sauce.c
 ./FFmpeg/libavformat/sbcdec.c
 ./FFmpeg/libavformat/sbgdec.c
@@ -2240,7 +2240,7 @@ zlib/adler32.c
 ./FFmpeg/libavformat/swfdec.c
 ./FFmpeg/libavformat/swfenc.c
 ./FFmpeg/libavformat/takdec.c
-./FFmpeg/libavformat/tcp.c
+# ./FFmpeg/libavformat/tcp.c
 ./FFmpeg/libavformat/tedcaptionsdec.c
 ./FFmpeg/libavformat/tee.c
 ./FFmpeg/libavformat/tee_common.c
@@ -2254,7 +2254,7 @@ zlib/adler32.c
 # ./FFmpeg/libavformat/tests/url.c
 ./FFmpeg/libavformat/thp.c
 ./FFmpeg/libavformat/tiertexseq.c
-./FFmpeg/libavformat/tls.c
+# ./FFmpeg/libavformat/tls.c
 # ./FFmpeg/libavformat/tls_gnutls.c
 # ./FFmpeg/libavformat/tls_libtls.c
 # ./FFmpeg/libavformat/tls_mbedtls.c
@@ -2267,9 +2267,9 @@ zlib/adler32.c
 ./FFmpeg/libavformat/tty.c
 ./FFmpeg/libavformat/txd.c
 ./FFmpeg/libavformat/ty.c
-./FFmpeg/libavformat/udp.c
+# ./FFmpeg/libavformat/udp.c
 ./FFmpeg/libavformat/uncodedframecrcenc.c
-./FFmpeg/libavformat/unix.c
+# ./FFmpeg/libavformat/unix.c
 ./FFmpeg/libavformat/url.c
 ./FFmpeg/libavformat/urldecode.c
 ./FFmpeg/libavformat/utils.c
@@ -2493,7 +2493,7 @@ zlib/adler32.c
 ./FFmpeg/libswresample/audioconvert.c
 ./FFmpeg/libswresample/dither.c
 # ./FFmpeg/libswresample/dither_template.c
-./FFmpeg/libswresample/log2_tab.c
+# ./FFmpeg/libswresample/log2_tab.c
 # ./FFmpeg/libswresample/noise_shaping_data.c
 ./FFmpeg/libswresample/options.c
 ./FFmpeg/libswresample/rematrix.c
@@ -2519,7 +2519,7 @@ zlib/adler32.c
 ./FFmpeg/libswscale/hscale.c
 ./FFmpeg/libswscale/hscale_fast_bilinear.c
 ./FFmpeg/libswscale/input.c
-./FFmpeg/libswscale/log2_tab.c
+# ./FFmpeg/libswscale/log2_tab.c
 ./FFmpeg/libswscale/options.c
 ./FFmpeg/libswscale/output.c
 # ./FFmpeg/libswscale/ppc/swscale_altivec.c

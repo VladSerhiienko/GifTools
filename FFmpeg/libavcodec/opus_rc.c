@@ -21,6 +21,7 @@
  */
 
 #include "opus_rc.h"
+#include "libavutil/intmath.h"
 
 #define OPUS_RC_BITS 32
 #define OPUS_RC_SYM  8

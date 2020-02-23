@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "libavutil/mem.h"
+#include "libavutil/intmath.h"
 
 #include "av1.h"
 #include "av1_parse.h"

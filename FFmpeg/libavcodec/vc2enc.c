@@ -21,6 +21,7 @@
 
 #include "libavutil/pixdesc.h"
 #include "libavutil/opt.h"
+#include "libavutil/intmath.h"
 #include "dirac.h"
 #include "put_bits.h"
 #include "internal.h"

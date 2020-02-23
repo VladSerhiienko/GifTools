@@ -1,0 +1,44 @@
+emconfigure ./configure \
+  --disable-everything \
+  --disable-network\
+  --disable-x86asm \
+  --disable-inline-asm \
+  --disable-doc \
+  --disable-stripping 
+
+
+
+
+./configure \
+  --disable-everything \
+  --disable-network \
+  --disable-autodetect \
+  --enable-small
+
+
+
+./configure \
+  --disable-everything \
+  --disable-network \
+  --disable-autodetect \
+  --disable-asm \
+  --disable-inline-asm \
+  --disable-x86asm \
+  --enable-small \
+  --enable-decoder=h264
+
+
+./configure \
+  --disable-everything \
+  --disable-network \
+  --disable-autodetect \
+  --enable-small \
+  --enable-decoder=aac*,ac3*,opus,mp3,mp4 \
+  --enable-demuxer=mp3,mov,opus \
+  --enable-muxer=mp3,mp4 \
+  --enable-parser=ac3 \
+  --enable-parser=mpegaudio \
+  --enable-parser=h264 \
+  --enable-parser=opus \
+  --enable-filter=aresample
+

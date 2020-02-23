@@ -20,6 +20,7 @@
  */
 
 #include "libavutil/mem.h"
+#include "libavutil/intmath.h"
 #include "libavcodec/av1.h"
 #include "libavcodec/av1_parse.h"
 #include "libavcodec/profiles.h"

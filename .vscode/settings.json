@@ -36,6 +36,9 @@
         "time.h": "c",
         "internal.h": "c",
         "libm.h": "c",
-        "mathematics.h": "c"
+        "mathematics.h": "c",
+        "opt.h": "c",
+        "intmath.h": "c",
+        "opus_rc.h": "c"
     }
 }

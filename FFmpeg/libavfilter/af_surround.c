@@ -22,6 +22,7 @@
 #include "libavutil/channel_layout.h"
 #include "libavutil/opt.h"
 #include "libavcodec/avfft.h"
+#include "libavutil/intmath.h"
 #include "avfilter.h"
 #include "audio.h"
 #include "formats.h"

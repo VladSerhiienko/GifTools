@@ -24,6 +24,7 @@
 #include "opustab.h"
 #include "mdct15.h"
 #include "libavutil/qsort.h"
+#include "libavutil/intmath.h"
 
 static float pvq_band_cost(CeltPVQ *pvq, CeltFrame *f, OpusRangeCoder *rc, int band,
                            float *bits, float lambda)
