@@ -42,3 +42,8 @@ emconfigure ./configure \
   --enable-parser=opus \
   --enable-filter=aresample
 
+cmake -Bbuild_xcode -H. -G Xcode
+
+cmake -Bbuild_emsdk -H. -DCMAKE_TOOLCHAIN_FILE=/Users/vserhiienko/Projects/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+
+emmake make -C build_emsdk

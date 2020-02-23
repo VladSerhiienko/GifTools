@@ -14,42 +14,29 @@ endif(MSVC)
 include_directories(
     FFmpeg
     zlib
-    FFmpeg/libavcodec
-    FFmpeg/libavdevice
-    FFmpeg/libavfilter
-    FFmpeg/libavformat
-    FFmpeg/libavresample
-    # FFmpeg/libavutil
-    FFmpeg/libpostproc
-    FFmpeg/libswresample
-    FFmpeg/libswscale
-    /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
 )
 
 add_executable(
     GifTools main.cpp
     zlib/inflate.c
-# zlib/test/infcover.c
-# zlib/test/example.c
-# zlib/test/minigzip.c
 zlib/compress.c
 zlib/deflate.c
-zlib/gzread.c
+# zlib/gzread.c
 zlib/crc32.c
 zlib/infback.c
 zlib/zutil.c
-zlib/gzlib.c
+# zlib/gzlib.c
 zlib/inftrees.c
 zlib/uncompr.c
-zlib/gzwrite.c
+# zlib/gzwrite.c
 zlib/trees.c
-zlib/gzclose.c
+# zlib/gzclose.c
 zlib/inffast.c
 zlib/adler32.c
 ./FFmpeg/compat/atomics/pthread/stdatomic.c
 ./FFmpeg/compat/getopt.c
-# ./FFmpeg/compat/msvcrt/snprintf.c
 ./FFmpeg/compat/strtod.c
+# ./FFmpeg/compat/msvcrt/snprintf.c
 # ./FFmpeg/doc/examples/avio_dir_cmd.c
 # ./FFmpeg/doc/examples/avio_reading.c
 # ./FFmpeg/doc/examples/decode_audio.c
@@ -75,6 +62,7 @@ zlib/adler32.c
 # ./FFmpeg/doc/examples/vaapi_transcode.c
 # ./FFmpeg/doc/print_options.c
 # ./FFmpeg/fftools/cmdutils.c
+
 ## Cmd line tool
 # ./FFmpeg/fftools/ffmpeg.c
 # ./FFmpeg/fftools/ffmpeg_cuvid.c
@@ -85,6 +73,7 @@ zlib/adler32.c
 # ./FFmpeg/fftools/ffmpeg_videotoolbox.c
 # ./FFmpeg/fftools/ffplay.c
 # ./FFmpeg/fftools/ffprobe.c
+
 ./FFmpeg/libavcodec/012v.c
 ./FFmpeg/libavcodec/4xm.c
 ./FFmpeg/libavcodec/8bps.c
@@ -143,7 +132,7 @@ zlib/adler32.c
 ./FFmpeg/libavcodec/aasc.c
 ./FFmpeg/libavcodec/ac3.c
 ./FFmpeg/libavcodec/ac3_parser.c
-./FFmpeg/libavcodec/ac3dec.c
+# ./FFmpeg/libavcodec/ac3dec.c
 ./FFmpeg/libavcodec/ac3dec_data.c
 ./FFmpeg/libavcodec/ac3dec_fixed.c
 ./FFmpeg/libavcodec/ac3dec_float.c

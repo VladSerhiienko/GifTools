@@ -45,6 +45,7 @@
 #define TEST 0
 #endif
 
+uint32_t arc4random(void);
 static int read_random(uint32_t *dst, const char *file)
 {
 #if HAVE_UNISTD_H

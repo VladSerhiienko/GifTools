@@ -26,6 +26,8 @@
 #include "av1.h"
 #include "avcodec.h"
 #include "get_bits.h"
+#include "libavutil/intmath.h"
+
 
 typedef struct AV1OBU {
     /** Size of payload */

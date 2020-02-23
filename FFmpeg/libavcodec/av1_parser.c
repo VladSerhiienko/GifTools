@@ -24,6 +24,7 @@
 #include "cbs.h"
 #include "cbs_av1.h"
 #include "parser.h"
+#include "libavutil/intmath.h"
 
 typedef struct AV1ParseContext {
     CodedBitstreamContext *cbc;
