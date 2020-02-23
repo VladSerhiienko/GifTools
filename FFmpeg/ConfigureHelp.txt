@@ -591,3 +591,67 @@ txd			   vp9_rkmpp		      zero12v
 ulti			   vp9_v4l2m2m		      zerocodec
 utvideo			   vplayer		      zlib
 v210			   vqa			      zmbv
+
+
+./configure --list-demuxers                                                                        19:25:24
+aa			  concat		    ilbc		      microdvd			pcm_u16le		  sup
+aac			  dash			    image2		      mjpeg			pcm_u24be		  svag
+ac3			  data			    image2_alias_pix	      mjpeg_2000		pcm_u24le		  swf
+acm			  daud			    image2_brender_pix	      mlp			pcm_u32be		  tak
+act			  dcstr			    image2pipe		      mlv			pcm_u32le		  tedcaptions
+adf			  dfa			    image_bmp_pipe	      mm			pcm_u8			  thp
+adp			  dirac			    image_dds_pipe	      mmf			pcm_vidc		  threedostr
+ads			  dnxhd			    image_dpx_pipe	      mov			pjs			  tiertexseq
+adx			  dsf			    image_exr_pipe	      mp3			pmp			  tmv
+aea			  dsicin		    image_j2k_pipe	      mpc			pva			  truehd
+afc			  dss			    image_jpeg_pipe	      mpc8			pvf			  tta
+aiff			  dts			    image_jpegls_pipe	      mpegps			qcp			  tty
+aix			  dtshd			    image_pam_pipe	      mpegts			r3d			  txd
+amr			  dv			    image_pbm_pipe	      mpegtsraw			rawvideo		  ty
+amrnb			  dvbsub		    image_pcx_pipe	      mpegvideo			realtext		  v210
+amrwb			  dvbtxt		    image_pgm_pipe	      mpjpeg			redspark		  v210x
+anm			  dxa			    image_pgmyuv_pipe	      mpl2			rl2			  vag
+apc			  ea			    image_pictor_pipe	      mpsub			rm			  vapoursynth
+ape			  ea_cdata		    image_png_pipe	      msf			roq			  vc1
+apng			  eac3			    image_ppm_pipe	      msnwc_tcp			rpl			  vc1t
+aptx			  epaf			    image_psd_pipe	      mtaf			rsd			  vivo
+aptx_hd			  ffmetadata		    image_qdraw_pipe	      mtv			rso			  vmd
+aqtitle			  filmstrip		    image_sgi_pipe	      musx			rtp			  vobsub
+asf			  fits			    image_sunrast_pipe	      mv			rtsp			  voc
+asf_o			  flac			    image_svg_pipe	      mvi			s337m			  vpk
+ass			  flic			    image_tiff_pipe	      mxf			sami			  vplayer
+ast			  flv			    image_webp_pipe	      mxg			sap			  vqf
+au			  fourxm		    image_xpm_pipe	      nc			sbc			  w64
+avi			  frm			    image_xwd_pipe	      nistsphere		sbg			  wav
+avisynth		  fsb			    ingenient		      nsp			scc			  wc3
+avr			  g722			    ipmovie		      nsv			sdp			  webm_dash_manifest
+avs			  g723_1		    ircam		      nut			sdr2			  webvtt
+avs2			  g726			    iss			      nuv			sds			  wsaud
+bethsoftvid		  g726le		    iv8			      ogg			sdx			  wsd
+bfi			  g729			    ivf			      oma			segafilm		  wsvqa
+bfstm			  gdv			    ivr			      paf			ser			  wtv
+bink			  genh			    jacosub		      pcm_alaw			shorten			  wv
+bintext			  gif			    jv			      pcm_f32be			siff			  wve
+bit			  gsm			    libgme		      pcm_f32le			sln			  xa
+bmv			  gxf			    libmodplug		      pcm_f64be			smacker			  xbin
+boa			  h261			    libopenmpt		      pcm_f64le			smjpeg			  xmv
+brstm			  h263			    live_flv		      pcm_mulaw			smush			  xvag
+c93			  h264			    lmlm4		      pcm_s16be			sol			  xwma
+caf			  hevc			    loas		      pcm_s16le			sox			  yop
+cavsvideo		  hls			    lrc			      pcm_s24be			spdif			  yuv4mpegpipe
+cdg			  hnm			    lvf			      pcm_s24le			srt
+cdxl			  ico			    lxf			      pcm_s32be			stl
+cine			  idcin			    m4v			      pcm_s32le			str
+codec2			  idf			    matroska		      pcm_s8			subviewer
+codec2raw		  iff			    mgsts		      pcm_u16be			subviewer1
+
+
+./configure --list-parsers                                                                         19:25:29
+aac			  cook			    dvdsub		      mjpeg			rv30			  vp8
+aac_latm		  dca			    flac		      mlp			rv40			  vp9
+ac3			  dirac			    g729		      mpeg4video		sbc			  xma
+adx			  dnxhd			    gsm			      mpegaudio			sipr
+av1			  dpx			    h261		      mpegvideo			tak
+avs2			  dvaudio		    h263		      opus			vc1
+bmp			  dvbsub		    h264		      png			vorbis
+cavsvideo		  dvd_nav		    hevc		      pnm			vp3

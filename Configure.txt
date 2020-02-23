@@ -25,7 +25,10 @@ emconfigure ./configure \
   --disable-inline-asm \
   --disable-x86asm \
   --enable-small \
-  --enable-decoder=h264
+  --enable-decoder=h264 \
+  --enable-parser=h264 \
+  --enable-muxer=h264 \
+  --enable-demuxer=h264
 
 
 ./configure \
