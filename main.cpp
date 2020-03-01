@@ -7,9 +7,13 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
 #include <libavutil/pixdesc.h>
+#include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 }
 
+#define STB_IMAGE_WRITE_STATIC
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 std::vector<uint8_t> fileReadFileToBuffer(const char* imgFilePath) {
     if (FILE* imgFileHandle = fopen(imgFilePath, "rb")) {
@@ -48,24 +52,6 @@ struct InputStream {
     
 };
 
-/// <summary>
-/// Reads up to buffer_capacity_bytes_count bytes into supplied buffer.
-/// Basically should work like ::read C method.
-/// </summary>
-/// <param name="opaque">
-/// Opaque pointer to reader instance. Passing nullptr is not allowed.
-/// </param>
-/// <param name="p_buffer">
-/// Pointer to data buffer. Passing nullptr is not allowed.
-/// </param>
-/// <param name="buffer_capacity_bytes_count">
-/// Size of the buffer pointed to by p_buffer, in bytes.
-/// Passing value less than or equal to 0 is not allowed.
-/// </param>
-/// <returns>
-/// Non negative values containing amount of bytes actually read. 0 if EOF has been reached.
-/// -1 if an error occurred.
-/// </returns>
 static auto
 Read(void * const opaque, uint8_t * p_buffer, int const buffer_capacity_bytes_count) noexcept {
     int result{-1};
@@ -127,6 +113,12 @@ Seek(void * const opaque, int64_t const pos, int const whence) noexcept {
     return(result);
 }
 
+void write_rgb24_to_png(const uint8_t* data, size_t width, size_t height) {
+    static uint32_t frame_counter = 0;
+    char buff[256] = {};
+    sprintf(buff, "write_rgb24_to_png_%09u.png", frame_counter++);
+    stbi_write_png(buff, width, height, 3, data, width * 3);
+}
 
 int main(int argc, char** argv) {
     printf("Yup.");
@@ -187,9 +179,92 @@ int main(int argc, char** argv) {
     //     return -1;
     // }
     
-    if (avcodec_open2(primaryStream->codec, primaryCodec, nullptr) < 0) {
+    auto primaryStreamCodec = primaryStream->codec;
+    if (avcodec_open2(primaryStreamCodec, primaryCodec, nullptr) < 0) {
         return -1;
     }
+    
+
+    const int dst_width = primaryStreamCodec->width;
+    const int dst_height = primaryStreamCodec->height;
+    const AVPixelFormat dst_pix_fmt = AV_PIX_FMT_RGB24;
+    // const AVPixelFormat dst_pix_fmt = AV_PIX_FMT_BGR24;
+    
+    SwsContext* swsContext = sws_getCachedContext(
+        nullptr, primaryStreamCodec->width, primaryStreamCodec->height, primaryStreamCodec->pix_fmt,
+        dst_width, dst_height, dst_pix_fmt, SWS_BICUBIC, nullptr, nullptr, nullptr);
+
+    if (!swsContext) {
+        return -1;
+    }
+    
+    AVFrame* frame = av_frame_alloc();
+    AVPicture* picture = reinterpret_cast<AVPicture*>(frame);
+    
+    size_t imageByteSize = av_image_get_buffer_size(dst_pix_fmt, dst_width, dst_height, 1);
+    std::vector<uint8_t> imageBuffer(imageByteSize);
+    av_image_fill_arrays(picture->data, picture->linesize, imageBuffer.data(), dst_pix_fmt, dst_width, dst_height, 1);
+
+    AVFrame* decframe = av_frame_alloc();
+    AVPacket packet = {};
+
+    unsigned nb_frames = 0;
+    bool end_of_stream = false;
+    int got_pic = 0;
+    int ret = 0;
+    
+    do {
+        if (!end_of_stream) {
+            // read packet from input file
+            ret = av_read_frame(fmtContext, &packet);
+            if (ret < 0 && ret != AVERROR_EOF) {
+                return 2;
+            }
+            
+            if (ret == 0 && packet.stream_index != bestStreamIndex)
+                goto next_packet;
+                
+            end_of_stream = (ret == AVERROR_EOF);
+        }
+            
+        if (end_of_stream) {
+            // null packet for bumping process
+            av_init_packet(&packet);
+            packet.data = nullptr;
+            packet.size = 0;
+        }
+
+        // decode video frame
+        avcodec_decode_video2(primaryStreamCodec, decframe, &got_pic, &packet);
+        
+        if (!got_pic) {
+            goto next_packet;
+        }
+        
+        // convert frame to OpenCV matrix
+        sws_scale(swsContext, decframe->data, decframe->linesize, 0, decframe->height, frame->data, frame->linesize);
+        write_rgb24_to_png(imageBuffer.data(), dst_width, dst_height);
+
+        ++nb_frames;
+        next_packet:
+        
+        // av_free_packet(&packet);
+        if (packet.buf) {
+            av_buffer_unref(&packet.buf);
+        }
+        
+        packet.data = nullptr;
+        packet.size = 0;
+        av_packet_free_side_data(&packet);
+        
+    } while (!end_of_stream || got_pic);
+    
+    // std::cout << nb_frames << " frames decoded" << std::endl;
+    
+    av_frame_free(&decframe);
+    av_frame_free(&frame);
+    avcodec_close(primaryStreamCodec);
+    avformat_close_input(&fmtContext);
     
     return 0;
 }
