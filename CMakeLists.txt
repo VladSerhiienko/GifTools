@@ -10,6 +10,9 @@ if(MSVC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
 endif(MSVC)
 
+file(GLOB_RECURSE GIFTOOLS_LIB_SOURCES
+    ${PROJECT_SOURCE_DIR}/lib/*.h
+    ${PROJECT_SOURCE_DIR}/lib/*.cc)
 
 include_directories(
     FFmpeg
@@ -17,7 +20,9 @@ include_directories(
 )
 
 add_executable(
-    GifTools main.cpp
+    GifTools
+    ${GIFTOOLS_LIB_SOURCES}
+    main.cpp
     zlib/inflate.c
 zlib/compress.c
 zlib/deflate.c
