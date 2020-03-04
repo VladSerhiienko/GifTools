@@ -60,18 +60,18 @@
 #endif
 
 struct GifFileBuffer {
-    using putc_fn = int(int c, void *);
-    using puts_fn = int(const char * s, void *);
-    using write_fn = size_t(const void*  p, size_t sz, size_t n, void *);
-    using open_fn = void*(GifFileBuffer* buffer, const char * fileName, const char * mode);
-    using close_fn = int(void *);
+    using FnOpen = void*(GifFileBuffer* buffer, const char * fileName, const char * mode);
+    using FnPutc = int(int c, void *);
+    using FnPuts = int(const char * s, void *);
+    using FnWrite = size_t(const void*  p, size_t sz, size_t n, void *);
+    using FnClose = int(void *);
     
     void* stream = nullptr;
-    open_fn* open = nullptr;
-    putc_fn* putc = nullptr;
-    puts_fn* puts = nullptr;
-    write_fn* write = nullptr;
-    close_fn* close = nullptr;
+    FnOpen* open = nullptr;
+    FnPutc* putc = nullptr;
+    FnPuts* puts = nullptr;
+    FnWrite* write = nullptr;
+    FnClose* close = nullptr;
 };
 
 struct GifVectorFileBuffer : GifFileBuffer {
@@ -436,9 +436,10 @@ void GifMakePalette( const uint8_t* lastFrame, const uint8_t* nextFrame, uint32_
     memcpy(destroyableImage, nextFrame, imageSize);
 
     int numPixels = (int)(width * height);
-    if(lastFrame)
+    if(lastFrame) {
         numPixels = GifPickChangedPixels(lastFrame, destroyableImage, numPixels);
-
+    }
+    
     const int lastElt = 1 << bitDepth;
     const int splitElt = lastElt/2;
     const int splitDist = splitElt/2;
