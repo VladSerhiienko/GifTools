@@ -1,3 +1,7 @@
+#include <GifToolsImage.h>
+#include <GifToolsBuffer.h>
+#include <GifToolsFile.h>
+
 #include <cstdint>
 #include <cstdio>
 #include <optional>
@@ -343,8 +347,41 @@ std::vector<uint8_t> videoStreamBruteDumpFrameAt(VideoStream& videoStream, doubl
     return {};
 }
 
+void testGifWriter() {
+    using namespace giftools;
+    
+    UniqueManagedObj<Buffer> bufferObjs[4];
+    bufferObjs[0] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083058.jpg");
+    bufferObjs[1] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg");
+    bufferObjs[2] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083101.jpg");
+    bufferObjs[3] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg");
+    
+    
+    UniqueManagedObj<Image> imageObjs[4];
+    imageObjs[0] = imageLoadFromMemory(bufferObjs[0].get());
+    imageObjs[1] = imageLoadFromMemory(bufferObjs[1].get());
+    imageObjs[2] = imageLoadFromMemory(bufferObjs[2].get());
+    imageObjs[3] = imageLoadFromMemory(bufferObjs[3].get());
+    
+    const size_t delay = 100;
+    const size_t width = imageObjs[0]->width;
+    const size_t height = imageObjs[0]->height;
+    
+    UniqueManagedObj<GifBuilder> gifBuilderObj = gifBuilderInitialize(width, height, delay);
+    gifBuilderAddImage(gifBuilderObj.get(), imageObjs[0].get(), delay);
+    gifBuilderAddImage(gifBuilderObj.get(), imageObjs[1].get(), delay);
+    gifBuilderAddImage(gifBuilderObj.get(), imageObjs[2].get(), delay);
+    gifBuilderAddImage(gifBuilderObj.get(), imageObjs[3].get(), delay);
+    
+    UniqueManagedObj<Buffer> gifBufferObj = gifBuilderFinalize(gifBuilderObj.get());
+    fileBinaryWrite("TestGif.gif", gifBufferObj.get());
+}
+
 int main(int argc, char** argv) {
     printf("Yup.");
+    
+    giftools::ManagedObjStorage::init();
+    testGifWriter();
 
     const char* testMp4File = "/Users/vserhiienko/Downloads/2020-02-23 18.53.40.mp4";
     auto optVideoStream = videoStreamOpen(testMp4File);

@@ -76,7 +76,13 @@ constexpr uint8_t CustomType = 0;
 template <>
 inline uint8_t managedType<ManagedObj>(){ return CustomType; }
 template <typename T>
-T* managedCast(ManagedObj* managedObj) { assert(!managedObj || managedObj->objId().type == CustomType); return managedObj ? dynamic_cast<T*>(managedObj) : nullptr; }
+T* managedCast(ManagedObj* managedObj) {
+    if (!managedObj) {return nullptr;}
+    if (managedObj->objId().type != managedType<T>()) {return nullptr;}
+    return static_cast<T*>(managedObj);
+    // assert(!managedObj || managedObj->objId().type == CustomType);
+    // return managedObj ? dynamic_cast<T*>(managedObj) : nullptr;
+}
 
 ManagedObjStorage& managedObjStorageDefault();
 

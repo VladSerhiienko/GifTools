@@ -803,9 +803,13 @@ void GifWriteLzwImage(GifFileBuffer* buffer, uint8_t* image, uint32_t left, uint
 
 struct GifWriter
 {
-    GifFileBuffer fileBuffer = {};
+    GifFileBuffer* fileBuffer = nullptr;
     uint8_t* oldImage = nullptr;
     bool firstFrame = false;
+    
+    struct {
+        GifStdioFileBuffer stdioBuffer = {};
+    } internals;
 };
 
 // Creates a gif file.
@@ -816,61 +820,55 @@ bool GifBegin( GifWriter* writer, const char* filename, uint32_t width, uint32_t
     (void)bitDepth; (void)dither; // Mute "Unused argument" warnings
     
     if (!writer) { return false; }
-    
-    assert(!writer->fileBuffer.open ||
-           writer->fileBuffer.putc ||
-           writer->fileBuffer.puts ||
-           writer->fileBuffer.write ||
-           writer->fileBuffer.close);
 
-    if (!writer->fileBuffer.open) {
-        writer->fileBuffer = GifStdioFileBuffer();
+    if (!writer->fileBuffer) {
+        writer->fileBuffer = &writer->internals.stdioBuffer;
     }
     
-    writer->fileBuffer.stream = (void*)writer->fileBuffer.open(&writer->fileBuffer, filename, "wb");
-    if(!writer->fileBuffer.stream) { return false; }
+    writer->fileBuffer->stream = (void*)writer->fileBuffer->open(writer->fileBuffer, filename, "wb");
+    if(!writer->fileBuffer->stream) { return false; }
 
     writer->firstFrame = true;
 
     // allocate
     writer->oldImage = (uint8_t*)GIF_MALLOC(width*height*4);
 
-    writer->fileBuffer.puts("GIF89a", writer->fileBuffer.stream);
+    writer->fileBuffer->puts("GIF89a", writer->fileBuffer->stream);
 
     // screen descriptor
-    writer->fileBuffer.putc(width & 0xff, writer->fileBuffer.stream);
-    writer->fileBuffer.putc((width >> 8) & 0xff, writer->fileBuffer.stream);
-    writer->fileBuffer.putc(height & 0xff, writer->fileBuffer.stream);
-    writer->fileBuffer.putc((height >> 8) & 0xff, writer->fileBuffer.stream);
+    writer->fileBuffer->putc(width & 0xff, writer->fileBuffer->stream);
+    writer->fileBuffer->putc((width >> 8) & 0xff, writer->fileBuffer->stream);
+    writer->fileBuffer->putc(height & 0xff, writer->fileBuffer->stream);
+    writer->fileBuffer->putc((height >> 8) & 0xff, writer->fileBuffer->stream);
 
-    writer->fileBuffer.putc(0xf0, writer->fileBuffer.stream);  // there is an unsorted global color table of 2 entries
-    writer->fileBuffer.putc(0, writer->fileBuffer.stream);     // background color
-    writer->fileBuffer.putc(0, writer->fileBuffer.stream);     // pixels are square (we need to specify this because it's 1989)
+    writer->fileBuffer->putc(0xf0, writer->fileBuffer->stream);  // there is an unsorted global color table of 2 entries
+    writer->fileBuffer->putc(0, writer->fileBuffer->stream);     // background color
+    writer->fileBuffer->putc(0, writer->fileBuffer->stream);     // pixels are square (we need to specify this because it's 1989)
 
     // now the "global" palette (really just a dummy palette)
     // color 0: black
-    writer->fileBuffer.putc(0, writer->fileBuffer.stream);
-    writer->fileBuffer.putc(0, writer->fileBuffer.stream);
-    writer->fileBuffer.putc(0, writer->fileBuffer.stream);
+    writer->fileBuffer->putc(0, writer->fileBuffer->stream);
+    writer->fileBuffer->putc(0, writer->fileBuffer->stream);
+    writer->fileBuffer->putc(0, writer->fileBuffer->stream);
     // color 1: also black
-    writer->fileBuffer.putc(0, writer->fileBuffer.stream);
-    writer->fileBuffer.putc(0, writer->fileBuffer.stream);
-    writer->fileBuffer.putc(0, writer->fileBuffer.stream);
+    writer->fileBuffer->putc(0, writer->fileBuffer->stream);
+    writer->fileBuffer->putc(0, writer->fileBuffer->stream);
+    writer->fileBuffer->putc(0, writer->fileBuffer->stream);
 
     if( delay != 0 )
     {
         // animation header
-        writer->fileBuffer.putc(0x21, writer->fileBuffer.stream); // extension
-        writer->fileBuffer.putc(0xff, writer->fileBuffer.stream); // application specific
-        writer->fileBuffer.putc(11, writer->fileBuffer.stream); // length 11
-        writer->fileBuffer.puts("NETSCAPE2.0", writer->fileBuffer.stream); // yes, really
-        writer->fileBuffer.putc(3, writer->fileBuffer.stream); // 3 bytes of NETSCAPE2.0 data
+        writer->fileBuffer->putc(0x21, writer->fileBuffer->stream); // extension
+        writer->fileBuffer->putc(0xff, writer->fileBuffer->stream); // application specific
+        writer->fileBuffer->putc(11, writer->fileBuffer->stream); // length 11
+        writer->fileBuffer->puts("NETSCAPE2.0", writer->fileBuffer->stream); // yes, really
+        writer->fileBuffer->putc(3, writer->fileBuffer->stream); // 3 bytes of NETSCAPE2.0 data
 
-        writer->fileBuffer.putc(1, writer->fileBuffer.stream); // JUST BECAUSE
-        writer->fileBuffer.putc(0, writer->fileBuffer.stream); // loop infinitely (byte 0)
-        writer->fileBuffer.putc(0, writer->fileBuffer.stream); // loop infinitely (byte 1)
+        writer->fileBuffer->putc(1, writer->fileBuffer->stream); // JUST BECAUSE
+        writer->fileBuffer->putc(0, writer->fileBuffer->stream); // loop infinitely (byte 0)
+        writer->fileBuffer->putc(0, writer->fileBuffer->stream); // loop infinitely (byte 1)
 
-        writer->fileBuffer.putc(0, writer->fileBuffer.stream); // block terminator
+        writer->fileBuffer->putc(0, writer->fileBuffer->stream); // block terminator
     }
 
     return true;
@@ -883,7 +881,7 @@ bool GifBegin( GifWriter* writer, const char* filename, uint32_t width, uint32_t
 bool GifWriteFrame( GifWriter* writer, const uint8_t* image, uint32_t width, uint32_t height, uint32_t delay, int bitDepth = 8, bool dither = false )
 {
     if (!writer) { return false; }
-    if (!writer->fileBuffer.stream) { return false; }
+    if (!writer->fileBuffer->stream) { return false; }
 
     const uint8_t* oldImage = writer->firstFrame? NULL : writer->oldImage;
     writer->firstFrame = false;
@@ -896,7 +894,7 @@ bool GifWriteFrame( GifWriter* writer, const uint8_t* image, uint32_t width, uin
     else
         GifThresholdImage(oldImage, image, writer->oldImage, width, height, &pal);
 
-    GifWriteLzwImage(&writer->fileBuffer, writer->oldImage, 0, 0, width, height, delay, &pal);
+    GifWriteLzwImage(writer->fileBuffer, writer->oldImage, 0, 0, width, height, delay, &pal);
 
     return true;
 }
@@ -907,13 +905,13 @@ bool GifWriteFrame( GifWriter* writer, const uint8_t* image, uint32_t width, uin
 bool GifEnd( GifWriter* writer )
 {
     if (!writer) { return false; }
-    if (!writer->fileBuffer.stream) { return false; }
+    if (!writer->fileBuffer->stream) { return false; }
 
-    writer->fileBuffer.putc(0x3b, writer->fileBuffer.stream); // end of file
-    writer->fileBuffer.close(writer->fileBuffer.stream);
+    writer->fileBuffer->putc(0x3b, writer->fileBuffer->stream); // end of file
+    writer->fileBuffer->close(writer->fileBuffer->stream);
     GIF_FREE(writer->oldImage);
 
-    writer->fileBuffer.stream = NULL;
+    writer->fileBuffer->stream = NULL;
     writer->oldImage = NULL;
 
     return true;

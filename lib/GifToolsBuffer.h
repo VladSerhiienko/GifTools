@@ -3,6 +3,10 @@
 
 namespace giftools {
 
+struct Buffer;
+template <> Buffer* managedCast<Buffer>(ManagedObj* managedObj);
+template<> uint8_t managedType<Buffer>();
+
 struct Buffer : public ManagedObj {
     Buffer();
     virtual ~Buffer() override;
@@ -11,16 +15,13 @@ struct Buffer : public ManagedObj {
 };
 
 UniqueManagedObj<Buffer> bufferCopyFromVector(const std::vector<uint8_t>& buffer);
-uint8_t* bufferData(Buffer* buffer);
-void bufferResize(Buffer* buffer, size_t value);
-void bufferReserve(Buffer* buffer, size_t value);
-void bufferFree(Buffer* buffer);
-
-template <>
-Buffer* managedCast<Buffer>(ManagedObj* managedObj);
-
-template<>
-uint8_t managedType<Buffer>();
+UniqueManagedObj<Buffer> bufferFromVector(std::vector<uint8_t>&& buffer);
+uint8_t* bufferMutableData(Buffer* bufferObj);
+const uint8_t* bufferData(Buffer* bufferObj);
+size_t bufferSize(Buffer* bufferObj);
+void bufferResize(Buffer* bufferObj, size_t value);
+void bufferReserve(Buffer* bufferObj, size_t value);
+void bufferFree(Buffer* bufferObj);
 
 }
 

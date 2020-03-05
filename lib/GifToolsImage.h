@@ -4,22 +4,24 @@
 
 namespace giftools {
 
+struct Buffer;
+
+struct Image;
+template <> Image* managedCast<Image>(ManagedObj* managedObj);
+
 enum PixelFormat {
     PixelFormatUndefined,
     PixelFormatR8G8B8Unorm,
     PixelFormatR8G8B8A8Unorm,
 };
 
-
-
 size_t pixelFormatByteWidth(PixelFormat format);
-
 using ImageStoragePtr = std::unique_ptr<uint8_t, void(*)(void*)>;
 enum ImageStorageType { ImageStorageTypePtr, ImageStorageTypeVector };
 
 struct Image : public ManagedObj {
     Image();
-    virtual ~Image() override;
+    ~Image() override;
     
     PixelFormat format = PixelFormatUndefined;
     size_t width = 0;
@@ -35,15 +37,24 @@ struct Image : public ManagedObj {
     };
 };
 
+UniqueManagedObj<Image> imageLoadFromMemory(const Buffer* bufferObj);
 UniqueManagedObj<Image> imageLoadFromMemory(const std::vector<uint8_t>& buffer);
-UniqueManagedObj<Image> imageMakeResized(Image* image, size_t width, size_t height);
-std::vector<uint8_t> imageExportPNG(Image* image);
-void imageFree(Image* image);
+UniqueManagedObj<Image> imageLoadFromMemory(const uint8_t* bufferPtr, size_t bufferSize);
+UniqueManagedObj<Image> imageMakeResized(Image* imageObj, size_t width, size_t height);
+UniqueManagedObj<Buffer> imageExportPNG(Image* imageObj);
+void imageFree(Image* imageObj);
 
-template <>
-Image* managedCast<Image>(ManagedObj* managedObj);
+struct GifBuilder;
+template <> GifBuilder* managedCast<GifBuilder>(ManagedObj* managedObj);
 
-template<>
-uint8_t managedType<Image>();
+struct GifBuilder : public ManagedObj {
+    virtual bool Begin(size_t width, size_t height, size_t delay) = 0;
+    virtual bool AddImage(const Image* imageObj, size_t delay) = 0;
+    virtual UniqueManagedObj<Buffer> End() = 0;
+};
+
+UniqueManagedObj<GifBuilder> gifBuilderInitialize(size_t width, size_t height, size_t delay);
+bool gifBuilderAddImage(GifBuilder* gifBuilderObj, const Image* imageObj, size_t delay);
+UniqueManagedObj<Buffer> gifBuilderFinalize(GifBuilder* gifBuilderObj);
 
 }

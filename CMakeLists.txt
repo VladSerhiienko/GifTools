@@ -17,6 +17,7 @@ file(GLOB_RECURSE GIFTOOLS_LIB_SOURCES
 include_directories(
     FFmpeg
     zlib
+    ${PROJECT_SOURCE_DIR}/lib
 )
 
 add_executable(

@@ -100,13 +100,16 @@ void giftools::ManagedObjStorage::init() {
 }
 
 giftools::ManagedObjStorage::~ManagedObjStorage() = default;
-giftools::ManagedObjStorage::ManagedObjStorage() : mPages(InitialPageCount) {
+giftools::ManagedObjStorage::ManagedObjStorage() {
+    mPages.reserve(InitialPageCount);
     assert(DefaultManagedObjStorage == nullptr);
 }
 
 void giftools::ManagedObjStorage::init(ManagedObj* managedObj, size_t pageIndex, size_t slotIndex, uint8_t type) {
     managedObj->mutableObjId().identifier = managedIndex(pageIndex, slotIndex);
     managedObj->mutableObjId().type = type;
+    managedObj->mutableObjId().generation = 1;
+    managedObj->mutableObjId().flags = 0;
 }
 
 std::optional<std::pair<size_t, size_t>> giftools::ManagedObjStorage::reserve() {
