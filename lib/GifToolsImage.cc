@@ -8,9 +8,15 @@
 #include "stb_image_resize.h"
 #include "stb_image_write.h"
 #include "gif.h"
+#include "gifenc.h"
 
 template<>
 uint8_t giftools::managedType<giftools::Image>() { return 1; }
+
+struct ConcreteImage;
+
+template<>
+uint8_t giftools::managedType<ConcreteImage>() { return 5; }
 
 size_t giftools::pixelFormatByteWidth(giftools::PixelFormat format) {
     switch (format) {
@@ -20,59 +26,141 @@ size_t giftools::pixelFormatByteWidth(giftools::PixelFormat format) {
     }
 }
 
-giftools::Image::Image() {
-    storageType = ImageStorageTypePtr;
-    new (&ptrStorage)ImageStoragePtr(0, stbi_image_free);
+using ImageStoragePtr = std::unique_ptr<uint8_t, void(*)(void*)>;
+enum ImageStorageType { ImageStorageTypePtr, ImageStorageTypeVector };
+struct ConcreteImageStorage {
+    ConcreteImageStorage() {}
+    ~ConcreteImageStorage() {}
+    ImageStorageType storageType;
+    union {
+        ImageStoragePtr ptrStorage;
+        std::vector<uint8_t> vectorStorage;
+    };
+};
+
+void imageStorageInit(ConcreteImageStorage* image, ImageStorageType storageType, void(*freeFn)(void*) = nullptr) {
+    switch (storageType) {
+        case ImageStorageTypePtr: {
+            image->storageType = ImageStorageTypePtr;
+            new (&image->ptrStorage)ImageStoragePtr(0, freeFn);
+        } break;
+        default: {
+            assert(storageType == ImageStorageTypeVector);
+            image->storageType = ImageStorageTypeVector;
+            new (&image->vectorStorage)std::vector<uint8_t>{};
+        } break;
+    }
 }
 
-giftools::Image::~Image() {
-    switch (storageType) {
+void imageStorageFinalize(ConcreteImageStorage* image) {
+    switch (image->storageType) {
     case ImageStorageTypePtr:
-        ptrStorage.reset();
-        ptrStorage.~unique_ptr();
+        image->ptrStorage.reset();
+        image->ptrStorage.~unique_ptr();
         break;
 
     default:
-        assert(storageType == ImageStorageTypeVector);
-        std::vector<uint8_t>().swap(vectorStorage);
-        vectorStorage.~vector();
+        assert(image->storageType == ImageStorageTypeVector);
+        std::vector<uint8_t>().swap(image->vectorStorage);
+        image->vectorStorage.~vector();
         break;
     }
 }
+
+void imageStorageReinit(ConcreteImageStorage* image, ImageStorageType storageType, void(*freeFn)(void*) = nullptr) {
+    if (image->storageType == storageType) { return; }
+    imageStorageFinalize(image);
+    imageStorageInit(image, storageType, freeFn);
+}
+
+struct ConcreteImage : public giftools::Image {
+    ConcreteImage() { imageStorageInit(&internals.storage, ImageStorageTypePtr); }
+    ~ConcreteImage() override  { imageStorageFinalize(&internals.storage); }
+
+    giftools::PixelFormat format() const override { return internals.format; }
+    size_t width() const override { return internals.width; }
+    size_t height() const override { return internals.height; }
+    size_t alignment() const override { return internals.alignment; }
+    const uint8_t* bufferPtr() const override { return internals.bufferPtr; }
+    uint8_t* mutableBufferPtr() override { return internals.bufferPtr; }
+    size_t bufferSize() const override { return internals.bufferSize; }
+    
+    void acquire(uint8_t* bufferPtr, size_t bufferSize, void(*freeFn)(void*) ) {
+        imageStorageReinit(&internals.storage, ImageStorageTypePtr, freeFn);
+        internals.bufferPtr = bufferPtr;
+        internals.bufferSize = bufferSize;
+    }
+    
+    void alloc(size_t bufferSize) {
+        imageStorageReinit(&internals.storage, ImageStorageTypeVector);
+        internals.storage.vectorStorage.resize(bufferSize);
+        internals.bufferPtr = internals.storage.vectorStorage.data();
+        internals.bufferSize = bufferSize;
+    }
+
+    struct {
+        giftools::PixelFormat format = giftools::PixelFormatUndefined;
+        size_t width = 0;
+        size_t height = 0;
+        size_t alignment = 1;
+        uint8_t* bufferPtr = nullptr;
+        size_t bufferSize = 0;
+        ConcreteImageStorage storage = {};
+    } internals;
+};
 
 void giftools::imageFree(Image* imageObj) {
     ManagedObjStorageDeleter()(imageObj);
 }
 
+size_t giftools::imageWidth(const giftools::Image* imageObj) { return imageObj ? imageObj->width() : 0; }
+size_t giftools::imageHeight(const giftools::Image* imageObj) { return imageObj ? imageObj->height() : 0; }
+size_t giftools::imageFormat(const giftools::Image* imageObj) { return imageObj ? imageObj->format() : 0; }
+
 giftools::UniqueManagedObj<giftools::Image>
-giftools::imageMakeResized(giftools::Image* imageObj, size_t width, size_t height) {
+giftools::imageClone(const Image* imageObj) {
     if (!imageObj) { return {}; }
-    if (!width || !height) { return {}; }
-    if (imageObj->width == width && imageObj->height == height) { return {}; }
+    auto clonedImageObj = managedObjStorageDefault().make<ConcreteImage>();
+    clonedImageObj->alloc(imageObj->bufferSize());
+    clonedImageObj->internals.width = imageObj->width();
+    clonedImageObj->internals.height = imageObj->height();
+    clonedImageObj->internals.format = imageObj->format();
+    std::memcpy(clonedImageObj->mutableBufferPtr(), imageObj->bufferPtr(), imageObj->bufferSize());
+    return clonedImageObj;
+}
+
+giftools::UniqueManagedObj<giftools::Image>
+imageResize(const giftools::Image* imageObj, size_t width, size_t height) {
+    using namespace giftools;
     
-    const size_t pixelWidth = pixelFormatByteWidth(imageObj->format);
-    const size_t imgStride = imageObj->width * pixelWidth;
+    const size_t pixelWidth = pixelFormatByteWidth(imageObj->format());
+    const size_t imgStride = imageObj->width() * pixelWidth;
     const size_t resizedImgStride = width * pixelWidth;
     const size_t resizedImgBufferSize = width * height * pixelWidth;
     
-    auto resizedImageObj = managedObjStorageDefault().make<Image>();
-    resizedImageObj->width = width;
-    resizedImageObj->height = height;
-    resizedImageObj->format = imageObj->format;
-    resizedImageObj->storageType = ImageStorageTypeVector;
-    resizedImageObj->vectorStorage.resize(resizedImgBufferSize);
-    resizedImageObj->bufferPtr = resizedImageObj->vectorStorage.data();
-    resizedImageObj->bufferSize = resizedImageObj->vectorStorage.size();
-    stbir_resize_uint8(imageObj->bufferPtr,
-                       imageObj->width,
-                       imageObj->height,
+    auto resizedImageObj = managedObjStorageDefault().make<ConcreteImage>();
+    resizedImageObj->alloc(resizedImgBufferSize);
+    resizedImageObj->internals.width = width;
+    resizedImageObj->internals.height = height;
+    resizedImageObj->internals.format = imageObj->format();
+    stbir_resize_uint8(imageObj->bufferPtr(),
+                       imageObj->width(),
+                       imageObj->height(),
                        imgStride,
-                       resizedImageObj->bufferPtr,
-                       resizedImageObj->width,
-                       resizedImageObj->height,
+                       resizedImageObj->mutableBufferPtr(),
+                       resizedImageObj->width(),
+                       resizedImageObj->height(),
                        resizedImgStride,
                        pixelWidth);
     return resizedImageObj;
+}
+
+giftools::UniqueManagedObj<giftools::Image>
+giftools::imageResizeOrClone(const Image* imageObj, size_t width, size_t height) {
+    if (!imageObj) { return {}; }
+    if (!width || !height) { return imageClone(imageObj); }
+    if (imageObj->width() == width && imageObj->height() == height) { return imageClone(imageObj); }
+    return imageResize(imageObj, width, height);
 }
 
 namespace {
@@ -109,27 +197,24 @@ giftools::imageLoadFromMemory(const uint8_t* bufferPtr, size_t bufferSize) {
 
     if (!imgBuffer || !imgBufferSize) { return {}; }
 
-    auto imageObj = managedObjStorageDefault().make<Image>();
-    imageObj->width = x;
-    imageObj->height = y;
-    imageObj->format = PixelFormatR8G8B8A8Unorm;
-    imageObj->storageType = ImageStorageTypePtr;
-    imageObj->ptrStorage = ImageStoragePtr(imgBuffer, stbi_image_free);
-    imageObj->bufferPtr = imgBuffer;
-    imageObj->bufferSize = imgBufferSize;
+    auto imageObj = managedObjStorageDefault().make<ConcreteImage>();
+    imageObj->acquire(imgBuffer, imgBufferSize, stbi_image_free);
+    imageObj->internals.width = x;
+    imageObj->internals.height = y;
+    imageObj->internals.format = PixelFormatR8G8B8A8Unorm;
     return imageObj;
 }
 
 giftools::UniqueManagedObj<giftools::Buffer>
-giftools::imageExportPNG(Image* imageObj) {
+giftools::imageExportToPNG(const Image* imageObj) {
     if (!imageObj) { return {}; }
     
-    const size_t pixelWidth = pixelFormatByteWidth(imageObj->format);
-    const size_t stride = imageObj->width * pixelWidth;
-    assert(pixelWidth && stride && imageObj->height);
+    const size_t pixelWidth = pixelFormatByteWidth(imageObj->format());
+    const size_t stride = imageObj->width() * pixelWidth;
+    assert(pixelWidth && stride && imageObj->height());
     
     StbiWriterContext writer = {};
-    stbi_write_png_to_func(StbiWriterFn, &writer, imageObj->width, imageObj->height, pixelWidth, imageObj->bufferPtr, stride);
+    stbi_write_png_to_func(StbiWriterFn, &writer, imageObj->width(), imageObj->height(), pixelWidth, imageObj->bufferPtr(), stride);
 
     auto bufferObj = bufferFromVector(std::move(writer.contents));
     return bufferObj;
@@ -137,17 +222,17 @@ giftools::imageExportPNG(Image* imageObj) {
 
 template<> uint8_t giftools::managedType<giftools::GifBuilder>() { return 4; }
 
-struct ConcreteGifBuilder;
-template<> uint8_t giftools::managedType<ConcreteGifBuilder>() { return managedType<giftools::GifBuilder>() ; }
+struct GifBuilderGIFH;
+template<> uint8_t giftools::managedType<GifBuilderGIFH>() { return managedType<giftools::GifBuilder>() ; }
 
-struct ConcreteGifBuilder : public giftools::GifBuilder {
-    ~ConcreteGifBuilder() override = default;
+struct GifBuilderGIFH : public giftools::GifBuilder {
+    ~GifBuilderGIFH() override = default;
     
     
     GifWriter writer = {};
     GifVectorFileBuffer vectorBuffer = {};
     
-    ConcreteGifBuilder() {
+    GifBuilderGIFH() {
         writer.fileBuffer = &vectorBuffer;
     }
     
@@ -155,7 +240,7 @@ struct ConcreteGifBuilder : public giftools::GifBuilder {
         return GifBegin(&writer, "", width, height, delay);
     }
     bool AddImage(const giftools::Image* imageObj, size_t delay) override {
-        return GifWriteFrame(&writer, imageObj->bufferPtr, imageObj->width, imageObj->height, delay);
+        return GifWriteFrame(&writer, imageObj->bufferPtr(), imageObj->width(), imageObj->height(), delay);
     }
     giftools::UniqueManagedObj<giftools::Buffer> End() override {
         if (!GifEnd(&writer)) { return {}; }
@@ -164,7 +249,7 @@ struct ConcreteGifBuilder : public giftools::GifBuilder {
 };
 
 giftools::UniqueManagedObj<giftools::GifBuilder> giftools::gifBuilderInitialize(size_t width, size_t height, size_t delay) {
-    auto gifBuilderObj = managedObjStorageDefault().make<ConcreteGifBuilder>();
+    auto gifBuilderObj = managedObjStorageDefault().make<GifBuilderGIFH>();
     if (!gifBuilderObj) { return {}; }
     if (!gifBuilderObj->Begin(width, height, delay))  { return {}; }
     return gifBuilderObj;

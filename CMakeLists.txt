@@ -23,6 +23,8 @@ include_directories(
 add_executable(
     GifTools
     ${GIFTOOLS_LIB_SOURCES}
+    lib/gifenc.c
+    lib/base64.cpp
     main.cpp
     zlib/inflate.c
 zlib/compress.c
