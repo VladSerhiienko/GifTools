@@ -8,7 +8,51 @@
 #include <string_view>
 #include <vector>
 #include <string>
-// #include <iostream>
+#include <functional>
+
+#ifdef GIFTOOLS_EMSDK
+//#warning "GifTools: emscripten"
+//#include <emscripten/emscripten.h>
+//#include <emscripten/bind.h>
+//#include <emscripten/val.h>
+//using namespace emscripten;
+//
+//
+//extern "C" {
+//EMSCRIPTEN_KEEPALIVE
+//float lerp(float a, float b, float t) ;
+//EMSCRIPTEN_KEEPALIVE
+//int imageReadFromFile(const char* imgFilePath);
+//}
+//
+//float lerp(float a, float b, float t) {
+//    return (1 - t) * a + t * b;
+//}
+//
+//int imageReadFromFile(const char* imgFilePath) {
+//    printf("%s", imgFilePath);
+//    return 3;
+//}
+//
+//EMSCRIPTEN_BINDINGS(GifTools) {
+//    function("lerp", &lerp);
+//}
+//
+//class Lerper {
+//public:
+//    static float linearStep(float a, float b, float t) {
+//        return lerp(a, b, t);
+//    }
+//};
+//
+//EMSCRIPTEN_BINDINGS(GifToolsLerper) {
+//    class_<Lerper>("Lerper")
+//        .constructor<>()
+//        .class_function("linearStep", &Lerper::linearStep)
+//        ;
+//}
+
+#else
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -381,6 +425,14 @@ void testGifWriter() {
     fileBinaryWrite("TestGif.gif", gifBufferObj.get());
 }
 
+void linkEmsdk() {
+    #ifdef GIFTOOLS_EMSDK
+    EM_ASM(
+        console.log("GifTools!");
+    );
+    #endif
+}
+
 int main(int argc, char** argv) {
     printf("Yup.");
     
@@ -570,3 +622,5 @@ int main(int argc, char** argv) {
     videoStreamClose(videoStream);
     return 0;
 }
+
+#endif

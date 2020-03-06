@@ -181,7 +181,7 @@ void StbiWriterFn(void *context, void *data, int size) {
 
 giftools::UniqueManagedObj<giftools::Image>
 giftools::imageLoadFromMemory(const Buffer* bufferObj) {
-    return imageLoadFromMemory(bufferObj->contents.data(), bufferObj->contents.size());
+    return imageLoadFromMemory(bufferData(bufferObj), bufferSize(bufferObj));
 }
 
 giftools::UniqueManagedObj<giftools::Image>

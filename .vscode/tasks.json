@@ -1,0 +1,48 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "echo",
+            "type": "shell",
+            "command": "echo Hello"
+        },
+        {
+            "label": "CmakeXcode",
+            "type": "shell",
+            "command": "cmake -Bbuild_xcode -H. -G Xcode",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "SourceEmsdk (vserhiienko)",
+            "type": "shell",
+            "command": "source /Users/vserhiienko/Projects/emsdk/emsdk_env.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "CmakeEmsdk (vserhiienko)",
+            "type": "shell",
+            "command": "source /Users/vserhiienko/Projects/emsdk/emsdk_env.sh;cmake -Bbuild_emsdk -H. -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DGIFTOOLS_EMSDK=${EMSDK}",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "BuildEmsdk (vserhiienko)",
+            "type": "shell",
+            "command": "source /Users/vserhiienko/Projects/emsdk/emsdk_env.sh;emmake make -C build_emsdk",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+    ]
+}

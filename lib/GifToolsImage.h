@@ -7,7 +7,8 @@ struct Buffer;
 struct Image;
 struct GifBuilder;
 
-template <> Image* managedCast<Image>(ManagedObj* managedObj);
+template<> uint8_t giftools::managedType<giftools::Image>();
+template<> uint8_t giftools::managedType<giftools::GifBuilder>();
 
 enum PixelFormat {
     PixelFormatUndefined,
@@ -37,8 +38,6 @@ UniqueManagedObj<Image> imageLoadFromMemory(const uint8_t* bufferPtr, size_t buf
 UniqueManagedObj<Image> imageResizeOrClone(const Image* imageObj, size_t width, size_t height);
 UniqueManagedObj<Buffer> imageExportToPNG(const Image* imageObj);
 void imageFree(Image* imageObj);
-
-template <> GifBuilder* managedCast<GifBuilder>(ManagedObj* managedObj);
 
 struct GifBuilder : public ManagedObj {
     virtual bool Begin(size_t width, size_t height, size_t delay) = 0;

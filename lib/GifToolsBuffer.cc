@@ -4,53 +4,74 @@
 template<>
 uint8_t giftools::managedType<giftools::Buffer>() { return 2; }
 
-giftools::Buffer::Buffer() = default;
-giftools::Buffer::~Buffer() = default;
+
+struct ConcreteBuffer;
+template<>
+uint8_t giftools::managedType<ConcreteBuffer>() { return 3; }
+
+struct ConcreteBuffer : public giftools::Buffer {
+    ConcreteBuffer() = default;
+    virtual ~ConcreteBuffer() override = default;
+    std::vector<uint8_t> contents;
+};
+
+giftools::UniqueManagedObj<giftools::Buffer>
+giftools::bufferCopyFromMemory(const uint8_t *bufferPtr, size_t bufferSize) {
+    if (!bufferPtr || !bufferSize) { return {}; }
+    
+    auto bufferObj = managedObjStorageDefault().make<ConcreteBuffer>();
+    if (!bufferObj) { return {}; }
+
+    bufferObj->contents.resize(bufferSize);
+    std::memcpy(bufferObj->contents.data(), bufferPtr, bufferSize);
+    return bufferObj;
+}
 
 giftools::UniqueManagedObj<giftools::Buffer>
 giftools::bufferCopyFromVector(const std::vector<uint8_t>& buffer) {
     if (buffer.empty()) { return {}; }
-    
-    auto bufferObj = managedObjStorageDefault().make<Buffer>();
-    if (!bufferObj) { return {}; }
-
-    bufferObj->contents = buffer;
-    return bufferObj;
+    return bufferCopyFromMemory(buffer.data(), buffer.size());
 }
 
 giftools::UniqueManagedObj<giftools::Buffer>
 giftools::bufferFromVector(std::vector<uint8_t>&& buffer) {
     if (buffer.empty()) { return {}; }
     
-    auto bufferObj = managedObjStorageDefault().make<Buffer>();
+    auto bufferObj = managedObjStorageDefault().make<ConcreteBuffer>();
     if (!bufferObj) { return {}; }
 
     bufferObj->contents = std::move(buffer);
     return bufferObj;
 }
 
-uint8_t* giftools::bufferMutableData(Buffer* bufferObj) {
+uint8_t* giftools::bufferMutableData(Buffer* bufferHandle) {
+    auto bufferObj = static_cast<ConcreteBuffer*>(bufferHandle);
     return bufferObj ? bufferObj->contents.data() : nullptr;
 }
 
-const uint8_t* giftools::bufferData(const Buffer* bufferObj) {
+const uint8_t* giftools::bufferData(const Buffer* bufferHandle) {
+    auto bufferObj = static_cast<const ConcreteBuffer*>(bufferHandle);
     return bufferObj ? bufferObj->contents.data() : nullptr;
 }
 
-size_t giftools::bufferSize(const Buffer* bufferObj) {
+size_t giftools::bufferSize(const Buffer* bufferHandle) {
+    auto bufferObj = static_cast<const ConcreteBuffer*>(bufferHandle);
     return bufferObj ? bufferObj->contents.size() : 0;
 }
 
-void giftools::bufferResize(Buffer* bufferObj, size_t value) {
-    if (bufferObj) { bufferObj->contents.resize(value); }
+void giftools::bufferResize(Buffer* bufferHandle, size_t value) {
+    auto bufferObj = static_cast<ConcreteBuffer*>(bufferHandle);
+    if (bufferObj && bufferObj->contents.size() < value) { bufferObj->contents.resize(value); }
 }
 
-void giftools::bufferReserve(Buffer* bufferObj, size_t value) {
-    if (bufferObj) { bufferObj->contents.reserve(value); }
+void giftools::bufferReserve(Buffer* bufferHandle, size_t value) {
+    auto bufferObj = static_cast<ConcreteBuffer*>(bufferHandle);
+    if (bufferObj && bufferObj->contents.capacity() < value) { bufferObj->contents.reserve(value); }
 }
 
-void giftools::bufferFree(Buffer* bufferObj) {
-    if (bufferObj) { decltype(bufferObj->contents)().swap(bufferObj->contents); }
+void giftools::bufferFree(Buffer* bufferHandle) {
+    auto bufferObj = static_cast<ConcreteBuffer*>(bufferHandle);
+    if (!bufferEmpty(bufferObj)) { decltype(bufferObj->contents)().swap(bufferObj->contents); }
 }
 
 bool giftools::bufferEmpty(const giftools::Buffer* bufferObj) {

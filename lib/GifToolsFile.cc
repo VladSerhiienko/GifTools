@@ -1,12 +1,9 @@
 #include "GifToolsFile.h"
 #include "GifToolsBuffer.h"
 
+#include <stdio.h>
+
 template<> uint8_t giftools::managedType<giftools::File>() { return 3; }
-template <> giftools::File* giftools::managedCast<giftools::File>(ManagedObj* managedObj) {
-    if (!managedObj) { return nullptr; }
-    if (managedObj->objId().type != managedType<File>()) { return nullptr; }
-    return static_cast<File*>(managedObj);
-}
 
 giftools::File::File() = default;
 giftools::File::~File() = default;
@@ -19,7 +16,7 @@ void giftools::fileBinaryWrite(const char* path, const uint8_t* bufferPtr, size_
 }
 
 void giftools::fileBinaryWrite(const char* path, const Buffer* bufferObj) {
-    return fileBinaryWrite(path, bufferObj->contents.data(), bufferObj->contents.size());
+    return fileBinaryWrite(path, bufferData(bufferObj), bufferSize(bufferObj));
 }
 
 giftools::UniqueManagedObj<giftools::Buffer>

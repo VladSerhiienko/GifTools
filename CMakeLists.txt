@@ -14,6 +14,12 @@ file(GLOB_RECURSE GIFTOOLS_LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/lib/*.h
     ${PROJECT_SOURCE_DIR}/lib/*.cc)
 
+if(DEFINED GIFTOOLS_EMSDK)
+    message(STATUS "Seeing GIFTOOLS_EMSDK=${GIFTOOLS_EMSDK}.")
+    message(STATUS "Setting GIFTOOLS_EMSDK=1.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIFTOOLS_EMSDK=1 --bind -s WASM=1 -s NO_EXIT_RUNTIME=1 -Os")
+endif()
+
 include_directories(
     FFmpeg
     zlib
