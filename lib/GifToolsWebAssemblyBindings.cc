@@ -28,6 +28,14 @@ using namespace emscripten;
 extern "C" {
 
 //
+// Ping
+//
+
+EMSCRIPTEN_KEEPALIVE void testPing();
+EMSCRIPTEN_KEEPALIVE int testAdd(int a, int b);
+EMSCRIPTEN_KEEPALIVE int testDump(const char* bufferPtr, int bufferSize);
+
+//
 // Buffers
 //
 
@@ -70,6 +78,24 @@ EMSCRIPTEN_KEEPALIVE int gifBuilderFinalize(int gifBuilderId);
 // Video (TODO)
 //
 
+}
+
+
+void testPing() {
+    printf("testPing");
+}
+
+int testAdd(int a, int b) {
+    return a + b;
+}
+
+int testDump(const char* bufferPtr, int bufferSize) {
+    int sum = 0;
+    for (int i = 0; i < bufferSize; ++i) {
+        printf("%i", bufferPtr[i]);
+        sum += bufferPtr[i];
+    }
+    return sum;
 }
 
 int bufferCopyFromMemory(const char* bufferPtr, int bufferSize) {
