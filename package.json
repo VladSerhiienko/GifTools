@@ -8,7 +8,7 @@
   },
   "directories": {
     "lib": "lib",
-    "test": "tests"
+    "test": "jest"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
