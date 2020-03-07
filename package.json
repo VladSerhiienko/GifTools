@@ -1,0 +1,30 @@
+{
+  "name": "GifTools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": {
+    "GifTools": "GifTools.js"
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VladSerhiienko/GifTools.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VladSerhiienko/GifTools/issues"
+  },
+  "homepage": "https://github.com/VladSerhiienko/GifTools#readme",
+  "devDependencies": {
+    "jest": "^25.1.0"
+  }
+}

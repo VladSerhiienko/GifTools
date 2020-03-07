@@ -40,5 +40,6 @@
         "opt.h": "c",
         "intmath.h": "c",
         "opus_rc.h": "c"
-    }
+    },
+    "git.ignoreLimitWarning": true
 }
