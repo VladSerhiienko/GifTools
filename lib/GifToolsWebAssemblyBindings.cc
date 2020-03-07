@@ -9,7 +9,7 @@
 #endif
 
 namespace {
-void ensureGifToolsInitialize() {
+void ensureGifToolsInitialized() {
     giftools::ManagedObjStorage::init();
 }
 }
@@ -42,7 +42,7 @@ EMSCRIPTEN_KEEPALIVE int testDump(const char* bufferPtr, int bufferSize);
 EMSCRIPTEN_KEEPALIVE int bufferCopyFromMemory(const char* bufferPtr, int bufferSize);
 EMSCRIPTEN_KEEPALIVE uint8_t* bufferMutableData(int bufferId);
 EMSCRIPTEN_KEEPALIVE const uint8_t* bufferData(int bufferId);
-EMSCRIPTEN_KEEPALIVE size_t bufferSize(int bufferId);
+EMSCRIPTEN_KEEPALIVE int bufferSize(int bufferId);
 EMSCRIPTEN_KEEPALIVE void bufferResize(int bufferId, int value);
 EMSCRIPTEN_KEEPALIVE void bufferReserve(int bufferId, int value);
 EMSCRIPTEN_KEEPALIVE void bufferFree(int bufferId);
@@ -99,7 +99,7 @@ int testDump(const char* bufferPtr, int bufferSize) {
 }
 
 int bufferCopyFromMemory(const char* bufferPtr, int bufferSize) {
-    ensureGifToolsInitialize();
+    ensureGifToolsInitialized();
     return giftools::bufferCopyFromMemory((const uint8_t*)bufferPtr, bufferSize).release()->objId().identifier;
 }
 
@@ -113,7 +113,7 @@ const uint8_t* bufferData(int bufferId) {
     return giftools::bufferData(bufferObj);
 }
 
-size_t bufferSize(int bufferId) {
+int bufferSize(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
     return giftools::bufferSize(bufferObj);
 }
@@ -179,12 +179,12 @@ int imageClone(int imageId) {
 }
 
 int imageLoadFromMemory(const char* bufferPtr, int bufferSize) {
-    ensureGifToolsInitialize();
+    ensureGifToolsInitialized();
     return giftools::imageLoadFromMemory((const uint8_t*)bufferPtr, bufferSize).release()->objId().identifier;
 }
 
 int imageLoadFromBuffer(int bufferId) {
-    ensureGifToolsInitialize();
+    ensureGifToolsInitialized();
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
     return giftools::imageLoadFromMemory(bufferObj).release()->objId().identifier;
 }
@@ -205,7 +205,7 @@ void imageFree(int imageId) {
 }
 
 int gifBuilderInitialize(int width, int height, int delay) {
-    ensureGifToolsInitialize();
+    ensureGifToolsInitialized();
     return giftools::gifBuilderInitialize(width, height, delay).release()->objId().identifier;
 }
 
@@ -219,3 +219,25 @@ int gifBuilderFinalize(int gifBuilderId) {
     auto gifBuilderObj = giftools::managedObjStorageDefault().get<giftools::GifBuilder>(gifBuilderId);
     return giftools::gifBuilderFinalize(gifBuilderObj).release()->objId().identifier;
 }
+
+#ifdef GIFTOOLS_EMSDK
+
+int bufferFromTypedArray(const val& arr) {
+    std::vector<uint8_t> contents = vecFromJSArray<uint8_t>(arr);
+    auto bufferObj = giftools::bufferFromVector(std::move(contents));
+    return bufferObj.release()->objId().identifier;
+}
+
+val bufferMemoryView(int bufferId) {
+    auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
+    auto bufferPtr = giftools::bufferData(bufferObj);
+    auto bufferSize = giftools::bufferSize(bufferObj);
+    return val(typed_memory_view(bufferSize, bufferPtr));
+}
+
+EMSCRIPTEN_BINDINGS(GifToolsBindings) {
+    function("bufferFromTypedArray", &bufferFromTypedArray);
+    function("bufferMemoryView", &bufferMemoryView);
+}
+
+#endif
