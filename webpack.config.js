@@ -18,7 +18,7 @@ module.exports = {
             },
             {
                 test: /Giftools\.wasm$/,
-                type: "javascript/auto",
+                type: "webassembly/async",
                 loader: "file-loader",
                 options: {
                     publicPath: "dist/"
@@ -37,4 +37,8 @@ module.exports = {
         library: 'GifTools',
         umdNamedDefine: true
     },
+    experiments: {
+		asyncWebAssembly: true,
+		importAwait: true
+	}
 };
