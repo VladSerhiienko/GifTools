@@ -6,12 +6,7 @@
         {
             "label": "Reinstall Local Emscripten",
             "type": "shell",
-            "command": "git submodule init; git submodule update; sh emsdk-configure.sh",
-        },
-        {
-            "label": "Choose Local Emscripten",
-            "type": "shell",
-            "command": "source dependencies/emsdk/emsdk_env.sh"
+            "command": "sh emsdk-reinstall.sh",
         },
         {
             "label": "Cmake w/Emscripten",
@@ -20,10 +15,7 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "dependsOn":[
-                "Choose Local Emscripten"
-            ]
+            }
         },
         {
             "label": "Build w/Emscripten",
@@ -34,7 +26,6 @@
                 "isDefault": true
             },
             "dependsOn":[
-                "Choose Local Emscripten",
                 "Cmake w/Emscripten"
             ]
         },
@@ -58,33 +49,6 @@
             "dependsOn":[
                 "Cmake w/Xcode"
             ]
-        },
-        {
-            "label": "SourceEmsdk (vserhiienko)",
-            "type": "shell",
-            "command": "source dependencies/emsdk/emsdk_env.sh",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "CmakeEmsdk (vserhiienko)",
-            "type": "shell",
-            "command": "source dependencies/emsdk/emsdk_env.sh;cmake -Bbuild_emsdk -H. -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DGIFTOOLS_EMSDK=${EMSDK}",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "BuildEmsdk (vserhiienko)",
-            "type": "shell",
-            "command": "source dependencies/emsdk/emsdk_env.sh;emmake make -C build_emsdk",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
         },
     ]
 }
