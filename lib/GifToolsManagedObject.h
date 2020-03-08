@@ -88,7 +88,8 @@ ManagedObjStorage& managedObjStorageDefault();
 
 class ManagedObjStorage {
 public:
-    static void init();
+    ManagedObjStorage();
+    ~ManagedObjStorage();
 
     ManagedObj* get(uint32_t identifier) const;
     
@@ -104,9 +105,6 @@ public:
     }
 
 protected:
-    ManagedObjStorage();
-    ~ManagedObjStorage();
-    
     static ManagedObjStorage& instance();
 
     template <typename T>

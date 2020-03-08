@@ -28,6 +28,7 @@ DerivedData/
 build
 build_xcode
 build_emsdk
+build_emscripten
 
 # General
 .DS_Store

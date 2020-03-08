@@ -7,7 +7,7 @@ uint8_t giftools::managedType<giftools::Buffer>() { return 2; }
 
 struct ConcreteBuffer;
 template<>
-uint8_t giftools::managedType<ConcreteBuffer>() { return 3; }
+uint8_t giftools::managedType<ConcreteBuffer>() { return 2; }
 
 struct ConcreteBuffer : public giftools::Buffer {
     ConcreteBuffer() = default;

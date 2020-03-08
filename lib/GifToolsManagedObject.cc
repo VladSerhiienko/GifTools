@@ -86,24 +86,18 @@ void giftools::ManagedObjStorageDeleter::operator()(ManagedObj* managedObj) cons
 // ManagedObjStorage
 //
 
-
-giftools::ManagedObjStorage* DefaultManagedObjStorage = nullptr;
-giftools::ManagedObjStorage& giftools::managedObjStorageDefault() { return *DefaultManagedObjStorage; }
-
+giftools::ManagedObjStorage Instance = {};
 giftools::ManagedObjStorage& giftools::ManagedObjStorage::instance() {
-    static giftools::ManagedObjStorage Instance = {};
     return Instance;
 }
 
-void giftools::ManagedObjStorage::init() {
-    DefaultManagedObjStorage = &ManagedObjStorage::instance();
+giftools::ManagedObjStorage& giftools::managedObjStorageDefault() { return Instance; }
+
+giftools::ManagedObjStorage::ManagedObjStorage() {
+    mPages.reserve(InitialPageCount);
 }
 
 giftools::ManagedObjStorage::~ManagedObjStorage() = default;
-giftools::ManagedObjStorage::ManagedObjStorage() {
-    mPages.reserve(InitialPageCount);
-    assert(DefaultManagedObjStorage == nullptr);
-}
 
 void giftools::ManagedObjStorage::init(ManagedObj* managedObj, size_t pageIndex, size_t slotIndex, uint8_t type) {
     managedObj->mutableObjId().identifier = managedIndex(pageIndex, slotIndex);

@@ -1,0 +1,3 @@
+[submodule "dependencies/emsdk"]
+	path = dependencies/emsdk
+	url = git@github.com:emscripten-core/emsdk.git

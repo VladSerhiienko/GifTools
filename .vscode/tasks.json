@@ -4,12 +4,42 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "echo",
+            "label": "Reinstall Local Emscripten",
             "type": "shell",
-            "command": "echo Hello"
+            "command": "git submodule init; git submodule update; sh emsdk-configure.sh",
         },
         {
-            "label": "CmakeXcode",
+            "label": "Choose Local Emscripten",
+            "type": "shell",
+            "command": "source dependencies/emsdk/emsdk_env.sh"
+        },
+        {
+            "label": "Cmake w/Emscripten",
+            "type": "shell",
+            "command": "source dependencies/emsdk/emsdk_env.sh;cmake -Bbuild_emscripten -H. -DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/dependencies/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DGIFTOOLS_BUILD_EMSCRIPTEN=TRUE",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn":[
+                "Choose Local Emscripten"
+            ]
+        },
+        {
+            "label": "Build w/Emscripten",
+            "type": "shell",
+            "command": "source dependencies/emsdk/emsdk_env.sh;emmake make -C build_emscripten",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn":[
+                "Choose Local Emscripten",
+                "Cmake w/Emscripten"
+            ]
+        },
+        {
+            "label": "Cmake w/Xcode",
             "type": "shell",
             "command": "cmake -Bbuild_xcode -H. -G Xcode",
             "group": {
@@ -18,9 +48,21 @@
             }
         },
         {
+            "label": "Build w/Xcode",
+            "type": "shell",
+            "command": "xcodebuild -project ./build_xcode/GifTools.xcodeproj -configuration Release",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn":[
+                "Cmake w/Xcode"
+            ]
+        },
+        {
             "label": "SourceEmsdk (vserhiienko)",
             "type": "shell",
-            "command": "source /Users/vserhiienko/Projects/emsdk/emsdk_env.sh",
+            "command": "source dependencies/emsdk/emsdk_env.sh",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -29,7 +71,7 @@
         {
             "label": "CmakeEmsdk (vserhiienko)",
             "type": "shell",
-            "command": "source /Users/vserhiienko/Projects/emsdk/emsdk_env.sh;cmake -Bbuild_emsdk -H. -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DGIFTOOLS_EMSDK=${EMSDK}",
+            "command": "source dependencies/emsdk/emsdk_env.sh;cmake -Bbuild_emsdk -H. -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DGIFTOOLS_EMSDK=${EMSDK}",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -38,7 +80,7 @@
         {
             "label": "BuildEmsdk (vserhiienko)",
             "type": "shell",
-            "command": "source /Users/vserhiienko/Projects/emsdk/emsdk_env.sh;emmake make -C build_emsdk",
+            "command": "source dependencies/emsdk/emsdk_env.sh;emmake make -C build_emsdk",
             "group": {
                 "kind": "build",
                 "isDefault": true

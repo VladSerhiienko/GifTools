@@ -16,7 +16,7 @@ uint8_t giftools::managedType<giftools::Image>() { return 1; }
 struct ConcreteImage;
 
 template<>
-uint8_t giftools::managedType<ConcreteImage>() { return 5; }
+uint8_t giftools::managedType<ConcreteImage>() { return 1; }
 
 size_t giftools::pixelFormatByteWidth(giftools::PixelFormat format) {
     switch (format) {

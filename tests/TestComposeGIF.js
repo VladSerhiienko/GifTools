@@ -18,24 +18,36 @@ function main() {
 
     var tempFileBuffer = {};
     var bufferIds = [];
+    var imageIds = [];
 
     tempFileBuffer = loadToUint8Array('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083058.jpg');
     bufferIds[0] = GifToolsModule.bufferFromTypedArray(tempFileBuffer);
+    tempFileBuffer = null;
+    console.log('bufferId', bufferIds[0], 'size', GifToolsModule._bufferSize(bufferIds[0]));
+
+    imageIds[0] = GifToolsModule._imageLoadFromBuffer(bufferIds[0]);
+    console.log('imageId', imageIds[0],
+                'w', GifToolsModule._imageWidth(imageIds[0]),
+                'h', GifToolsModule._imageHeight(imageIds[0]),
+                'f', GifToolsModule._imageFormat(imageIds[0]));
 
     tempFileBuffer = loadToUint8Array('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg');
     bufferIds[1] = GifToolsModule.bufferFromTypedArray(tempFileBuffer);
+    console.log('bufferId', bufferIds[1], 'size', GifToolsModule._bufferSize(bufferIds[1]));
 
     tempFileBuffer = loadToUint8Array('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083101.jpg');
     bufferIds[2] = GifToolsModule.bufferFromTypedArray(tempFileBuffer);
+    console.log('bufferId', bufferIds[2], 'size', GifToolsModule._bufferSize(bufferIds[2]));
 
     tempFileBuffer = loadToUint8Array('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg');
     bufferIds[3] = GifToolsModule.bufferFromTypedArray(tempFileBuffer);
+    console.log('bufferId', bufferIds[3], 'size', GifToolsModule._bufferSize(bufferIds[3]));
 
-    tempFileBuffer = null;
 
-    console.log('bufferId=', bufferIds[0]);
-    console.log('bufferSize=', GifToolsModule._bufferSize(bufferIds[0]));
-    console.log('bufferEmpty=', GifToolsModule._bufferEmpty(bufferIds[0]));
+
+
+
+    
 
     // bufferIds[1] = GifToolsModule.bufferFromTypedArray(fileBuffers[1]);
     // bufferIds[2] = GifToolsModule.bufferFromTypedArray(fileBuffers[2]);

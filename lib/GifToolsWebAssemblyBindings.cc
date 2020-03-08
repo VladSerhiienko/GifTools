@@ -4,17 +4,16 @@
 #include "GifToolsBuffer.h"
 
 
-#ifdef GIFTOOLS_EMSDK
+#ifdef GIFTOOLS_EMSCRIPTEN
 #warning "GifTools for Emscripten"
 #endif
 
 namespace {
 void ensureGifToolsInitialized() {
-    giftools::ManagedObjStorage::init();
 }
 }
 
-#ifdef GIFTOOLS_EMSDK
+#ifdef GIFTOOLS_EMSCRIPTEN
 #include <emscripten/emscripten.h>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
@@ -220,7 +219,7 @@ int gifBuilderFinalize(int gifBuilderId) {
     return giftools::gifBuilderFinalize(gifBuilderObj).release()->objId().identifier;
 }
 
-#ifdef GIFTOOLS_EMSDK
+#ifdef GIFTOOLS_EMSCRIPTEN
 
 int bufferFromTypedArray(const val& arr) {
     std::vector<uint8_t> contents = vecFromJSArray<uint8_t>(arr);

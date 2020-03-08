@@ -10,7 +10,7 @@
 #include <string>
 #include <functional>
 
-#ifdef GIFTOOLS_EMSDK
+#ifdef GIFTOOLS_EMSCRIPTEN
 //#warning "GifTools: emscripten"
 //#include <emscripten/emscripten.h>
 //#include <emscripten/bind.h>
@@ -54,6 +54,7 @@
 
 #else
 
+#ifdef GIFTOOLS_USE_FFMPEG
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -390,6 +391,7 @@ std::vector<uint8_t> videoStreamBruteDumpFrameAt(VideoStream& videoStream, doubl
 
     return {};
 }
+#endif
 
 void testGifWriter() {
     using namespace giftools;
@@ -426,7 +428,7 @@ void testGifWriter() {
 }
 
 void linkEmsdk() {
-    #ifdef GIFTOOLS_EMSDK
+    #ifdef GIFTOOLS_EMSCRIPTEN
     EM_ASM(
         console.log("GifTools!");
     );
@@ -436,8 +438,8 @@ void linkEmsdk() {
 int main(int argc, char** argv) {
     printf("Yup.");
     
-    giftools::ManagedObjStorage::init();
     testGifWriter();
+    #ifdef GIFTOOLS_USE_FFMPEG
 
     const char* testMp4File = "/Users/vserhiienko/Downloads/2020-02-23 18.53.40.mp4";
     auto optVideoStream = videoStreamOpen(testMp4File);
@@ -620,6 +622,7 @@ int main(int argc, char** argv) {
     av_frame_free(&frame);
 
     videoStreamClose(videoStream);
+    #endif
     return 0;
 }
 
