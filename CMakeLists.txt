@@ -2650,7 +2650,6 @@ set(GIFTOOLS_FFMPEG_SOURCES
 endif()
 
 file(GLOB
-    RELATIVE lib
     GIFTOOLS_LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/lib/*.h
     ${PROJECT_SOURCE_DIR}/lib/*.c
@@ -2658,9 +2657,10 @@ file(GLOB
     ${PROJECT_SOURCE_DIR}/lib/*.cpp
 )
 
+message(STATUS ${GIFTOOLS_LIB_SOURCES})
+
 add_executable(
     GifTools
-    main.cpp
     ${GIFTOOLS_LIB_SOURCES}
     ${GIFTOOLS_FFMPEG_SOURCES}
 )
