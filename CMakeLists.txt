@@ -57,22 +57,22 @@ include_directories(
 set(GIFTOOLS_FFMPEG_SOURCES )
 
 if (${GIFTOOLS_USE_FFMPEG})
-set( GIFTOOLS_FFMPEG_SOURCES
-    zlib/inflate.c
-    zlib/compress.c
-    zlib/deflate.c
-    # zlib/gzread.c
-    zlib/crc32.c
-    zlib/infback.c
-    zlib/zutil.c
-    # zlib/gzlib.c
-    zlib/inftrees.c
-    zlib/uncompr.c
-    # zlib/gzwrite.c
-    zlib/trees.c
-    # zlib/gzclose.c
-    zlib/inffast.c
-    zlib/adler32.c
+set(GIFTOOLS_FFMPEG_SOURCES
+    ./lib/zlib/inflate.c
+    ./lib/zlib/compress.c
+    ./lib/zlib/deflate.c
+    ./lib/zlib/crc32.c
+    ./lib/zlib/infback.c
+    ./lib/zlib/zutil.c
+    ./lib/zlib/inftrees.c
+    ./lib/zlib/uncompr.c
+    ./lib/zlib/trees.c
+    ./lib/zlib/inffast.c
+    ./lib/zlib/adler32.c
+    # ./lib/zlib/gzwrite.c
+    # ./lib/zlib/gzread.c
+    # ./lib/zlib/gzlib.c
+    # ./lib/zlib/gzclose.c
     ./FFmpeg/compat/atomics/pthread/stdatomic.c
     ./FFmpeg/compat/getopt.c
     ./FFmpeg/compat/strtod.c
@@ -2649,7 +2649,8 @@ set( GIFTOOLS_FFMPEG_SOURCES
 )
 endif()
 
-file(GLOB_RECURSE
+file(GLOB
+    RELATIVE lib
     GIFTOOLS_LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/lib/*.h
     ${PROJECT_SOURCE_DIR}/lib/*.c
