@@ -2,7 +2,7 @@
   "name": "GifTools",
   "version": "1.0.0",
   "description": "Utilities for creating GIFs.",
-  "main": "dist/bundle.js",
+  "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": ["dist/**/*"],
   "scripts": {
