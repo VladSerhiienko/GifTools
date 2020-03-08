@@ -4,6 +4,7 @@
   "description": "Utilities for creating GIFs.",
   "main": "dist/bundle.js",
   "types": "dist/src/index.d.ts",
+  "files": ["dist/**/*"],
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
