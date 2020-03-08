@@ -21,6 +21,12 @@ jobs:
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
+    - name: Checkout submodules
+      uses: actions/checkout@v2
+      with:
+        repository: emscripten-core/emsdk
+        token: ${{ secrets.ACCESS_TOKEN }}
+        path: dependencies/emsdk
 
     # Runs a set of commands using the runners shell
     - name: Build w/Emscripten
