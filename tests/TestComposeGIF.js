@@ -19,7 +19,7 @@ function writeUint8ArrayToFile(file, fileBuffer) {
 
 function loadImageFromFileAndResize(file, width, height) {
     var fileBuffer = loadToUint8ArrayFromFile(file);
-    var bufferId = GifToolsModule.bufferFromTypedArray(fileBuffer);
+    var bufferId = GifToolsModule.bufferFromUint8Array(fileBuffer);
 
     console.log('buffer', 'id', bufferId, 'size', GifToolsModule._bufferSize(bufferId));
 
@@ -71,18 +71,14 @@ function main() {
     GifToolsModule._gifBuilderAddImage(gifBuilderId, smallImageIds[3], delay);
     var gifBufferId = GifToolsModule._gifBuilderFinalize(gifBuilderId);
 
-    console.log('gif buffer', 'id', gifBufferId, 'size', GifToolsModule._bufferSize(gifBufferId));
-
-
-    var gifFileBuffer = GifToolsModule.bufferMemoryView(gifBufferId);
-    console.log(gifFileBuffer);
-
-    writeUint8ArrayToFile('/Users/vserhiienko/Downloads/Photos/BuiltGif.gif', gifFileBuffer);
-
     GifToolsModule._objectFree(smallImageIds[0]);
     GifToolsModule._objectFree(smallImageIds[1]);
     GifToolsModule._objectFree(smallImageIds[2]);
     GifToolsModule._objectFree(smallImageIds[3]);
+
+    var gifFileBuffer = GifToolsModule.bufferToUint8Array(gifBufferId);
+    writeUint8ArrayToFile('/Users/vserhiienko/Downloads/Photos/BuiltGif.gif', gifFileBuffer);
+
     GifToolsModule._objectFree(gifBufferId);
     GifToolsModule._objectFree(gifBuilderId);
 }

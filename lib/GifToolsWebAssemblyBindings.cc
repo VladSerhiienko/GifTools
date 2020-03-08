@@ -228,13 +228,13 @@ int gifBuilderFinalize(int gifBuilderId) {
 
 #ifdef GIFTOOLS_EMSCRIPTEN
 
-int bufferFromTypedArray(const val& arr) {
+int bufferFromUint8Array(const val& arr) {
     std::vector<uint8_t> contents = vecFromJSArray<uint8_t>(arr);
     auto bufferObj = giftools::bufferFromVector(std::move(contents));
     return bufferObj.release()->objId().identifier;
 }
 
-val bufferMemoryView(int bufferId) {
+val bufferToUint8Array(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
     auto bufferPtr = giftools::bufferData(bufferObj);
     auto bufferSize = giftools::bufferSize(bufferObj);
@@ -242,8 +242,8 @@ val bufferMemoryView(int bufferId) {
 }
 
 EMSCRIPTEN_BINDINGS(GifToolsBindings) {
-    function("bufferFromTypedArray", &bufferFromTypedArray);
-    function("bufferMemoryView", &bufferMemoryView);
+    function("bufferFromUint8Array", &bufferFromUint8Array);
+    function("bufferToUint8Array", &bufferToUint8Array);
 }
 
 #endif
