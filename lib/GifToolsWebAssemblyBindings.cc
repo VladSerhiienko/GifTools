@@ -35,6 +35,12 @@ EMSCRIPTEN_KEEPALIVE int testAdd(int a, int b);
 EMSCRIPTEN_KEEPALIVE int testDump(const char* bufferPtr, int bufferSize);
 
 //
+// Object
+//
+
+EMSCRIPTEN_KEEPALIVE void objectFree(int objectId);
+
+//
 // Buffers
 //
 
@@ -63,7 +69,6 @@ EMSCRIPTEN_KEEPALIVE int imageLoadFromMemory(const char* bufferPtr, int bufferSi
 EMSCRIPTEN_KEEPALIVE int imageLoadFromBuffer(int bufferId);
 EMSCRIPTEN_KEEPALIVE int imageResizeOrClone(int imageId, int width, int height);
 EMSCRIPTEN_KEEPALIVE int imageExportToPNG(int imageId);
-EMSCRIPTEN_KEEPALIVE void imageFree(int imageId);
 
 //
 // GIFs
@@ -95,6 +100,13 @@ int testDump(const char* bufferPtr, int bufferSize) {
         sum += bufferPtr[i];
     }
     return sum;
+}
+
+
+void objectFree(int objectId) {
+    if (auto object = giftools::managedObjStorageDefault().get(objectId)) {
+        giftools::managedObjStorageDefault().free(object);
+    }
 }
 
 int bufferCopyFromMemory(const char* bufferPtr, int bufferSize) {
@@ -196,11 +208,6 @@ int imageResizeOrClone(int imageId, int width, int height) {
 int imageExportToPNG(int imageId) {
     auto imageObj = giftools::managedObjStorageDefault().get<giftools::Image>(imageId);
     return giftools::imageExportToPNG(imageObj).release()->objId().identifier;
-}
-
-void imageFree(int imageId) {
-    auto imageObj = giftools::managedObjStorageDefault().get<giftools::Image>(imageId);
-    return giftools::imageFree(imageObj);
 }
 
 int gifBuilderInitialize(int width, int height, int delay) {

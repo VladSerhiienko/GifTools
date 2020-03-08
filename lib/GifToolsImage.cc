@@ -109,10 +109,6 @@ struct ConcreteImage : public giftools::Image {
     } internals;
 };
 
-void giftools::imageFree(Image* imageObj) {
-    ManagedObjStorageDeleter()(imageObj);
-}
-
 size_t giftools::imageWidth(const giftools::Image* imageObj) { return imageObj ? imageObj->width() : 0; }
 size_t giftools::imageHeight(const giftools::Image* imageObj) { return imageObj ? imageObj->height() : 0; }
 size_t giftools::imageFormat(const giftools::Image* imageObj) { return imageObj ? imageObj->format() : 0; }

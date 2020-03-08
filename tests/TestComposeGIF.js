@@ -3,66 +3,88 @@
 const util = require('util');
 const fs = require('fs');
 
-var wasmBinaryFile = '/Users/vserhiienko/Projects/GifTools/build_emsdk/GifTools.wasm';
-var wasmJSFile = '/Users/vserhiienko/Projects/GifTools/build_emsdk/GifTools.js';
+var wasmBinaryFile = '/Users/vserhiienko/Projects/GifTools/build_emscripten/GifTools.wasm';
+var wasmJSFile = '/Users/vserhiienko/Projects/GifTools/build_emscripten/GifTools.js';
 
 const GifToolsLoader = require(wasmJSFile);
 const GifToolsModule = GifToolsLoader({wasmBinaryFile});
 
-function loadToUint8Array(file) {
+function loadToUint8ArrayFromFile(file) {
     const fileBuffer = fs.readFileSync(file);
     return new Uint8Array(fileBuffer);
 }
+function writeUint8ArrayToFile(file, fileBuffer) {
+    fs.writeFileSync(file, fileBuffer);
+}
+
+function loadImageFromFileAndResize(file, width, height) {
+    var fileBuffer = loadToUint8ArrayFromFile(file);
+    var bufferId = GifToolsModule.bufferFromTypedArray(fileBuffer);
+
+    console.log('buffer', 'id', bufferId, 'size', GifToolsModule._bufferSize(bufferId));
+
+    var imageId = GifToolsModule._imageLoadFromBuffer(bufferId);
+
+    console.log('image',
+                'id',
+                imageId,
+                'w',
+                GifToolsModule._imageWidth(imageId),
+                'h',
+                GifToolsModule._imageHeight(imageId),
+                'f',
+                GifToolsModule._imageFormat(imageId));
+
+
+    GifToolsModule._objectFree(bufferId);
+    var smallImageId = GifToolsModule._imageResizeOrClone(imageId, width, height);
+
+    console.log('resized image',
+                'id',
+                smallImageId,
+                'w',
+                GifToolsModule._imageWidth(smallImageId),
+                'h',
+                GifToolsModule._imageHeight(smallImageId),
+                'f',
+                GifToolsModule._imageFormat(smallImageId));
+
+    GifToolsModule._objectFree(imageId);
+    return smallImageId;
+}
 
 function main() {
+    const delay = 100;
+    const width = 1200;
+    const height = 900;
 
-    var tempFileBuffer = {};
-    var bufferIds = [];
-    var imageIds = [];
+    var smallImageIds = [];
+    smallImageIds[0] = loadImageFromFileAndResize('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083058.jpg', width, height);
+    smallImageIds[1] = loadImageFromFileAndResize('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg', width, height);
+    smallImageIds[2] = loadImageFromFileAndResize('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083101.jpg', width, height);
+    smallImageIds[3] = loadImageFromFileAndResize('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg', width, height);
 
-    tempFileBuffer = loadToUint8Array('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083058.jpg');
-    bufferIds[0] = GifToolsModule.bufferFromTypedArray(tempFileBuffer);
-    tempFileBuffer = null;
-    console.log('bufferId', bufferIds[0], 'size', GifToolsModule._bufferSize(bufferIds[0]));
+    var gifBuilderId = GifToolsModule._gifBuilderInitialize(width, height, delay);
+    GifToolsModule._gifBuilderAddImage(gifBuilderId, smallImageIds[0], delay);
+    GifToolsModule._gifBuilderAddImage(gifBuilderId, smallImageIds[1], delay);
+    GifToolsModule._gifBuilderAddImage(gifBuilderId, smallImageIds[2], delay);
+    GifToolsModule._gifBuilderAddImage(gifBuilderId, smallImageIds[3], delay);
+    var gifBufferId = GifToolsModule._gifBuilderFinalize(gifBuilderId);
 
-    imageIds[0] = GifToolsModule._imageLoadFromBuffer(bufferIds[0]);
-    console.log('imageId', imageIds[0],
-                'w', GifToolsModule._imageWidth(imageIds[0]),
-                'h', GifToolsModule._imageHeight(imageIds[0]),
-                'f', GifToolsModule._imageFormat(imageIds[0]));
-
-    tempFileBuffer = loadToUint8Array('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg');
-    bufferIds[1] = GifToolsModule.bufferFromTypedArray(tempFileBuffer);
-    console.log('bufferId', bufferIds[1], 'size', GifToolsModule._bufferSize(bufferIds[1]));
-
-    tempFileBuffer = loadToUint8Array('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083101.jpg');
-    bufferIds[2] = GifToolsModule.bufferFromTypedArray(tempFileBuffer);
-    console.log('bufferId', bufferIds[2], 'size', GifToolsModule._bufferSize(bufferIds[2]));
-
-    tempFileBuffer = loadToUint8Array('/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg');
-    bufferIds[3] = GifToolsModule.bufferFromTypedArray(tempFileBuffer);
-    console.log('bufferId', bufferIds[3], 'size', GifToolsModule._bufferSize(bufferIds[3]));
+    console.log('gif buffer', 'id', gifBufferId, 'size', GifToolsModule._bufferSize(gifBufferId));
 
 
+    var gifFileBuffer = GifToolsModule.bufferMemoryView(gifBufferId);
+    console.log(gifFileBuffer);
 
+    writeUint8ArrayToFile('/Users/vserhiienko/Downloads/Photos/BuiltGif.gif', gifFileBuffer);
 
-
-    
-
-    // bufferIds[1] = GifToolsModule.bufferFromTypedArray(fileBuffers[1]);
-    // bufferIds[2] = GifToolsModule.bufferFromTypedArray(fileBuffers[2]);
-    // bufferIds[3] = GifToolsModule.bufferFromTypedArray(fileBuffers[3]);
-
-    // console.log(bufferIds);
-
-
-    // GifToolsModule._testPing();
-    // var a = GifToolsModule.lerp(2, 4, 0.5);
-    // var b = GifToolsModule._testAdd(1, 2);
-    // console.log(a);
-    // console.log(b);
+    GifToolsModule._objectFree(smallImageIds[0]);
+    GifToolsModule._objectFree(smallImageIds[1]);
+    GifToolsModule._objectFree(smallImageIds[2]);
+    GifToolsModule._objectFree(smallImageIds[3]);
+    GifToolsModule._objectFree(gifBufferId);
+    GifToolsModule._objectFree(gifBuilderId);
 }
 
-GifToolsModule.onRuntimeInitialized = function() {
-    main();
-}
+GifToolsModule.onRuntimeInitialized = function() { main(); }

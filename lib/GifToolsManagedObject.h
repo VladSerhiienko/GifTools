@@ -103,6 +103,8 @@ public:
         auto reserved = reserve();
         return store<T>(reserved.value().first, reserved.value().second);
     }
+    
+    void free(const ManagedObj* managedObj);
 
 protected:
     static ManagedObjStorage& instance();
@@ -122,7 +124,6 @@ protected:
     bool store(ManagedObj* managedObj, size_t pageIndex, size_t slotIndex, uint8_t type);
     
     friend ManagedObjStorageDeleter;
-    void free(const ManagedObj* managedObj);
 
     std::vector<std::unique_ptr<ManagedObjStoragePage>> mPages;
 };

@@ -37,7 +37,6 @@ UniqueManagedObj<Image> imageLoadFromMemory(const std::vector<uint8_t>& buffer);
 UniqueManagedObj<Image> imageLoadFromMemory(const uint8_t* bufferPtr, size_t bufferSize);
 UniqueManagedObj<Image> imageResizeOrClone(const Image* imageObj, size_t width, size_t height);
 UniqueManagedObj<Buffer> imageExportToPNG(const Image* imageObj);
-void imageFree(Image* imageObj);
 
 struct GifBuilder : public ManagedObj {
     virtual bool Begin(size_t width, size_t height, size_t delay) = 0;
