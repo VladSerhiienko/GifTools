@@ -29,8 +29,12 @@ module.exports = {
     resolve: {
         extensions: [ '.tsx', '.ts', '.js' ],
     },
+    devtool: 'source-map',
     output: {
-        filename: "bundle.js",
-        path: path.resolve(__dirname, "dist")
+        path: path.resolve(__dirname, "dist"),
+        filename: "[name].js",
+        libraryTarget: 'umd',
+        library: 'GifTools',
+        umdNamedDefine: true
     },
 };
