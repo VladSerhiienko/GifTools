@@ -1,7 +1,7 @@
 # This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Node.js CI
+name: GifTools | Node.js
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [10.x, 12.x]
+        node-version: [12.x]
 
     steps:
     - uses: actions/checkout@v2
@@ -28,13 +28,16 @@ jobs:
         path: dependencies/emsdk
         ref: master
 
+
+    - name: Pull large files
+    - run: |
+        git lfs install
+        git lfs pull
+        
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - run: |
-        git lfs install
-        git lfs pull
     - run: npm ci
     - run: npm run build
     - run: npm test
