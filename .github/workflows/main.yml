@@ -39,3 +39,7 @@ jobs:
       run: |
         sh emsdk-reinstall.sh
         sh giftools-build-for-web-es6-single-file-with-local-emsdk.sh
+
+    - name: Run node tests
+      run: |
+        sh giftools-run-node-tests.sh
