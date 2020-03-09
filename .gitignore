@@ -29,6 +29,8 @@ build
 build_xcode
 build_emsdk
 build_emscripten
+build_emscripten_node
+build_emscripten_web_es6
 
 # General
 .DS_Store

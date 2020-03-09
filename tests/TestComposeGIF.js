@@ -3,8 +3,8 @@
 const util = require('util');
 const fs = require('fs');
 
-var wasmBinaryFile = '/Users/vserhiienko/Projects/GifTools/build_emscripten/GifTools.wasm';
-var wasmJSFile = '/Users/vserhiienko/Projects/GifTools/build_emscripten/GifTools.js';
+var wasmBinaryFile = '/Users/vserhiienko/Projects/GifTools/build_emscripten_node/GifTools.wasm';
+var wasmJSFile = '/Users/vserhiienko/Projects/GifTools/build_emscripten_node/GifTools.js';
 
 const GifToolsLoader = require(wasmJSFile);
 const GifToolsModule = GifToolsLoader({wasmBinaryFile});

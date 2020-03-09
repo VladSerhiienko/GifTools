@@ -21,52 +21,88 @@ if(NOT DEFINED GIFTOOLS_BUILD_EMSCRIPTEN)
     set(GIFTOOLS_BUILD_EMSCRIPTEN FALSE)
 endif()
 
-message(STATUS "Seeing GIFTOOLS_BUILD_EMSCRIPTEN=${GIFTOOLS_BUILD_EMSCRIPTEN}.")
+message(STATUS "Seeing GIFTOOLS_BUILD_EMSCRIPTEN=${GIFTOOLS_BUILD_EMSCRIPTEN}")
 
 if(${GIFTOOLS_BUILD_EMSCRIPTEN})
     set(GIFTOOLS_USE_EMSDK TRUE)
 endif()
 
-message(STATUS "Seeing GIFTOOLS_USE_EMSDK=${GIFTOOLS_USE_EMSDK}.")
+message(STATUS "Seeing GIFTOOLS_USE_EMSDK=${GIFTOOLS_USE_EMSDK}")
 
 if(NOT DEFINED GIFTOOLS_EMSDK_FOLDER)
     set(GIFTOOLS_EMSDK_FOLDER "${CMAKE_SOURCE_DIR}/dependencies/emsdk")
 endif()
 
-message(STATUS "Setting GIFTOOLS_EMSDK_FOLDER=${GIFTOOLS_EMSDK_FOLDER}.")
+message(STATUS "Setting GIFTOOLS_EMSDK_FOLDER=${GIFTOOLS_EMSDK_FOLDER}")
 
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
 endif(MSVC)
 
 if(${GIFTOOLS_USE_FFMPEG})
-    message(STATUS "Seeing GIFTOOLS_USE_FFMPEG=TRUE.")
+    message(STATUS "Seeing GIFTOOLS_USE_FFMPEG=TRUE")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIFTOOLS_USE_FFMPEG=1")
 endif()
 
+# https://developers.google.com/web/updates/2019/01/emscripten-npm
 if(${GIFTOOLS_USE_EMSDK})
-
-    if(NOT DEFINED GIFTOOLS_BUILD_FASTEST_EMSCRIPTEN)
-        set(GIFTOOLS_BUILD_FASTEST_EMSCRIPTEN FALSE)
-    endif()
-
     if(NOT DEFINED GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN)
         set(GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN FALSE)
     endif()
-
-    message(STATUS "Seeing GIFTOOLS_BUILD_FASTEST_EMSCRIPTEN=${GIFTOOLS_BUILD_FASTEST_EMSCRIPTEN}.")
-    message(STATUS "Seeing GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN=${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN}.")
-   
-    if(${GIFTOOLS_BUILD_FASTEST_EMSCRIPTEN})
-        message(STATUS "Building fastest WASM.")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIFTOOLS_EMSCRIPTEN=1 --bind -s WASM=1 -s NO_EXIT_RUNTIME=1 -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s 'EXPORT_NAME=\"GifToolsModularized\"' -O3")
-    elseif(${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN})
-        message(STATUS "Building smallest WASM.")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIFTOOLS_EMSCRIPTEN=1 --bind -s WASM=1 -s NO_EXIT_RUNTIME=1 -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s 'EXPORT_NAME=\"GifToolsModularized\"' -Os")
-    else()
-        message(STATUS "Building debug/diagnostics WASM.")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIFTOOLS_EMSCRIPTEN=1 --bind -s WASM=1 -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=1 -s DEMANGLE_SUPPORT=1 -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s 'EXPORT_NAME=\"GifToolsModularized\"'")
+    if(NOT DEFINED GIFTOOLS_BUILD_WEB_ES6_EMSCRIPTEN)
+        set(GIFTOOLS_BUILD_WEB_ES6_EMSCRIPTEN FALSE)
     endif()
+
+    message(STATUS "Seeing GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN=${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN}.")
+
+    # Enable Emscripten, enable embind.
+    # -s STRICT=1 drops support for all deprecated build options.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -DGIFTOOLS_EMSCRIPTEN=1 \
+        --bind \
+        -s STRICT=1")
+
+    # Enable WASM, enable functioning as library.
+    # Enable dynamic memory allocations, use emmalloc (small and fast).
+    # TODO(vserhiienko): -s FILESYSTEM=0
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -s WASM=1 \
+        -s NO_EXIT_RUNTIME=1 \
+        -s ALLOW_MEMORY_GROWTH=1 \
+        -s MALLOC=emmalloc")
+
+    # Set optimization flags
+    if(${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN})
+        # -Os: Optimize aggressively for performance and size as a secondary criterion.
+        message(STATUS "Building smallest WASM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
+    else()
+        # https://emscripten.org/docs/porting/Debugging.html
+        # -O0: Don't do any optimization. No dead code is eliminated, and Emscripten does not minify the JavaScript code it emits, either. Good for debugging.
+        # -g4: Include debugging information in the .wasm and also emit a source maps file for the wasm module.
+        # ASSERTIONS=1: Enable runtime checks for common memory allocation errors.
+        # SAFE_HEAP=1: Add additional memory access checks, and give clear errors for problems like dereferencing 0 and memory alignment issues.
+        # STACK_OVERFLOW_CHECK=2: Verify that the user code does not accidentally write past the end of the stack.
+        # DEMANGLE_SUPPORT=1: Automatically demangle stack traces.
+        message(STATUS "Building debug/diagnostics WASM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -O0 -g4 \
+            -s ASSERTIONS=1 \
+            -s DEMANGLE_SUPPORT=1 \
+            -s STACK_OVERFLOW_CHECK=2 \
+            -s SAFE_HEAP=1")
+    endif()
+
+    if(${GIFTOOLS_BUILD_WEB_ES6_EMSCRIPTEN})
+        message(STATUS "Building web/ES6 WASM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -s EXPORT_ES6=1 \
+            -s ENVIRONMENT='web'")
+    endif()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -s MODULARIZE=1 \
+        -s 'EXPORT_NAME=\"GifToolsModularized\"'")
 endif()
 
 include_directories(

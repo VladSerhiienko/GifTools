@@ -30,7 +30,13 @@ jobs:
         ref: master
 
     # Runs a set of commands using the runners shell
-    - name: Build w/Emscripten
+    - name: Emscripten for node
       run: |
         sh emsdk-reinstall.sh
         sh giftools-build-with-local-emsdk.sh
+
+    # Runs a set of commands using the runners shell
+    - name: Emscripten for Web/ES6
+      run: |
+        sh emsdk-reinstall.sh
+        sh giftools-build-for-web-es6-with-local-emsdk.sh
