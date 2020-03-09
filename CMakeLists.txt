@@ -49,8 +49,14 @@ if(${GIFTOOLS_USE_EMSDK})
     if(NOT DEFINED GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN)
         set(GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN FALSE)
     endif()
-    if(NOT DEFINED GIFTOOLS_BUILD_WEB_ES6_EMSCRIPTEN)
-        set(GIFTOOLS_BUILD_WEB_ES6_EMSCRIPTEN FALSE)
+    if(NOT DEFINED GIFTOOLS_BUILD_ES6_EMSCRIPTEN)
+        set(GIFTOOLS_BUILD_ES6_EMSCRIPTEN FALSE)
+    endif()
+    if(NOT DEFINED GIFTOOLS_BUILD_WEB_EMSCRIPTEN)
+        set(GIFTOOLS_BUILD_WEB_EMSCRIPTEN FALSE)
+    endif()
+    if(NOT DEFINED GIFTOOLS_BUILD_SINGLE_FILE_EMSCRIPTEN)
+        set(GIFTOOLS_BUILD_SINGLE_FILE_EMSCRIPTEN FALSE)
     endif()
 
     message(STATUS "Seeing GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN=${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN}")
@@ -94,11 +100,21 @@ if(${GIFTOOLS_USE_EMSDK})
             -s SAFE_HEAP=1")
     endif()
 
-    if(${GIFTOOLS_BUILD_WEB_ES6_EMSCRIPTEN})
-        message(STATUS "Building web/ES6 WASM")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-            -s EXPORT_ES6=1 \
-            -s ENVIRONMENT='web'")
+    if(${GIFTOOLS_BUILD_ES6_EMSCRIPTEN})
+        message(STATUS "Building web WASM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORT_ES6=1")
+    endif()
+
+    if(${GIFTOOLS_BUILD_WEB_EMSCRIPTEN})
+        message(STATUS "Building web WASM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ENVIRONMENT='web'")
+    endif()
+
+    # merges JavaScript and WebAssembly code in the single output file output
+    # (in base64) to produce only one file for deployment.
+    if(${GIFTOOLS_BUILD_SINGLE_FILE_EMSCRIPTEN})
+        message(STATUS "Building single file WASM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s SINGLE_FILE=1")
     endif()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
