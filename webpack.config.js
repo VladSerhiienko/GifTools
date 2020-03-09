@@ -33,8 +33,4 @@ module.exports = {
         library: 'GifTools',
         umdNamedDefine: true
     },
-    experiments: {
-		asyncWebAssembly: true,
-		importAwait: true
-	}
 };
