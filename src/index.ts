@@ -1,5 +1,5 @@
-import * as Loader from '../bin/GifTools';
+import Loader from '../bin/web_es6/GifTools';
 
-const main = () => Loader({wasmBinaryFile: '../bin/GifTools.wasm'});
+const main = () => Loader({wasmBinaryFile: '../bin/web_es6/GifTools.wasm'});
 
 export default main;
