@@ -8,20 +8,9 @@ export default class GifToolsWrapper {
         this.gifBuilderId = this.module._gifBuilderInitialize(width, height, delay);
     }
 
-    addImage(imageId: any, delay: number) {
-        this.module._gifBuilderAddImage(this.gifBuilderId, imageId, delay);
-    }
-
-    makeGif(): Uint8Array {
-        var gifBufferId = this.module._gifBuilderFinalize(this.gifBuilderId);
-
-        // TODO: cleanup
-        // GifToolsModule._objectFree(smallImageIds[0]);
-        // GifToolsModule._objectFree(smallImageIds[1]);
-        // GifToolsModule._objectFree(smallImageIds[2]);
-        // GifToolsModule._objectFree(smallImageIds[3]);
-    
-        return this.module.bufferToUint8Array(gifBufferId);
+    addImage(fileBuffer: Uint8Array, width: number, height: number, delay: number) {
+        const id = this.loadImageFromFileAndResize(fileBuffer, width, height);
+        this.module._gifBuilderAddImage(this.gifBuilderId, id, delay);
     }
 
     loadImageFromFileAndResize(fileBuffer: Uint8Array, width: number, height: number): any {
@@ -54,5 +43,17 @@ export default class GifToolsWrapper {
 
         this.module._objectFree(imageId);
         return smallImageId;
+    }
+
+    save(): Uint8Array {
+        var gifBufferId = this.module._gifBuilderFinalize(this.gifBuilderId);
+
+        // TODO: cleanup
+        // GifToolsModule._objectFree(smallImageIds[0]);
+        // GifToolsModule._objectFree(smallImageIds[1]);
+        // GifToolsModule._objectFree(smallImageIds[2]);
+        // GifToolsModule._objectFree(smallImageIds[3]);
+    
+        return this.module.bufferToUint8Array(gifBufferId);
     }
 }
