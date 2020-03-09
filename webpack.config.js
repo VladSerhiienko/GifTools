@@ -18,11 +18,7 @@ module.exports = {
             },
             {
                 test: /Giftools\.wasm$/,
-                type: "webassembly/async",
-                loader: "file-loader",
-                options: {
-                    publicPath: "dist/"
-                }
+                loaders: ['wasm-loader']
             }
         ]
     },
