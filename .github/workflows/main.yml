@@ -20,26 +20,26 @@ jobs:
         path: dependencies/emsdk
         ref: master
 
-    - name: Emscripten build for node
+    - name: Install local emsdk
       run: |
         sh emsdk-reinstall.sh
+
+    - name: Default build
+      run: |
         sh giftools-build-with-local-emsdk.sh
 
-    - name: Emscripten build for Web ES6
+    - name: Web ES6 build
       run: |
-        sh emsdk-reinstall.sh
         sh giftools-build-for-web-es6-with-local-emsdk.sh
 
-    - name: Emscripten build for Web amalgamated
+    - name: Web amalgamated build
       run: |
-        sh emsdk-reinstall.sh
         sh giftools-build-for-web-single-file-with-local-emsdk.sh
 
-    - name: Emscripten build for Web ES6 amalgamated
+    - name: Web ES6 amalgamated build
       run: |
-        sh emsdk-reinstall.sh
         sh giftools-build-for-web-es6-single-file-with-local-emsdk.sh
 
-    - name: Run node tests
+    - name: Node tests
       run: |
         sh giftools-run-node-tests.sh
