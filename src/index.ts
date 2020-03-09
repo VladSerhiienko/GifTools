@@ -12,7 +12,7 @@ export default class GifToolsWrapper {
         this.module._gifBuilderAddImage(this.gifBuilderId, imageId, delay);
     }
 
-    makeGif(): void {
+    makeGif(): Uint8Array {
         var gifBufferId = this.module._gifBuilderFinalize(this.gifBuilderId);
 
         // TODO: cleanup
