@@ -1,4 +1,4 @@
-name: CI
+name: GifTools Emscripten
 
 on:
   push:
