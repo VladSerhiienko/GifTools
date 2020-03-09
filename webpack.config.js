@@ -8,19 +8,11 @@ module.exports = {
                 test: /\.tsx?$/,
                 use: 'ts-loader',
                 exclude: /node_modules/,
-            },
-            {
-                test: /GifTools\.js$/,
-                loader: ['@open-wc/webpack-import-meta-loader', "exports-loader"]
-            },
-            {
-                test: /Giftools\.wasm$/,
-                loaders: ['wasm-loader']
             }
         ]
     },
     resolve: {
-        extensions: [ '.tsx', '.ts', '.js', '.wasm' ],
+        extensions: [ '.tsx', '.ts', '.js' ],
     },
     devtool: 'source-map',
     output: {
