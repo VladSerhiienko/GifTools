@@ -24,14 +24,16 @@ jobs:
         token: ${{ secrets.MINIMAL_PAT }}
         path: dependencies/emsdk
         ref: master
+
+    - name: Pull large files.
+      run: |
+        git lfs install
+        git lfs pull
         
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - run: |
-        git lfs install
-        git lfs pull
     - run: npm ci
     - run: npm run build
     - run: npm test
