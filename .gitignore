@@ -32,6 +32,7 @@ build_emscripten
 build_emscripten_node
 build_emscripten_web_es6
 build_emscripten_web_amalgamated
+build_emscripten_web_es6_amalgamated
 
 # General
 .DS_Store
