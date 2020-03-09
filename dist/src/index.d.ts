@@ -3,6 +3,6 @@ export default class GifToolsWrapper {
     gifBuilderId: any;
     initGif(width: number, height: number, delay: number): void;
     addImage(imageId: any, delay: number): void;
-    makeGif(): void;
+    makeGif(): Uint8Array;
     loadImageFromFileAndResize(fileBuffer: Uint8Array, width: number, height: number): any;
 }
