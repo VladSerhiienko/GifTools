@@ -32,6 +32,9 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
+    - run: |
+        git lfs install
+        git lfs pull
     - run: npm ci
     - run: npm run build
     - run: npm test
