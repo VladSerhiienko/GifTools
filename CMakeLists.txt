@@ -53,7 +53,7 @@ if(${GIFTOOLS_USE_EMSDK})
         set(GIFTOOLS_BUILD_WEB_ES6_EMSCRIPTEN FALSE)
     endif()
 
-    message(STATUS "Seeing GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN=${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN}.")
+    message(STATUS "Seeing GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN=${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN}")
 
     # Enable Emscripten, enable embind.
     # -s STRICT=1 drops support for all deprecated build options.
@@ -64,9 +64,10 @@ if(${GIFTOOLS_USE_EMSDK})
 
     # Enable WASM, enable functioning as library.
     # Enable dynamic memory allocations, use emmalloc (small and fast).
-    # TODO(vserhiienko): -s FILESYSTEM=0
+    # FILESYSTEM=0: Force Emscripten to not include emulated file system to the code.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -s WASM=1 \
+        -s FILESYSTEM=0 \
         -s NO_EXIT_RUNTIME=1 \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s MALLOC=emmalloc")
