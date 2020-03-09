@@ -34,3 +34,8 @@ jobs:
       run: |
         sh emsdk-reinstall.sh
         sh giftools-build-for-web-single-file-with-local-emsdk.sh
+
+    - name: Emscripten build for Web ES6 amalgamated
+      run: |
+        sh emsdk-reinstall.sh
+        sh giftools-build-for-web-es6-single-file-with-local-emsdk.sh
