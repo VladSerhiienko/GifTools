@@ -2,9 +2,6 @@ const path = require("path");
 
 module.exports = {
     entry: "./src/index.ts",
-    node: {
-        fs: 'empty'
-    },
     module: {
         rules: [
             {
@@ -14,7 +11,7 @@ module.exports = {
             },
             {
                 test: /GifTools\.js$/,
-                loader: "exports-loader"
+                loader: ['@open-wc/webpack-import-meta-loader', "exports-loader"]
             },
             {
                 test: /Giftools\.wasm$/,
@@ -23,7 +20,7 @@ module.exports = {
         ]
     },
     resolve: {
-        extensions: [ '.tsx', '.ts', '.js' ],
+        extensions: [ '.tsx', '.ts', '.js', '.wasm' ],
     },
     devtool: 'source-map',
     output: {
