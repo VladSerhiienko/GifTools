@@ -19,27 +19,27 @@ export default class GifToolsWrapper {
 
         const imageId = this.module._imageLoadFromBuffer(bufferId);
         console.log('image',
-            'id',
-            imageId,
-            'w',
-            this.module._imageWidth(imageId),
-            'h',
-            this.module._imageHeight(imageId),
-            'f',
-            this.module._imageFormat(imageId));
+                    'id',
+                    imageId,
+                    'w',
+                    this.module._imageWidth(imageId),
+                    'h',
+                    this.module._imageHeight(imageId),
+                    'f',
+                    this.module._imageFormat(imageId));
 
         this.module._objectFree(bufferId);
 
         const smallImageId = this.module._imageResizeOrClone(imageId, width, height);
         console.log('resized image',
-            'id',
-            smallImageId,
-            'w',
-            this.module._imageWidth(smallImageId),
-            'h',
-            this.module._imageHeight(smallImageId),
-            'f',
-            this.module._imageFormat(smallImageId));
+                    'id',
+                    smallImageId,
+                    'w',
+                    this.module._imageWidth(smallImageId),
+                    'h',
+                    this.module._imageHeight(smallImageId),
+                    'f',
+                    this.module._imageFormat(smallImageId));
 
         this.module._objectFree(imageId);
         return smallImageId;
@@ -53,7 +53,7 @@ export default class GifToolsWrapper {
         // GifToolsModule._objectFree(smallImageIds[1]);
         // GifToolsModule._objectFree(smallImageIds[2]);
         // GifToolsModule._objectFree(smallImageIds[3]);
-    
+
         return this.module.bufferToUint8Array(gifBufferId);
     }
 }

@@ -7,8 +7,10 @@ struct Buffer;
 struct Image;
 struct GifBuilder;
 
-template<> uint8_t managedType<Image>();
-template<> uint8_t managedType<GifBuilder>();
+template <>
+uint8_t managedType<Image>();
+template <>
+uint8_t managedType<GifBuilder>();
 
 enum PixelFormat {
     PixelFormatUndefined,
@@ -48,6 +50,4 @@ UniqueManagedObj<GifBuilder> gifBuilderInitialize(size_t width, size_t height, s
 bool gifBuilderAddImage(GifBuilder* gifBuilderObj, const Image* imageObj, size_t delay);
 UniqueManagedObj<Buffer> gifBuilderFinalize(GifBuilder* gifBuilderObj);
 
-
-
-}
+} // namespace giftools

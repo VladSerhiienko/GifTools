@@ -1,0 +1,8 @@
+#include "GifToolsBuffer.h"
+#include "GifToolsFFmpegInputStream.h"
+#include "GifToolsFFmpegVideoFrame.h"
+#include "GifToolsFFmpegVideoStream.h"
+#include "GifToolsFile.h"
+#include "GifToolsImage.h"
+#include "GifToolsManagedObject.h"
+#include "GifToolsWebAssemblyBindings.h"

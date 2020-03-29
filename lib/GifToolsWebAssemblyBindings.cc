@@ -1,15 +1,16 @@
 #include "GifToolsWebAssemblyBindings.h"
-#include "GifToolsManagedObject.h"
-#include "GifToolsImage.h"
+
 #include "GifToolsBuffer.h"
+#include "GifToolsImage.h"
+#include "GifToolsManagedObject.h"
 
 #ifdef GIFTOOLS_EMSCRIPTEN
 #warning "GifTools for Emscripten"
 #endif
 
 #ifdef GIFTOOLS_EMSCRIPTEN
-#include <emscripten/emscripten.h>
 #include <emscripten/bind.h>
+#include <emscripten/emscripten.h>
 #include <emscripten/val.h>
 using namespace emscripten;
 #endif
@@ -45,7 +46,7 @@ EMSCRIPTEN_KEEPALIVE int bufferFromStringBase64(int bufferId);
 //
 // Images
 //
-    
+
 EMSCRIPTEN_KEEPALIVE int pixelFormatByteWidth(int format);
 EMSCRIPTEN_KEEPALIVE int imageWidth(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageHeight(int imageId);
@@ -68,15 +69,14 @@ EMSCRIPTEN_KEEPALIVE int gifBuilderFinalize(int gifBuilderId);
 // Video
 // TODO(vserhiienko)
 //
-
 }
 
 namespace {
 template <typename T>
 int objectReleaseAndReturnId(giftools::UniqueManagedObj<T>&& object) {
-    return object.release()->objId().identifier;
+    return object.release()->objId().composite;
 }
-}
+} // namespace
 
 void objectFree(int objectId) {
     if (auto object = giftools::managedObjStorageDefault().get(objectId)) {
@@ -138,14 +138,11 @@ int bufferFromStringBase64(int bufferId) {
     return objectReleaseAndReturnId(giftools::bufferFromStringBase64(bufferObj));
 }
 
-
-int pixelFormatByteWidth(int format) {
-    return giftools::pixelFormatByteWidth(giftools::PixelFormat(format));
-}
+int pixelFormatByteWidth(int format) { return giftools::pixelFormatByteWidth(giftools::PixelFormat(format)); }
 
 int imageWidth(int imageId) {
-   auto imageObj = giftools::managedObjStorageDefault().get<giftools::Image>(imageId);
-   return giftools::imageWidth(imageObj);
+    auto imageObj = giftools::managedObjStorageDefault().get<giftools::Image>(imageId);
+    return giftools::imageWidth(imageObj);
 }
 
 int imageHeight(int imageId) {
@@ -212,6 +209,30 @@ val bufferToUint8Array(int bufferId) {
 }
 
 EMSCRIPTEN_BINDINGS(GifToolsBindings) {
+    function("objectFree", &objectFree);
+    function("bufferCopyFromMemory", &bufferCopyFromMemory, allow_raw_pointers());
+    function("bufferMutableData", &bufferMutableData, allow_raw_pointers());
+    function("bufferData", &bufferData, allow_raw_pointers());
+    function("bufferSize", &bufferSize);
+    function("bufferResize", &bufferResize);
+    function("bufferReserve", &bufferReserve);
+    function("bufferFree", &bufferFree);
+    function("bufferZeroTerminated", &bufferZeroTerminated);
+    function("bufferEmpty", &bufferEmpty);
+    function("bufferToStringBase64", &bufferToStringBase64);
+    function("bufferFromStringBase64", &bufferFromStringBase64);
+    function("pixelFormatByteWidth", &pixelFormatByteWidth);
+    function("imageWidth", &imageWidth);
+    function("imageHeight", &imageHeight);
+    function("imageFormat", &imageFormat);
+    function("imageClone", &imageClone);
+    function("imageLoadFromMemory", &imageLoadFromMemory, allow_raw_pointers());
+    function("imageLoadFromBuffer", &imageLoadFromBuffer);
+    function("imageResizeOrClone", &imageResizeOrClone);
+    function("imageExportToPNG", &imageExportToPNG);
+    function("gifBuilderInitialize ", &gifBuilderInitialize);
+    function("gifBuilderAddImage", &gifBuilderAddImage);
+    function("gifBuilderFinalize", &gifBuilderFinalize);
     function("bufferFromUint8Array", &bufferFromUint8Array);
     function("bufferToUint8Array", &bufferToUint8Array);
 }

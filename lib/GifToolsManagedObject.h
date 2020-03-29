@@ -1,16 +1,16 @@
 #pragma once
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <cstdint>
 #include <memory>
-#include <vector>
-#include <array>
-#include <algorithm>
 #include <optional>
-#include <cassert>
 #include <type_traits>
+#include <vector>
 
 namespace giftools {
 
-using ManagedObjIdInt = uint64_t;
+using ManagedObjIdInt = uint32_t;
 struct ManagedObjId;
 class ManagedObj;
 class ManagedObjStorage;
@@ -19,19 +19,19 @@ class ManagedObjStoragePage;
 struct ManagedObjId {
     union {
         struct {
-            uint64_t identifier : 32;
-            uint64_t generation : 16;
-            uint64_t type : 8;
-            uint64_t flags : 8;
+            uint32_t identifier : 20;
+            uint32_t generation : 8;
+            uint32_t type : 4;
         };
-        
-        uint64_t composite;
+
+        uint32_t composite;
     };
 };
 
 ManagedObjId managedObjIdMake();
 bool managedObjIdEqual(const ManagedObjId& a, const ManagedObjId& b);
 static_assert(sizeof(ManagedObjId) == sizeof(ManagedObjIdInt), "Caught size mismatch.");
+static_assert(sizeof(ManagedObjId) == sizeof(int), "Caught size mismatch.");
 
 class ManagedObj;
 class ManagedObjStorage;
@@ -46,9 +46,10 @@ public:
 
 protected:
     ManagedObj();
-    
+
 private:
     friend ManagedObjStorage;
+    friend ManagedObjStoragePage;
     ManagedObjId& mutableObjId();
     ManagedObjId mObjId = managedObjIdMake();
 };
@@ -60,7 +61,7 @@ struct ManagedObjStorageDeleter {
 template <typename T>
 using UniqueManagedObj = std::unique_ptr<T, ManagedObjStorageDeleter>;
 
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 UniqueManagedObj<T> makeUniqueManagedObj(ManagedObjStorage* storage, Args&&... args) {
     static_assert(std::is_base_of_v<ManagedObj, T>, "T must inherit ManagedObj.");
     return UniqueManagedObj<T>(new T(std::forward<Args>(args)...), ManagedObjStorageDeleter{});
@@ -74,11 +75,13 @@ T* managedCast(ManagedObj* managedObj);
 constexpr uint8_t CustomType = 0;
 
 template <>
-inline uint8_t managedType<ManagedObj>(){ return CustomType; }
+inline uint8_t managedType<ManagedObj>() {
+    return CustomType;
+}
 template <typename T>
 T* managedCast(ManagedObj* managedObj) {
-    if (!managedObj) {return nullptr;}
-    if (managedObj->objId().type != managedType<T>()) {return nullptr;}
+    if (!managedObj) { return nullptr; }
+    if (managedObj->objId().type != managedType<T>()) { return nullptr; }
     return static_cast<T*>(managedObj);
     // assert(!managedObj || managedObj->objId().type == CustomType);
     // return managedObj ? dynamic_cast<T*>(managedObj) : nullptr;
@@ -92,7 +95,7 @@ public:
     ~ManagedObjStorage();
 
     ManagedObj* get(uint32_t identifier) const;
-    
+
     template <typename T>
     T* get(uint32_t identifier) const {
         return managedCast<T>(get(identifier));
@@ -100,10 +103,10 @@ public:
 
     template <typename T>
     UniqueManagedObj<T> make() {
-        auto reserved = reserve();
-        return store<T>(reserved.value().first, reserved.value().second);
+        if (auto reserved = reserve()) { return store<T>(reserved.value().first, reserved.value().second); }
+        return {};
     }
-    
+
     void free(const ManagedObj* managedObj);
 
 protected:
@@ -112,20 +115,17 @@ protected:
     template <typename T>
     UniqueManagedObj<T> store(size_t pageIndex, size_t slotIndex) {
         auto managedObj = makeUniqueManagedObj<T>(this);
-        if (store(managedObj.get(), pageIndex, slotIndex, managedType<T>())) {
-            return managedObj;
-        }
-        
+        if (store(managedObj.get(), pageIndex, slotIndex, managedType<T>())) { return managedObj; }
+
         return {};
     }
 
     std::optional<std::pair<size_t, size_t>> reserve();
     void init(ManagedObj* managedObj, size_t pageIndex, size_t slotIndex, uint8_t type);
     bool store(ManagedObj* managedObj, size_t pageIndex, size_t slotIndex, uint8_t type);
-    
+
     friend ManagedObjStorageDeleter;
 
     std::vector<std::unique_ptr<ManagedObjStoragePage>> mPages;
 };
-}
-
+} // namespace giftools

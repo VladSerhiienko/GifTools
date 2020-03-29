@@ -6,8 +6,10 @@ namespace giftools {
 struct Buffer;
 
 struct File;
-template <> File* managedCast<File>(ManagedObj* managedObj);
-template<> uint8_t managedType<File>();
+template <>
+File* managedCast<File>(ManagedObj* managedObj);
+template <>
+uint8_t managedType<File>();
 
 struct File : public ManagedObj {
     File();
@@ -19,6 +21,4 @@ void fileBinaryWrite(const char* path, const Buffer* bufferObj);
 
 UniqueManagedObj<Buffer> fileBinaryRead(const char* path);
 
-}
-
-
+} // namespace giftools

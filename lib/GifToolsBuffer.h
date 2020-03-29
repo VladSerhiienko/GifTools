@@ -4,7 +4,8 @@
 namespace giftools {
 
 struct Buffer : public ManagedObj {};
-template<> uint8_t managedType<Buffer>();
+template <>
+uint8_t managedType<Buffer>();
 
 UniqueManagedObj<Buffer> bufferCopyFromMemory(const uint8_t* bufferPtr, size_t bufferSize);
 UniqueManagedObj<Buffer> bufferCopyFromVector(const std::vector<uint8_t>& buffer);
@@ -21,5 +22,4 @@ bool bufferEmpty(const Buffer* bufferObj);
 UniqueManagedObj<Buffer> bufferToStringBase64(const Buffer* bufferObj);
 UniqueManagedObj<Buffer> bufferFromStringBase64(const Buffer* bufferObj);
 
-}
-
+} // namespace giftools

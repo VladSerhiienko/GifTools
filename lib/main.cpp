@@ -1,51 +1,51 @@
-#include <GifToolsImage.h>
 #include <GifToolsBuffer.h>
 #include <GifToolsFile.h>
+#include <GifToolsImage.h>
 
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
-#include <string>
-#include <functional>
 
 #ifdef GIFTOOLS_EMSCRIPTEN
 //#warning "GifTools: emscripten"
 //#include <emscripten/emscripten.h>
 //#include <emscripten/bind.h>
 //#include <emscripten/val.h>
-//using namespace emscripten;
+// using namespace emscripten;
 //
 //
-//extern "C" {
-//EMSCRIPTEN_KEEPALIVE
-//float lerp(float a, float b, float t) ;
-//EMSCRIPTEN_KEEPALIVE
-//int imageReadFromFile(const char* imgFilePath);
+// extern "C" {
+// EMSCRIPTEN_KEEPALIVE
+// float lerp(float a, float b, float t) ;
+// EMSCRIPTEN_KEEPALIVE
+// int imageReadFromFile(const char* imgFilePath);
 //}
 //
-//float lerp(float a, float b, float t) {
+// float lerp(float a, float b, float t) {
 //    return (1 - t) * a + t * b;
 //}
 //
-//int imageReadFromFile(const char* imgFilePath) {
+// int imageReadFromFile(const char* imgFilePath) {
 //    printf("%s", imgFilePath);
 //    return 3;
 //}
 //
-//EMSCRIPTEN_BINDINGS(GifTools) {
+// EMSCRIPTEN_BINDINGS(GifTools) {
 //    function("lerp", &lerp);
 //}
 //
-//class Lerper {
-//public:
+// class Lerper {
+// public:
 //    static float linearStep(float a, float b, float t) {
 //        return lerp(a, b, t);
 //    }
 //};
 //
-//EMSCRIPTEN_BINDINGS(GifToolsLerper) {
+// EMSCRIPTEN_BINDINGS(GifToolsLerper) {
 //    class_<Lerper>("Lerper")
 //        .constructor<>()
 //        .class_function("linearStep", &Lerper::linearStep)
@@ -68,7 +68,11 @@ extern "C" {
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "lib/stb_image_write.h"
 
-enum FileType { FileTypeNone, FileTypeBinary, FileTypeText, };
+enum FileType {
+    FileTypeNone,
+    FileTypeBinary,
+    FileTypeText,
+};
 struct File {
 public:
     std::string path = {};
@@ -81,7 +85,7 @@ std::optional<File> fileReadBinary(const std::string& imgFilePath) {
         File file = {};
         file.path = imgFilePath;
         file.type = FileTypeBinary;
-    
+
         fseek(imgFileHandle, 0, SEEK_END);
         size_t imgFileSize = ftell(imgFileHandle);
         fseek(imgFileHandle, 0, SEEK_SET);
@@ -193,10 +197,10 @@ struct VideoFrame {
 
 std::optional<VideoStream> videoStreamOpen(const std::string& filePath) {
     int ret = 0;
-    
+
     auto optFile = fileReadBinary(filePath);
     if (!optFile || optFile->buffer.empty()) { return {}; }
-    
+
     VideoStream videoStream = {};
     videoStream.stream = {0, std::move(optFile.value().buffer)};
 
@@ -306,19 +310,19 @@ struct FreeFramePacketGuard {
 
 std::vector<uint8_t> videoStreamBruteDumpFrameAt(VideoStream& videoStream, double sampleTime) {
     int ret = 0;
-    
+
     // clang-format off
     assert(videoStream.width > 0);
     assert(videoStream.height > 0);
     assert(videoStream.alignment == 1);
     const size_t imgBufferSize = av_image_get_buffer_size(videoStream.decodeFmt, videoStream.width, videoStream.height, videoStream.alignment);
     // clang-format on
-    
+
     VideoFrame frame = {};
     frame.decodedFrame = av_frame_alloc();
     frame.encodedFrame = av_frame_alloc();
     frame.imageByteBuffer.resize(imgBufferSize);
-    
+
     ret = av_image_fill_arrays(frame.encodedFrame->data,
                                frame.encodedFrame->linesize,
                                frame.imageByteBuffer.data(),
@@ -395,7 +399,7 @@ std::vector<uint8_t> videoStreamBruteDumpFrameAt(VideoStream& videoStream, doubl
 
 void testGifWriter() {
     using namespace giftools;
-    
+
     UniqueManagedObj<Buffer> bufferObjs[4];
     bufferObjs[0] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083058.jpg");
     bufferObjs[1] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg");
@@ -422,24 +426,22 @@ void testGifWriter() {
     gifBuilderAddImage(gifBuilderObj.get(), imageObjs[1].get(), delay);
     gifBuilderAddImage(gifBuilderObj.get(), imageObjs[2].get(), delay);
     gifBuilderAddImage(gifBuilderObj.get(), imageObjs[3].get(), delay);
-    
+
     UniqueManagedObj<Buffer> gifBufferObj = gifBuilderFinalize(gifBuilderObj.get());
     fileBinaryWrite("TestGif.gif", gifBufferObj.get());
 }
 
 void linkEmsdk() {
-    #ifdef GIFTOOLS_EMSCRIPTEN
-    EM_ASM(
-        console.log("GifTools!");
-    );
-    #endif
+#ifdef GIFTOOLS_EMSCRIPTEN
+    EM_ASM(console.log("GifTools!"););
+#endif
 }
 
 int main(int argc, char** argv) {
     printf("Yup.");
-    
+
     testGifWriter();
-    #ifdef GIFTOOLS_USE_FFMPEG
+#ifdef GIFTOOLS_USE_FFMPEG
 
     const char* testMp4File = "/Users/vserhiienko/Downloads/2020-02-23 18.53.40.mp4";
     auto optVideoStream = videoStreamOpen(testMp4File);
@@ -542,7 +544,8 @@ int main(int argc, char** argv) {
     AVPicture* picture = reinterpret_cast<AVPicture*>(frame);
     std::vector<uint8_t> imageBuffer = {};
 
-    size_t imageByteSize = av_image_get_buffer_size(videoStream.decodeFmt, videoStream.width, videoStream.height, videoStream.alignment);
+    size_t imageByteSize =
+        av_image_get_buffer_size(videoStream.decodeFmt, videoStream.width, videoStream.height, videoStream.alignment);
     imageBuffer.resize(imageByteSize);
     av_image_fill_arrays(picture->data,
                          picture->linesize,
@@ -622,7 +625,7 @@ int main(int argc, char** argv) {
     av_frame_free(&frame);
 
     videoStreamClose(videoStream);
-    #endif
+#endif
     return 0;
 }
 
