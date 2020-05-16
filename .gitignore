@@ -30,9 +30,11 @@ build_xcode
 build_emsdk
 build_emscripten
 build_emscripten_node
+build_emscripten_node_ffmpeg
 build_emscripten_web_es6
 build_emscripten_web_amalgamated
 build_emscripten_web_es6_amalgamated
+build_emscripten_web_es6_amalgamated_ffmpeg
 
 # General
 .DS_Store

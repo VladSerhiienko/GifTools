@@ -66,7 +66,7 @@ extern "C" {
 
 #define STB_IMAGE_WRITE_STATIC
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "lib/stb_image_write.h"
+#include "stb_image_write.h"
 
 enum FileType {
     FileTypeNone,
@@ -151,10 +151,14 @@ static int64_t inputStreamSeek(void* const opaque, int64_t const pos, int const 
     return result;
 }
 
-void writeRGB24ToPNG(const uint8_t* data, size_t width, size_t height, double duration) {
-    static uint32_t frame_counter = 0;
+void writeRGB24ToPNG(const uint8_t* data, size_t width, size_t height, size_t frame, double duration, const std::string_view sv) {
     char buff[256] = {};
-    sprintf(buff, "write_rgb24_to_png_%09u_%f.png", frame_counter++, duration);
+    
+    size_t mm = size_t(floor(duration / 60));
+    size_t ss = size_t(floor(duration));
+    double ms = double(duration - size_t(duration));
+    
+    sprintf(buff, "%s_%zu-%zu-%3.3f_%09zu-%09zu.png", sv.data(), mm, ss, ms * 1000, frame, size_t(duration * 1000.0));
     printf("PNG: %s\n", buff);
     stbi_write_png(buff, width, height, 3, data, width * 3);
 }
@@ -206,7 +210,8 @@ std::optional<VideoStream> videoStreamOpen(const std::string& filePath) {
 
     // TODO(vserhiienko): deprecated.
     av_register_all();
-    av_log_set_level(AV_LOG_TRACE);
+    // av_log_set_level(AV_LOG_TRACE);
+    av_log_set_level(AV_LOG_ERROR);
 
     videoStream.fmtContext = avformat_alloc_context();
     videoStream.fmtContext->pb = avio_alloc_context(videoStream.stream.buffer.data(),
@@ -308,7 +313,17 @@ struct FreeFramePacketGuard {
     ~FreeFramePacketGuard() { freePacket(); }
 };
 
-std::vector<uint8_t> videoStreamBruteDumpFrameAt(VideoStream& videoStream, double sampleTime) {
+struct FreeFrameGuard {
+    VideoFrame& videoFrame;
+    void freeFrame() {
+        av_frame_free(&videoFrame.decodedFrame);
+        av_frame_free(&videoFrame.encodedFrame);
+    }
+    FreeFrameGuard(VideoFrame& videoFrame) : videoFrame(videoFrame) {}
+    ~FreeFrameGuard() { freeFrame(); }
+};
+
+std::vector<uint8_t> videoStreamBrutePickBestFrame(VideoStream& videoStream, double sampleTime) {
     int ret = 0;
 
     // clang-format off
@@ -318,14 +333,27 @@ std::vector<uint8_t> videoStreamBruteDumpFrameAt(VideoStream& videoStream, doubl
     const size_t imgBufferSize = av_image_get_buffer_size(videoStream.decodeFmt, videoStream.width, videoStream.height, videoStream.alignment);
     // clang-format on
 
-    VideoFrame frame = {};
-    frame.decodedFrame = av_frame_alloc();
-    frame.encodedFrame = av_frame_alloc();
-    frame.imageByteBuffer.resize(imgBufferSize);
+    VideoFrame prevFrame = {};
+    prevFrame.decodedFrame = av_frame_alloc();
+    prevFrame.encodedFrame = av_frame_alloc();
+    prevFrame.imageByteBuffer.resize(imgBufferSize);
 
-    ret = av_image_fill_arrays(frame.encodedFrame->data,
-                               frame.encodedFrame->linesize,
-                               frame.imageByteBuffer.data(),
+    ret = av_image_fill_arrays(prevFrame.encodedFrame->data,
+                               prevFrame.encodedFrame->linesize,
+                               prevFrame.imageByteBuffer.data(),
+                               videoStream.decodeFmt,
+                               videoStream.width,
+                               videoStream.height,
+                               videoStream.alignment);
+    
+    VideoFrame currFrame = {};
+    currFrame.decodedFrame = av_frame_alloc();
+    currFrame.encodedFrame = av_frame_alloc();
+    currFrame.imageByteBuffer.resize(imgBufferSize);
+
+    ret = av_image_fill_arrays(currFrame.encodedFrame->data,
+                               currFrame.encodedFrame->linesize,
+                               currFrame.imageByteBuffer.data(),
                                videoStream.decodeFmt,
                                videoStream.width,
                                videoStream.height,
@@ -333,7 +361,10 @@ std::vector<uint8_t> videoStreamBruteDumpFrameAt(VideoStream& videoStream, doubl
     if (ret < 0) { return {}; }
 
     FlushBuffersGuard flushBuffersGuard{videoStream};
-    FreeFramePacketGuard freePacketGuard{frame};
+    FreeFramePacketGuard freePrevPacketGuard{prevFrame};
+    FreeFramePacketGuard freeCurrPacketGuard{currFrame};
+    FreeFrameGuard freePrevFrameGuard{currFrame};
+    FreeFrameGuard freeCurrFrameGuard{prevFrame};
 
     bool endOfStream = false;
     bool frameAcquired = false;
@@ -347,49 +378,113 @@ std::vector<uint8_t> videoStreamBruteDumpFrameAt(VideoStream& videoStream, doubl
             while (keepSearchingPackets && !endOfStream) {
                 printf("av_read_frame\n");
 
-                videoFrameFreePacket(frame);
-                ret = av_read_frame(videoStream.fmtContext, &frame.packet);
+                videoFrameFreePacket(currFrame);
+                ret = av_read_frame(videoStream.fmtContext, &currFrame.packet);
                 endOfStream = (ret == AVERROR_EOF);
                 if (ret < 0 && ret != AVERROR_EOF) { return {}; }
 
-                if (ret == 0 && frame.packet.stream_index == videoStream.primaryStreamIndex) {
+                if (ret == 0 && currFrame.packet.stream_index == videoStream.primaryStreamIndex) {
                     keepSearchingPackets = false;
                     break;
                 }
             }
 
             // clang-format off
-            int didRetrievePicture = 0;
+            
+            // printf("avcodec_send_packet\n");
+            // ret = avcodec_send_packet(videoStream.primaryCodecContext, &currFrame.packet);
+            // if (ret < 0) { return {}; }
+            //
+            // printf("avcodec_receive_frame\n");
+            // ret = avcodec_receive_frame(videoStream.primaryCodecContext, currFrame.decodedFrame);
+            // if (ret < 0) { return {}; }
+            // frameAcquired = true;
+            
             printf("avcodec_decode_video2\n");
-            ret = avcodec_decode_video2(videoStream.primaryCodecContext, frame.decodedFrame, &didRetrievePicture, &frame.packet);
+            int didRetrievePicture = 0;
+            ret = avcodec_decode_video2(videoStream.primaryCodecContext, currFrame.decodedFrame, &didRetrievePicture, &currFrame.packet);
             if (ret < 0) { return {}; }
+            frameAcquired = didRetrievePicture > 0;
+            
             // clang-format on
 
-            frameAcquired = didRetrievePicture > 0;
             if (endOfStream) { break; }
         }
 
-        const int64_t mostAccurateTimestamp = av_frame_get_best_effort_timestamp(frame.decodedFrame);
+        // av_frame_get_best_effort_timestamp(currFrame.decodedFrame);
+        const int64_t mostAccurateTimestamp = currFrame.decodedFrame->best_effort_timestamp;
         const double mostAccurateTime = mostAccurateTimestamp * videoStream.primaryStreamTimeBase;
-        frame.timeTimeBaseEst = mostAccurateTimestamp;
-        frame.timeSecondsEst = mostAccurateTime;
+        currFrame.timeTimeBaseEst = mostAccurateTimestamp;
+        currFrame.timeSecondsEst = mostAccurateTime;
+        
+        const double diff = fabs(mostAccurateTime - sampleTime);
 
         printf("mostAccurateTime = %f\n", mostAccurateTime);
         printf("sampleTime = %f\n", sampleTime);
-
-        constexpr double kSampleTimeTolerance = 0.001;
-        if (mostAccurateTime >= std::max(kSampleTimeTolerance, sampleTime - kSampleTimeTolerance)) {
+        printf("diff = %f\n", diff);
+        printf("frame = %f\n", videoStream.frameDurationSeconds);
+        
+        if (diff < videoStream.frameDurationSeconds) {
+            printf("curr frame is good\n");
             printf("sws_scale\n");
-
             ret = sws_scale(videoStream.swsContext,
-                            frame.decodedFrame->data,
-                            frame.decodedFrame->linesize,
+                            currFrame.decodedFrame->data,
+                            currFrame.decodedFrame->linesize,
                             0,
-                            frame.decodedFrame->height,
-                            frame.encodedFrame->data,
-                            frame.encodedFrame->linesize);
+                            currFrame.decodedFrame->height,
+                            currFrame.encodedFrame->data,
+                            currFrame.encodedFrame->linesize);
             if (ret < 0) { return {}; }
-            return frame.imageByteBuffer;
+            return currFrame.imageByteBuffer;
+        }
+
+        if (mostAccurateTime < 0) {
+            printf("last frame is the only option\n");
+            printf("sws_scale\n");
+            ret = sws_scale(videoStream.swsContext,
+                            prevFrame.decodedFrame->data,
+                            prevFrame.decodedFrame->linesize,
+                            0,
+                            prevFrame.decodedFrame->height,
+                            prevFrame.encodedFrame->data,
+                            prevFrame.encodedFrame->linesize);
+            if (ret < 0) { return {}; }
+            return prevFrame.imageByteBuffer;
+        }
+        
+        if (mostAccurateTime > sampleTime) {
+            const double prevDiff = fabs(prevFrame.timeSecondsEst - sampleTime);
+            const double currDiff = fabs(currFrame.timeSecondsEst - sampleTime);
+            if (prevDiff < currDiff) {
+                printf("previous frame is closer\n");
+                printf("sws_scale\n");
+                ret = sws_scale(videoStream.swsContext,
+                                prevFrame.decodedFrame->data,
+                                prevFrame.decodedFrame->linesize,
+                                0,
+                                prevFrame.decodedFrame->height,
+                                prevFrame.encodedFrame->data,
+                                prevFrame.encodedFrame->linesize);
+                if (ret < 0) { return {}; }
+                return prevFrame.imageByteBuffer;
+            }
+            
+            printf("curr frame is closer\n");
+            printf("sws_scale\n");
+            ret = sws_scale(videoStream.swsContext,
+                            currFrame.decodedFrame->data,
+                            currFrame.decodedFrame->linesize,
+                            0,
+                            currFrame.decodedFrame->height,
+                            currFrame.encodedFrame->data,
+                            currFrame.encodedFrame->linesize);
+            if (ret < 0) { return {}; }
+            return currFrame.imageByteBuffer;
+        }
+        
+        printf("trying next frame\n");
+        if (mostAccurateTime >= 0) {
+            std::swap(prevFrame, currFrame);
         }
     }
 
@@ -450,9 +545,11 @@ int main(int argc, char** argv) {
     VideoStream& videoStream = *optVideoStream;
 
 #if 1
-    for (double t = 0.0; t < 4.0; t += 0.01) {
-        auto imageBuffer = videoStreamBruteDumpFrameAt(videoStream, t);
-        if (!imageBuffer.empty()) { writeRGB24ToPNG(imageBuffer.data(), videoStream.width, videoStream.height, t); }
+    size_t frameCounter = 0;
+    for (double t = 0; t <= videoStream.durationSeconds; t += videoStream.frameDurationSeconds) {
+        auto imageBuffer = videoStreamBrutePickBestFrame(videoStream, t);
+        if (!imageBuffer.empty()) { writeRGB24ToPNG(imageBuffer.data(), videoStream.width, videoStream.height, frameCounter++, t, "dump_video"); }
+        else { printf("videoStreamBruteDumpFrameAt failed."); }
     }
 
     //    videoStreamBruteDumpFrameAt(videoStream, 0);
@@ -605,7 +702,7 @@ int main(int argc, char** argv) {
                   decframe->height,
                   frame->data,
                   frame->linesize);
-        writeRGB24ToPNG(imageBuffer.data(), videoStream.width, videoStream.height, currentDuration);
+        //writeRGB24ToPNG(imageBuffer.data(), videoStream.width, videoStream.height, currentDuration);
 
         ++nb_frames;
     next_packet:
