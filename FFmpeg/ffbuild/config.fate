@@ -1,0 +1,1 @@
+config:c:x86_64:generic:darwin:Apple clang version 11.0.0 (clang-1100.0.33.17):--disable-everything --disable-network --disable-autodetect --disable-asm --disable-inline-asm --disable-x86asm --enable-small --enable-demuxer=mov --enable-demuxer=aac --enable-demuxer=mpegvideo --enable-demuxer=h264 --enable-decoder=h264 --enable-parser=h264 --enable-muxer=h264
