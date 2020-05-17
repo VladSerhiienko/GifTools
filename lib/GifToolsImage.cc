@@ -16,22 +16,22 @@ struct GifBuilderGIFH;
 
 template <>
 uint8_t giftools::managedType<giftools::Image>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::Image);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::Image);
 }
 
 template <>
 uint8_t giftools::managedType<ConcreteImage>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::Image);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::Image);
 }
 
 template <>
 uint8_t giftools::managedType<giftools::GifBuilder>() {
-    return static_cast<uint8_t>(BuildintManagedType::GifBuilder);
+    return static_cast<uint8_t>(BuiltinManagedType::GifBuilder);
 }
 
 template <>
 uint8_t giftools::managedType<GifBuilderGIFH>() {
-    return static_cast<uint8_t>(BuildintManagedType::GifBuilder);
+    return static_cast<uint8_t>(BuiltinManagedType::GifBuilder);
 }
 
 size_t giftools::pixelFormatByteWidth(giftools::PixelFormat format) {
@@ -193,14 +193,14 @@ void StbiWriterFn(void* context, void* data, int size) {
 
 } // namespace
 
-giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileMemory(const Buffer* bufferObj) {
+giftools::UniqueManagedObj<giftools::Image> giftools::aimageLoadFromFileBuffer(const Buffer* bufferObj) {
     if (!bufferObj) { return nullptr; }
-    return imageLoadFromFileMemory(bufferObj->data(), bufferObj->size());
+    return aimageLoadFromFileBuffer(bufferObj->data(), bufferObj->size());
 }
 
-giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileMemory(const std::vector<uint8_t>& buffer) {
+giftools::UniqueManagedObj<giftools::Image> giftools::aimageLoadFromFileBuffer(const std::vector<uint8_t>& buffer) {
     if (buffer.empty()) { return nullptr; }
-    return imageLoadFromFileMemory(buffer.data(), buffer.size());
+    return aimageLoadFromFileBuffer(buffer.data(), buffer.size());
 }
 
 
@@ -215,7 +215,7 @@ giftools::imageLoadFromMemory(size_t width, size_t height, PixelFormat pixelFmt,
     return imageObj;
 }
 
-giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileMemory(const uint8_t* bufferPtr, size_t bufferSize) {
+giftools::UniqueManagedObj<giftools::Image> giftools::aimageLoadFromFileBuffer(const uint8_t* bufferPtr, size_t bufferSize) {
     if (!bufferPtr || !bufferSize) { return nullptr; }
 
     int x = 0, y = 0, components = 0;

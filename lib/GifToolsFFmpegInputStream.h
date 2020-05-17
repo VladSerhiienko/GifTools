@@ -22,7 +22,7 @@ protected:
     FFmpegInputStream() = default;
 };
 
-UniqueManagedObj<FFmpegInputStream> ffmpegInputStreamLoadFromMemory(const Buffer* bufferObj);
+UniqueManagedObj<FFmpegInputStream> ffmpegInputStreamLoadFromBuffer(const Buffer* bufferObj);
 
 
 }

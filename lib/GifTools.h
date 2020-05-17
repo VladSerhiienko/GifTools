@@ -1,6 +1,5 @@
 #pragma once
 
-#include "GifToolsWebAssemblyBindings.h"
 #include "GifToolsFFmpegVideoStream.h"
 #include "GifToolsFFmpegInputStream.h"
 #include "GifToolsBuffer.h"

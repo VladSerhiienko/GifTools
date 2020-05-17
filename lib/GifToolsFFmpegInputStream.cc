@@ -6,12 +6,12 @@ struct FFmpegInputStreamImpl;
 
 template <>
 uint8_t giftools::managedType<giftools::FFmpegInputStream>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::FFmpegInputStream);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::FFmpegInputStream);
 }
 
 template <>
 uint8_t giftools::managedType<FFmpegInputStreamImpl>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::FFmpegInputStream);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::FFmpegInputStream);
 }
 
 #ifndef GIFTOOLS_USE_FFMPEG
@@ -23,7 +23,7 @@ struct FFmpegInputStreamImpl : giftools::FFmpegInputStream {
     giftools::FFmpegInputStreamSeekFnPtr ffmpegInputStreamSeekFnPtr() { return nullptr; }
 };
 
-giftools::UniqueManagedObj<giftools::FFmpegInputStream> ffmpegInputStreamLoadFromMemory(const giftools::Buffer* bufferObj) { return nullptr; }
+giftools::UniqueManagedObj<giftools::FFmpegInputStream> ffmpegInputStreamLoadFromBuffer(const giftools::Buffer* bufferObj) { return nullptr; }
 // int32_t giftools::ffmpegInputStreamRead(void* opaque, uint8_t* p_buffer, int32_t buffer_capacity_bytes_count) noexcept { return -1; }
 // int64_t giftools::ffmpegInputStreamSeek(void* opaque, int64_t pos, int32_t whence) noexcept { return -1; }
 
@@ -60,7 +60,7 @@ struct FFmpegInputStreamImpl : giftools::FFmpegInputStream {
 };
 
 giftools::UniqueManagedObj<giftools::FFmpegInputStream>
-giftools::ffmpegInputStreamLoadFromMemory(const giftools::Buffer* bufferObj) {
+giftools::ffmpegInputStreamLoadFromBuffer(const giftools::Buffer* bufferObj) {
     auto streamObj = managedObjStorageDefault().make<FFmpegInputStreamImpl>();
     streamObj->bufferObj = bufferObj;
     streamObj->bufferDataPtr = bufferObj->data();
@@ -71,7 +71,7 @@ giftools::ffmpegInputStreamLoadFromMemory(const giftools::Buffer* bufferObj) {
 
 namespace {
 int32_t ffmpegInputStreamRead(void* opaque, uint8_t* p_buffer, int32_t buffer_capacity_bytes_count) noexcept {
-    int32_t result{AVERROR(EPERM)};
+    int32_t result = -1;
     
     assert(opaque);
     if (opaque && p_buffer && (0 <= buffer_capacity_bytes_count)) {

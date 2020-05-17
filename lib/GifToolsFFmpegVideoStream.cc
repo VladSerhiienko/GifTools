@@ -10,22 +10,22 @@ struct FFmpegVideoStreamImpl;
 
 template <>
 uint8_t giftools::managedType<giftools::FFmpegVideoFrame>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::FFmpegVideoFrame);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::FFmpegVideoFrame);
 }
 
 template <>
 uint8_t giftools::managedType<FFmpegVideoFrameImpl>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::FFmpegVideoFrame);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::FFmpegVideoFrame);
 }
 
 template <>
 uint8_t giftools::managedType<giftools::FFmpegVideoStream>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::FFmpegVideoStream);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::FFmpegVideoStream);
 }
 
 template <>
 uint8_t giftools::managedType<FFmpegVideoStreamImpl>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::FFmpegVideoStream);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::FFmpegVideoStream);
 }
 
 #ifndef GIFTOOLS_USE_FFMPEG
@@ -77,15 +77,13 @@ struct FFmpegStagingVideoFrame {
     AVFrame* decodedFrame = nullptr;
     AVPacket packet = {};
     
-    FFmpegStagingVideoFrame() = default;
-    ~FFmpegStagingVideoFrame() = default;
+//    FFmpegStagingVideoFrame() = default;
+//    ~FFmpegStagingVideoFrame() = default;
 };
 
 struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     giftools::Buffer* contentsBufferObj = nullptr;
     const giftools::FFmpegInputStream* streamObj = nullptr;
-    // giftools::UniqueManagedObj<giftools::Buffer> streamContents;
-    // giftools::UniqueManagedObj<giftools::FFmpegInputStream> stream;
     
     AVFormatContext* fmtContext = nullptr;
     std::vector<uint8_t> probeBuffer = {};
@@ -125,11 +123,13 @@ giftools::ffmpegVideoStreamOpen(const giftools::FFmpegInputStream* ffmpegInputSt
     videoStream.streamObj = ffmpegInputStream;
     videoStream.contentsBufferObj = (giftools::Buffer*)ffmpegInputStream->buffer();
 
-    // TODO(vserhiienko): deprecated.
     av_register_all();
-    // av_log_set_level(AV_LOG_TRACE);
+#if defined(_DEBUG) || defined(DEBUG)
+    av_log_set_level(AV_LOG_TRACE);
+#else
     av_log_set_level(AV_LOG_ERROR);
-
+#endif
+    
     videoStream.fmtContext = avformat_alloc_context();
     videoStream.fmtContext->pb = avio_alloc_context(videoStream.contentsBufferObj->mutableData(),
                                                     videoStream.contentsBufferObj->size(),
@@ -195,7 +195,7 @@ giftools::ffmpegVideoStreamOpen(const giftools::FFmpegInputStream* ffmpegInputSt
                                                   nullptr,
                                                   nullptr);
     if (!videoStream.swsContext) { return {}; }
-    return giftools::UniqueManagedObj<giftools::FFmpegVideoStream>(videoStreamPtr.release());
+    return videoStreamPtr;
 }
 
 void giftools::ffmpegVideoStreamClose(FFmpegVideoStream* ffmpegVideoStream) {
@@ -249,14 +249,25 @@ struct FreeFrameGuard {
 
 
 giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>
-ffmpegVideoFrameFromStaging(FFmpegStagingVideoFrame& ffmpegStagingVideoFrame) {
+ffmpegVideoFrameFromStaging(const FFmpegVideoStreamImpl& videoStream, FFmpegStagingVideoFrame& ffmpegStagingVideoFrame) {
     auto frame = giftools::managedObjStorageDefault().make<FFmpegVideoFrameImpl>();
     
     frame->timeSecondsEst = ffmpegStagingVideoFrame.timeSecondsEst;
     
+    if (ffmpegStagingVideoFrame.imageByteBuffer[0] == 0 &&
+        ffmpegStagingVideoFrame.imageByteBuffer[1] == 0 &&
+        ffmpegStagingVideoFrame.imageByteBuffer[2] == 0 &&
+        ffmpegStagingVideoFrame.imageByteBuffer[3] == 0 &&
+        ffmpegStagingVideoFrame.imageByteBuffer[4] == 0 &&
+        ffmpegStagingVideoFrame.imageByteBuffer[5] == 0 &&
+        ffmpegStagingVideoFrame.imageByteBuffer[6] == 0 &&
+        ffmpegStagingVideoFrame.imageByteBuffer[7] == 0) {
+        printf("black!\n");
+    }
+    
     assert(ffmpegStagingVideoFrame.decodeFmt == AV_PIX_FMT_RGB24);
-    frame->imageObj = giftools::imageLoadFromMemory(ffmpegStagingVideoFrame.width,
-                                                    ffmpegStagingVideoFrame.height,
+    frame->imageObj = giftools::imageLoadFromMemory(videoStream.width,
+                                                    videoStream.height,
                                                     giftools::PixelFormatR8G8B8Unorm,
                                                     ffmpegStagingVideoFrame.imageByteBuffer.data(),
                                                     ffmpegStagingVideoFrame.imageByteBuffer.size());
@@ -382,7 +393,8 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
                             currFrame.encodedFrame->data,
                             currFrame.encodedFrame->linesize);
             if (ret < 0) { return {}; }
-            return ffmpegVideoFrameFromStaging(currFrame);
+            auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
+            return frame;
         }
 
         if (mostAccurateTime < 0) {
@@ -396,7 +408,8 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
                             prevFrame.encodedFrame->data,
                             prevFrame.encodedFrame->linesize);
             if (ret < 0) { return {}; }
-            return ffmpegVideoFrameFromStaging(prevFrame);
+            auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
+            return frame;
         }
         
         if (mostAccurateTime > sampleTime) {
@@ -413,7 +426,8 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
                                 prevFrame.encodedFrame->data,
                                 prevFrame.encodedFrame->linesize);
                 if (ret < 0) { return {}; }
-                return ffmpegVideoFrameFromStaging(prevFrame);
+                auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
+                return frame;
             }
             
             printf("curr frame is closer (%f, %f vs %f)\n", sampleTime, currFrame.timeSecondsEst, diff);
@@ -426,7 +440,8 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
                             currFrame.encodedFrame->data,
                             currFrame.encodedFrame->linesize);
             if (ret < 0) { return {}; }
-            return ffmpegVideoFrameFromStaging(currFrame);
+            auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
+            return frame;
         }
         
         printf("trying next frame\n");

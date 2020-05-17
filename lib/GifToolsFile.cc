@@ -6,7 +6,7 @@
 
 template <>
 uint8_t giftools::managedType<giftools::File>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::File);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::File);
 }
 
 void giftools::fileBinaryWrite(const char* path, const uint8_t* bufferPtr, size_t bufferSize) {

@@ -7,12 +7,12 @@ struct ConcreteBuffer;
 
 template <>
 uint8_t giftools::managedType<giftools::Buffer>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::Buffer);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::Buffer);
 }
 
 template <>
 uint8_t giftools::managedType<ConcreteBuffer>() {
-    return static_cast<uint8_t>(giftools::BuildintManagedType::Buffer);
+    return static_cast<uint8_t>(giftools::BuiltinManagedType::Buffer);
 }
 
 struct ConcreteBuffer : public giftools::Buffer {

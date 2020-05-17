@@ -9,7 +9,7 @@ namespace giftools {
     class FFmpegVideoFrame;
     class FFmpegVideoStream;
     
-    enum class BuildintManagedType : uint8_t {
+    enum class BuiltinManagedType : uint8_t {
         Undefined = 0,
         Buffer,
         File,

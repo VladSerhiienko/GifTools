@@ -1,8 +1,5 @@
 #include "GifToolsWebAssemblyBindings.h"
-
-#include "GifToolsBuffer.h"
-#include "GifToolsImage.h"
-#include "GifToolsManagedObject.h"
+#include "GifTools.h"
 
 #ifdef GIFTOOLS_EMSCRIPTEN
 #warning "GifTools for Emscripten"
@@ -52,7 +49,7 @@ EMSCRIPTEN_KEEPALIVE int imageWidth(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageHeight(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageFormat(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageClone(int imageId);
-EMSCRIPTEN_KEEPALIVE int imageLoadFromFileMemory(const char* bufferPtr, int bufferSize);
+EMSCRIPTEN_KEEPALIVE int aimageLoadFromFileBuffer(const char* bufferPtr, int bufferSize);
 EMSCRIPTEN_KEEPALIVE int imageLoadFromBuffer(int bufferId);
 EMSCRIPTEN_KEEPALIVE int imageResizeOrClone(int imageId, int width, int height);
 EMSCRIPTEN_KEEPALIVE int imageExportToPngFileMemory(int imageId);
@@ -67,14 +64,24 @@ EMSCRIPTEN_KEEPALIVE int gifBuilderFinalize(int gifBuilderId);
 
 //
 // Video
-// TODO(vserhiienko)
 //
+
+EMSCRIPTEN_KEEPALIVE int ffmpegInputStreamLoadFromBuffer(int bufferId);
+EMSCRIPTEN_KEEPALIVE int ffmpegVideoStreamOpen(int ffmpegInputStreamId);
+EMSCRIPTEN_KEEPALIVE int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime);
+EMSCRIPTEN_KEEPALIVE double ffmpegVideoFrameTimeSeconds(int ffmpegVideoFrameId);
+EMSCRIPTEN_KEEPALIVE int ffmpegVideoFrameImage(int ffmpegVideoFrameId);
+EMSCRIPTEN_KEEPALIVE void ffmpegVideoStreamClose(int ffmpegVideoStreamId);
+
 }
 
 namespace {
+int32_t objectId(const giftools::ManagedObj* object) {
+    return object ? object->objId().composite : 0;
+}
 template <typename T>
 int32_t objectReleaseAndReturnId(giftools::UniqueManagedObj<T>&& object) {
-    return object.release()->objId().composite;
+    return object ? object.release()->objId().composite : 0;
 }
 } // namespace
 
@@ -162,13 +169,13 @@ int imageClone(int imageId) {
     return objectReleaseAndReturnId(giftools::imageClone(imageObj));
 }
 
-int imageLoadFromFileMemory(const char* bufferPtr, int bufferSize) {
-    return objectReleaseAndReturnId(giftools::imageLoadFromFileMemory((const uint8_t*)bufferPtr, bufferSize));
+int aimageLoadFromFileBuffer(const char* bufferPtr, int bufferSize) {
+    return objectReleaseAndReturnId(giftools::aimageLoadFromFileBuffer((const uint8_t*)bufferPtr, bufferSize));
 }
 
 int imageLoadFromBuffer(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return objectReleaseAndReturnId(giftools::imageLoadFromFileMemory(bufferObj));
+    return objectReleaseAndReturnId(giftools::aimageLoadFromFileBuffer(bufferObj));
 }
 
 int imageResizeOrClone(int imageId, int width, int height) {
@@ -194,6 +201,36 @@ bool gifBuilderAddImage(int gifBuilderId, int imageId, int delay) {
 int gifBuilderFinalize(int gifBuilderId) {
     auto gifBuilderObj = giftools::managedObjStorageDefault().get<giftools::GifBuilder>(gifBuilderId);
     return objectReleaseAndReturnId(giftools::gifBuilderFinalize(gifBuilderObj));
+}
+
+int ffmpegInputStreamLoadFromBuffer(int bufferId) {
+    auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
+    return objectReleaseAndReturnId(giftools::ffmpegInputStreamLoadFromBuffer(bufferObj));
+}
+
+int ffmpegVideoStreamOpen(int ffmpegInputStreamId) {
+    auto ffmpegInputStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegInputStream>(ffmpegInputStreamId);
+    return objectReleaseAndReturnId(giftools::ffmpegVideoStreamOpen(ffmpegInputStreamObj));
+}
+
+int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return objectReleaseAndReturnId(giftools::ffmpegVideoStreamPickBestFrame(ffmpegVideoStreamObj, sampleTime));
+}
+
+void ffmpegVideoStreamClose(int ffmpegVideoStreamId) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return giftools::ffmpegVideoStreamClose(ffmpegVideoStreamObj);
+}
+
+double ffmpegVideoFrameTimeSeconds(int ffmpegVideoFrameId) {
+    auto ffmpegVideoFrameObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoFrame>(ffmpegVideoFrameId);
+    return ffmpegVideoFrameObj ? ffmpegVideoFrameObj->estimatedSampleTimeSeconds() : 0;
+}
+
+int ffmpegVideoFrameImage(int ffmpegVideoFrameId) {
+    auto ffmpegVideoFrameObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoFrame>(ffmpegVideoFrameId);
+    return objectId(ffmpegVideoFrameObj->image());
 }
 
 #ifdef GIFTOOLS_EMSCRIPTEN
@@ -228,7 +265,7 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("imageHeight", &imageHeight);
     function("imageFormat", &imageFormat);
     function("imageClone", &imageClone);
-    function("imageLoadFromFileMemory", &imageLoadFromFileMemory, allow_raw_pointers());
+    function("aimageLoadFromFileBuffer", &aimageLoadFromFileBuffer, allow_raw_pointers());
     function("imageLoadFromBuffer", &imageLoadFromBuffer);
     function("imageResizeOrClone", &imageResizeOrClone);
     function("imageExportToPngFileMemory", &imageExportToPngFileMemory);
@@ -237,6 +274,12 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("gifBuilderFinalize", &gifBuilderFinalize);
     function("bufferFromUint8Array", &bufferFromUint8Array);
     function("bufferToUint8Array", &bufferToUint8Array);
+    function("ffmpegInputStreamLoadFromBuffer", &ffmpegInputStreamLoadFromBuffer);
+    function("ffmpegVideoStreamOpen", &ffmpegVideoStreamOpen);
+    function("ffmpegVideoStreamPickBestFrame", &ffmpegVideoStreamPickBestFrame);
+    function("ffmpegVideoFrameTimeSeconds", &ffmpegVideoFrameTimeSeconds);
+    function("ffmpegVideoFrameImage", &ffmpegVideoFrameImage);
+    function("ffmpegVideoStreamClose", &ffmpegVideoStreamClose);
 }
 
 #endif

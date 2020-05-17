@@ -154,7 +154,7 @@ std::optional<VideoStream> videoStreamOpen(const std::string& filePath) {
 
     VideoStream videoStream = {};
     videoStream.streamContents = giftools::bufferFromVector(std::move(optFile.value().buffer));
-    videoStream.stream = giftools::ffmpegInputStreamLoadFromMemory(videoStream.streamContents.get());
+    videoStream.stream = giftools::ffmpegInputStreamLoadFromBuffer(videoStream.streamContents.get());
 
     // TODO(vserhiienko): deprecated.
     av_register_all();
@@ -453,10 +453,10 @@ void testGifWriter() {
     bufferObjs[3] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg");
 
     UniqueManagedObj<Image> imageObjs[4];
-    imageObjs[0] = imageLoadFromFileMemory(bufferObjs[0].get());
-    imageObjs[1] = imageLoadFromFileMemory(bufferObjs[1].get());
-    imageObjs[2] = imageLoadFromFileMemory(bufferObjs[2].get());
-    imageObjs[3] = imageLoadFromFileMemory(bufferObjs[3].get());
+    imageObjs[0] = aimageLoadFromFileBuffer(bufferObjs[0].get());
+    imageObjs[1] = aimageLoadFromFileBuffer(bufferObjs[1].get());
+    imageObjs[2] = aimageLoadFromFileBuffer(bufferObjs[2].get());
+    imageObjs[3] = aimageLoadFromFileBuffer(bufferObjs[3].get());
 
     const size_t delay = 100;
     const size_t width = 1200;
@@ -492,12 +492,12 @@ int main(int argc, char** argv) {
 
     const char* testFileMP4 = "/Users/vserhiienko/Downloads/2020-02-23 18.53.40.mp4";
     auto fileBuffer = giftools::fileBinaryRead(testFileMP4);
-    auto fileStream = giftools::ffmpegInputStreamLoadFromMemory(fileBuffer.get());
+    auto fileStream = giftools::ffmpegInputStreamLoadFromBuffer(fileBuffer.get());
     auto videoStream = giftools::ffmpegVideoStreamOpen(fileStream.get());
     
     size_t frameCounter = 0;
     
-    for (double t = 0; t <= videoStream->estimatedFrameDurationSeconds(); t += videoStream->estimatedFrameDurationSeconds()) {
+    for (double t = 0; t <= videoStream->estimatedTotalDurationSeconds(); t += videoStream->estimatedFrameDurationSeconds()) {
         auto sampledVideoFrame = giftools::ffmpegVideoStreamPickBestFrame(videoStream.get(), t);
         if (sampledVideoFrame) {
             char buff[256] = {};
@@ -510,7 +510,7 @@ int main(int argc, char** argv) {
             printf("PNG: %s\n", buff);
         
             auto imageBuffer = giftools::imageExportToPngFileMemory(sampledVideoFrame->image());
-            giftools::fileBinaryWrite("dump_video_frame.png", imageBuffer->data(), imageBuffer->size());
+            giftools::fileBinaryWrite(buff, imageBuffer->data(), imageBuffer->size());
         } else {
             printf("videoStreamBruteDumpFrameAt failed.");
         }
