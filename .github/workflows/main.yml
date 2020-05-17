@@ -39,6 +39,12 @@ jobs:
     - name: Web ES6 amalgamated build
       run: |
         sh giftools-build-for-web-es6-single-file-with-local-emsdk.sh
+    
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: giftools-precompiled
+        path: bin
 
     - name: Node tests
       run: |
