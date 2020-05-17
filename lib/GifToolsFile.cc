@@ -1,16 +1,13 @@
 #include "GifToolsFile.h"
+#include "GifToolsBuffer.h"
+#include "GifToolsManagedTypes.h"
 
 #include <stdio.h>
 
-#include "GifToolsBuffer.h"
-
 template <>
 uint8_t giftools::managedType<giftools::File>() {
-    return 3;
+    return static_cast<uint8_t>(giftools::BuildintManagedType::File);
 }
-
-giftools::File::File() = default;
-giftools::File::~File() = default;
 
 void giftools::fileBinaryWrite(const char* path, const uint8_t* bufferPtr, size_t bufferSize) {
     if (FILE* fileHandle = fopen(path, "wb")) {
@@ -20,7 +17,7 @@ void giftools::fileBinaryWrite(const char* path, const uint8_t* bufferPtr, size_
 }
 
 void giftools::fileBinaryWrite(const char* path, const Buffer* bufferObj) {
-    return fileBinaryWrite(path, bufferData(bufferObj), bufferSize(bufferObj));
+    return fileBinaryWrite(path, bufferObj->data(), bufferObj->size());
 }
 
 giftools::UniqueManagedObj<giftools::Buffer> giftools::fileBinaryRead(const char* path) {

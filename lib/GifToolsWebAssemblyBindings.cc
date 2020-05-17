@@ -52,10 +52,10 @@ EMSCRIPTEN_KEEPALIVE int imageWidth(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageHeight(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageFormat(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageClone(int imageId);
-EMSCRIPTEN_KEEPALIVE int imageLoadFromMemory(const char* bufferPtr, int bufferSize);
+EMSCRIPTEN_KEEPALIVE int imageLoadFromFileMemory(const char* bufferPtr, int bufferSize);
 EMSCRIPTEN_KEEPALIVE int imageLoadFromBuffer(int bufferId);
 EMSCRIPTEN_KEEPALIVE int imageResizeOrClone(int imageId, int width, int height);
-EMSCRIPTEN_KEEPALIVE int imageExportToPNG(int imageId);
+EMSCRIPTEN_KEEPALIVE int imageExportToPngFileMemory(int imageId);
 
 //
 // GIFs
@@ -73,7 +73,7 @@ EMSCRIPTEN_KEEPALIVE int gifBuilderFinalize(int gifBuilderId);
 
 namespace {
 template <typename T>
-int objectReleaseAndReturnId(giftools::UniqueManagedObj<T>&& object) {
+int32_t objectReleaseAndReturnId(giftools::UniqueManagedObj<T>&& object) {
     return object.release()->objId().composite;
 }
 } // namespace
@@ -90,42 +90,42 @@ int bufferCopyFromMemory(const char* bufferPtr, int bufferSize) {
 
 uint8_t* bufferMutableData(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return giftools::bufferMutableData(bufferObj);
+    return bufferObj ? bufferObj->mutableData() : nullptr;
 }
 
 const uint8_t* bufferData(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return giftools::bufferData(bufferObj);
+    return bufferObj ? bufferObj->data() : nullptr;
 }
 
 int bufferSize(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return giftools::bufferSize(bufferObj);
+    return bufferObj ? bufferObj->size() : 0;
 }
 
 void bufferResize(int bufferId, int value) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return giftools::bufferResize(bufferObj, value);
+    if (value >= 0) { bufferObj->resize(static_cast<size_t>(value)); }
 }
 
 void bufferReserve(int bufferId, int value) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return giftools::bufferReserve(bufferObj, value);
+    if (value >= 0) { bufferObj->reserve(static_cast<size_t>(value)); }
 }
 
 void bufferFree(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return giftools::bufferFree(bufferObj);
+    if (bufferObj) { bufferObj->wipe(); }
 }
 
 bool bufferZeroTerminated(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return giftools::bufferZeroTerminated(bufferObj);
+    return bufferObj ? bufferObj->zeroTerminated() : false;
 }
 
 bool bufferEmpty(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return giftools::bufferEmpty(bufferObj);
+    return bufferObj ? bufferObj->empty() : false;
 }
 
 int bufferToStringBase64(int bufferId) {
@@ -138,21 +138,23 @@ int bufferFromStringBase64(int bufferId) {
     return objectReleaseAndReturnId(giftools::bufferFromStringBase64(bufferObj));
 }
 
-int pixelFormatByteWidth(int format) { return giftools::pixelFormatByteWidth(giftools::PixelFormat(format)); }
+int pixelFormatByteWidth(int format) {
+    return static_cast<int32_t>(giftools::pixelFormatByteWidth(giftools::PixelFormat(format)));
+}
 
 int imageWidth(int imageId) {
     auto imageObj = giftools::managedObjStorageDefault().get<giftools::Image>(imageId);
-    return giftools::imageWidth(imageObj);
+    return static_cast<int32_t>(imageObj->width());
 }
 
 int imageHeight(int imageId) {
     auto imageObj = giftools::managedObjStorageDefault().get<giftools::Image>(imageId);
-    return giftools::imageHeight(imageObj);
+    return static_cast<int32_t>(imageObj->height());
 }
 
 int imageFormat(int imageId) {
     auto imageObj = giftools::managedObjStorageDefault().get<giftools::Image>(imageId);
-    return giftools::imageFormat(imageObj);
+    return static_cast<int32_t>(imageObj->format());
 }
 
 int imageClone(int imageId) {
@@ -160,13 +162,13 @@ int imageClone(int imageId) {
     return objectReleaseAndReturnId(giftools::imageClone(imageObj));
 }
 
-int imageLoadFromMemory(const char* bufferPtr, int bufferSize) {
-    return objectReleaseAndReturnId(giftools::imageLoadFromMemory((const uint8_t*)bufferPtr, bufferSize));
+int imageLoadFromFileMemory(const char* bufferPtr, int bufferSize) {
+    return objectReleaseAndReturnId(giftools::imageLoadFromFileMemory((const uint8_t*)bufferPtr, bufferSize));
 }
 
 int imageLoadFromBuffer(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return objectReleaseAndReturnId(giftools::imageLoadFromMemory(bufferObj));
+    return objectReleaseAndReturnId(giftools::imageLoadFromFileMemory(bufferObj));
 }
 
 int imageResizeOrClone(int imageId, int width, int height) {
@@ -174,9 +176,9 @@ int imageResizeOrClone(int imageId, int width, int height) {
     return objectReleaseAndReturnId(giftools::imageResizeOrClone(imageObj, width, height));
 }
 
-int imageExportToPNG(int imageId) {
+int imageExportToPngFileMemory(int imageId) {
     auto imageObj = giftools::managedObjStorageDefault().get<giftools::Image>(imageId);
-    return objectReleaseAndReturnId(giftools::imageExportToPNG(imageObj));
+    return objectReleaseAndReturnId(giftools::imageExportToPngFileMemory(imageObj));
 }
 
 int gifBuilderInitialize(int width, int height, int delay) {
@@ -203,8 +205,8 @@ int bufferFromUint8Array(const val& arr) {
 
 val bufferToUint8Array(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    auto bufferPtr = giftools::bufferData(bufferObj);
-    auto bufferSize = giftools::bufferSize(bufferObj);
+    auto bufferPtr = bufferObj->data();
+    auto bufferSize = bufferObj->size();
     return val(typed_memory_view(bufferSize, bufferPtr));
 }
 
@@ -226,10 +228,10 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("imageHeight", &imageHeight);
     function("imageFormat", &imageFormat);
     function("imageClone", &imageClone);
-    function("imageLoadFromMemory", &imageLoadFromMemory, allow_raw_pointers());
+    function("imageLoadFromFileMemory", &imageLoadFromFileMemory, allow_raw_pointers());
     function("imageLoadFromBuffer", &imageLoadFromBuffer);
     function("imageResizeOrClone", &imageResizeOrClone);
-    function("imageExportToPNG", &imageExportToPNG);
+    function("imageExportToPngFileMemory", &imageExportToPngFileMemory);
     function("gifBuilderInitialize ", &gifBuilderInitialize);
     function("gifBuilderAddImage", &gifBuilderAddImage);
     function("gifBuilderFinalize", &gifBuilderFinalize);

@@ -3,23 +3,32 @@
 
 namespace giftools {
 
-struct Buffer : public ManagedObj {};
+class Buffer;
 template <>
 uint8_t managedType<Buffer>();
 
+class Buffer : public ManagedObj {
+public:
+    ~Buffer() override = default;
+    
+    virtual uint8_t* mutableData() = 0;
+    virtual const uint8_t* data() const = 0;
+    virtual size_t size() const = 0;
+    virtual void resize(size_t value) = 0;
+    virtual void reserve(size_t value) = 0;
+    virtual void wipe() = 0;
+    virtual bool zeroTerminated() const = 0;
+    virtual bool empty() const = 0;
+    virtual std::vector<uint8_t> CopyToByteVector(const Buffer* bufferObj) const = 0;
+    
+protected:
+    Buffer() = default;
+};
+
 UniqueManagedObj<Buffer> bufferCopyFromMemory(const uint8_t* bufferPtr, size_t bufferSize);
 UniqueManagedObj<Buffer> bufferCopyFromVector(const std::vector<uint8_t>& buffer);
-UniqueManagedObj<Buffer> bufferFromVector(std::vector<uint8_t>&& buffer);
-uint8_t* bufferMutableData(Buffer* bufferObj);
-const uint8_t* bufferData(const Buffer* bufferObj);
-size_t bufferSize(const Buffer* bufferObj);
-void bufferResize(Buffer* bufferObj, size_t value);
-void bufferReserve(Buffer* bufferObj, size_t value);
-void bufferFree(Buffer* bufferObj);
-bool bufferZeroTerminated(const Buffer* bufferObj);
-bool bufferEmpty(const Buffer* bufferObj);
-
 UniqueManagedObj<Buffer> bufferToStringBase64(const Buffer* bufferObj);
+UniqueManagedObj<Buffer> bufferFromVector(std::vector<uint8_t>&& buffer);
 UniqueManagedObj<Buffer> bufferFromStringBase64(const Buffer* bufferObj);
 
 } // namespace giftools

@@ -3,17 +3,19 @@
 
 namespace giftools {
 
-struct Buffer;
+class Buffer;
 
-struct File;
+class File;
 template <>
 File* managedCast<File>(ManagedObj* managedObj);
 template <>
 uint8_t managedType<File>();
 
-struct File : public ManagedObj {
-    File();
-    virtual ~File() override;
+class File : public ManagedObj {
+public:
+    ~File() override = default;
+protected:
+    File() = default;
 };
 
 void fileBinaryWrite(const char* path, const uint8_t* bufferPtr, size_t bufferSize);

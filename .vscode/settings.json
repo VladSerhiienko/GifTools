@@ -48,6 +48,7 @@
         "tuple": "cpp",
         "utility": "cpp",
         "__locale": "cpp",
-        "__string": "cpp"
+        "__string": "cpp",
+        "algorithm": "cpp"
     }
 }

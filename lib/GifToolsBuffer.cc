@@ -1,26 +1,38 @@
 #include "GifToolsBuffer.h"
+#include "GifToolsManagedTypes.h"
 
 #include "base64.h"
 
+struct ConcreteBuffer;
+
 template <>
 uint8_t giftools::managedType<giftools::Buffer>() {
-    return 2;
+    return static_cast<uint8_t>(giftools::BuildintManagedType::Buffer);
 }
 
-struct ConcreteBuffer;
 template <>
 uint8_t giftools::managedType<ConcreteBuffer>() {
-    return 2;
+    return static_cast<uint8_t>(giftools::BuildintManagedType::Buffer);
 }
 
 struct ConcreteBuffer : public giftools::Buffer {
+    std::vector<uint8_t> contents;
+    
     ConcreteBuffer() = default;
     virtual ~ConcreteBuffer() override = default;
-    std::vector<uint8_t> contents;
+    
+    uint8_t* mutableData() override { return contents.data(); }
+    const uint8_t* data() const override { return contents.data(); }
+    size_t size() const override { return contents.size(); }
+    void resize(size_t value) override { contents.resize(value); }
+    void reserve(size_t value) override { contents.reserve(value); }
+    void wipe() override { decltype(contents)().swap(contents); }
+    bool zeroTerminated() const override { return contents.back() == 0; }
+    bool empty() const override { return contents.empty(); }
+    std::vector<uint8_t> CopyToByteVector(const Buffer* bufferObj) const override { return contents; }
 };
 
-giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferCopyFromMemory(const uint8_t* bufferPtr,
-                                                                            size_t bufferSize) {
+giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferCopyFromMemory(const uint8_t* bufferPtr, size_t bufferSize) {
     if (!bufferPtr || !bufferSize) { return {}; }
 
     auto bufferObj = managedObjStorageDefault().make<ConcreteBuffer>();
@@ -46,61 +58,22 @@ giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferFromVector(std::vec
     return bufferObj;
 }
 
-uint8_t* giftools::bufferMutableData(Buffer* bufferHandle) {
-    auto bufferObj = static_cast<ConcreteBuffer*>(bufferHandle);
-    return bufferObj ? bufferObj->contents.data() : nullptr;
-}
-
-const uint8_t* giftools::bufferData(const Buffer* bufferHandle) {
-    auto bufferObj = static_cast<const ConcreteBuffer*>(bufferHandle);
-    return bufferObj ? bufferObj->contents.data() : nullptr;
-}
-
-size_t giftools::bufferSize(const Buffer* bufferHandle) {
-    auto bufferObj = static_cast<const ConcreteBuffer*>(bufferHandle);
-    return bufferObj ? bufferObj->contents.size() : 0;
-}
-
-void giftools::bufferResize(Buffer* bufferHandle, size_t value) {
-    auto bufferObj = static_cast<ConcreteBuffer*>(bufferHandle);
-    if (bufferObj && bufferObj->contents.size() < value) { bufferObj->contents.resize(value); }
-}
-
-void giftools::bufferReserve(Buffer* bufferHandle, size_t value) {
-    auto bufferObj = static_cast<ConcreteBuffer*>(bufferHandle);
-    if (bufferObj && bufferObj->contents.capacity() < value) { bufferObj->contents.reserve(value); }
-}
-
-void giftools::bufferFree(Buffer* bufferHandle) {
-    auto bufferObj = static_cast<ConcreteBuffer*>(bufferHandle);
-    if (!bufferEmpty(bufferObj)) { decltype(bufferObj->contents)().swap(bufferObj->contents); }
-}
-
-bool giftools::bufferEmpty(const giftools::Buffer* bufferObj) {
-    return bufferObj ? (bufferSize(bufferObj) == 0) : true;
-}
-
-bool giftools::bufferZeroTerminated(const giftools::Buffer* bufferObj) {
-    if (bufferEmpty(bufferObj)) { return false; }
-    return bufferData(bufferObj)[bufferSize(bufferObj) - 1] == '\0';
-}
-
 giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferToStringBase64(const Buffer* bufferObj) {
-    if (bufferEmpty(bufferObj)) { return {}; }
+    if (bufferObj->empty()) { return {}; }
 
-    auto encodedBuffer = base64_encode(bufferData(bufferObj), bufferSize(bufferObj));
+    auto encodedBuffer = base64_encode(bufferObj->data(), bufferObj->size());
     if (encodedBuffer.empty()) { return {}; }
 
     auto encodedBufferObj = bufferFromVector(std::move(encodedBuffer));
-    assert(bufferZeroTerminated(encodedBufferObj.get()));
+    assert(encodedBufferObj->zeroTerminated());
     return encodedBufferObj;
 }
 
 giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferFromStringBase64(const Buffer* bufferObj) {
-    if (bufferEmpty(bufferObj)) { return {}; }
-    assert(bufferZeroTerminated(bufferObj));
+    if (bufferObj->empty()) { return {}; }
+    assert(bufferObj->zeroTerminated());
 
-    std::vector<uint8_t> decodedBuffer = base64_decode(bufferData(bufferObj), bufferSize(bufferObj) - 1);
+    std::vector<uint8_t> decodedBuffer = base64_decode(bufferObj->data(), bufferObj->size() - 1);
     if (decodedBuffer.empty()) { return {}; }
 
     auto decodedBufferObj = bufferFromVector(std::move(decodedBuffer));

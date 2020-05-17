@@ -3,9 +3,9 @@
 
 namespace giftools {
 
-struct Buffer;
-struct Image;
-struct GifBuilder;
+class Buffer;
+class Image;
+class GifBuilder;
 
 template <>
 uint8_t managedType<Image>();
@@ -20,7 +20,9 @@ enum PixelFormat {
 
 size_t pixelFormatByteWidth(PixelFormat format);
 
-struct Image : public ManagedObj {
+class Image : public ManagedObj {
+public:
+    ~Image() override = default;
     virtual PixelFormat format() const = 0;
     virtual size_t width() const = 0;
     virtual size_t height() const = 0;
@@ -28,22 +30,29 @@ struct Image : public ManagedObj {
     virtual const uint8_t* bufferPtr() const = 0;
     virtual uint8_t* mutableBufferPtr() = 0;
     virtual size_t bufferSize() const = 0;
+public:
+    Image() = default;
 };
 
 size_t imageWidth(const Image* imageObj);
 size_t imageHeight(const Image* imageObj);
 size_t imageFormat(const Image* imageObj);
 UniqueManagedObj<Image> imageClone(const Image* imageObj);
-UniqueManagedObj<Image> imageLoadFromMemory(const Buffer* bufferObj);
-UniqueManagedObj<Image> imageLoadFromMemory(const std::vector<uint8_t>& buffer);
-UniqueManagedObj<Image> imageLoadFromMemory(const uint8_t* bufferPtr, size_t bufferSize);
+UniqueManagedObj<Image> imageLoadFromFileMemory(const Buffer* bufferObj);
+UniqueManagedObj<Image> imageLoadFromFileMemory(const std::vector<uint8_t>& buffer);
+UniqueManagedObj<Image> imageLoadFromMemory(size_t width, size_t height, PixelFormat pixelFmt, const uint8_t* bufferPtr, size_t bufferSize);
+UniqueManagedObj<Image> imageLoadFromFileMemory(const uint8_t* bufferPtr, size_t bufferSize);
 UniqueManagedObj<Image> imageResizeOrClone(const Image* imageObj, size_t width, size_t height);
-UniqueManagedObj<Buffer> imageExportToPNG(const Image* imageObj);
+UniqueManagedObj<Buffer> imageExportToPngFileMemory(const Image* imageObj);
 
-struct GifBuilder : public ManagedObj {
+class GifBuilder : public ManagedObj {
+public:
+    ~GifBuilder() override = default;
     virtual bool Begin(size_t width, size_t height, size_t delay) = 0;
     virtual bool AddImage(const Image* imageObj, size_t delay) = 0;
     virtual UniqueManagedObj<Buffer> End() = 0;
+protected:
+    GifBuilder() = default;
 };
 
 UniqueManagedObj<GifBuilder> gifBuilderInitialize(size_t width, size_t height, size_t delay);

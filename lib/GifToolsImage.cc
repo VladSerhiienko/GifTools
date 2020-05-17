@@ -1,6 +1,6 @@
 #include "GifToolsImage.h"
-
 #include "GifToolsBuffer.h"
+#include "GifToolsManagedTypes.h"
 
 #define STB_IMAGE_IMPLEMENTATION 1
 #define STB_IMAGE_WRITE_IMPLEMENTATION 1
@@ -11,16 +11,27 @@
 #include "stb_image_resize.h"
 #include "stb_image_write.h"
 
+struct ConcreteImage;
+struct GifBuilderGIFH;
+
 template <>
 uint8_t giftools::managedType<giftools::Image>() {
-    return 1;
+    return static_cast<uint8_t>(giftools::BuildintManagedType::Image);
 }
-
-struct ConcreteImage;
 
 template <>
 uint8_t giftools::managedType<ConcreteImage>() {
-    return 1;
+    return static_cast<uint8_t>(giftools::BuildintManagedType::Image);
+}
+
+template <>
+uint8_t giftools::managedType<giftools::GifBuilder>() {
+    return static_cast<uint8_t>(BuildintManagedType::GifBuilder);
+}
+
+template <>
+uint8_t giftools::managedType<GifBuilderGIFH>() {
+    return static_cast<uint8_t>(BuildintManagedType::GifBuilder);
 }
 
 size_t giftools::pixelFormatByteWidth(giftools::PixelFormat format) {
@@ -182,17 +193,29 @@ void StbiWriterFn(void* context, void* data, int size) {
 
 } // namespace
 
-giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromMemory(const Buffer* bufferObj) {
+giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileMemory(const Buffer* bufferObj) {
     if (!bufferObj) { return nullptr; }
-    return imageLoadFromMemory(bufferData(bufferObj), bufferSize(bufferObj));
+    return imageLoadFromFileMemory(bufferObj->data(), bufferObj->size());
 }
 
-giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromMemory(const std::vector<uint8_t>& buffer) {
+giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileMemory(const std::vector<uint8_t>& buffer) {
     if (buffer.empty()) { return nullptr; }
-    return imageLoadFromMemory(buffer.data(), buffer.size());
+    return imageLoadFromFileMemory(buffer.data(), buffer.size());
 }
 
-giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromMemory(const uint8_t* bufferPtr, size_t bufferSize) {
+
+giftools::UniqueManagedObj<giftools::Image>
+giftools::imageLoadFromMemory(size_t width, size_t height, PixelFormat pixelFmt, const uint8_t* bufferPtr, size_t bufferSize) {
+    auto imageObj = managedObjStorageDefault().make<ConcreteImage>();
+    imageObj->internals.width = width;
+    imageObj->internals.height = height;
+    imageObj->internals.format = pixelFmt;
+    imageObj->alloc(bufferSize);
+    std::memcpy(imageObj->mutableBufferPtr(), bufferPtr, bufferSize);
+    return imageObj;
+}
+
+giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileMemory(const uint8_t* bufferPtr, size_t bufferSize) {
     if (!bufferPtr || !bufferSize) { return nullptr; }
 
     int x = 0, y = 0, components = 0;
@@ -213,7 +236,7 @@ giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromMemory(const 
     return imageObj;
 }
 
-giftools::UniqueManagedObj<giftools::Buffer> giftools::imageExportToPNG(const Image* imageObj) {
+giftools::UniqueManagedObj<giftools::Buffer> giftools::imageExportToPngFileMemory(const Image* imageObj) {
     if (!imageObj) { return {}; }
 
     const size_t pixelWidth = pixelFormatByteWidth(imageObj->format());
@@ -226,17 +249,6 @@ giftools::UniqueManagedObj<giftools::Buffer> giftools::imageExportToPNG(const Im
 
     auto bufferObj = bufferFromVector(std::move(writer.contents));
     return bufferObj;
-}
-
-template <>
-uint8_t giftools::managedType<giftools::GifBuilder>() {
-    return 4;
-}
-
-struct GifBuilderGIFH;
-template <>
-uint8_t giftools::managedType<GifBuilderGIFH>() {
-    return managedType<giftools::GifBuilder>();
 }
 
 struct GifBuilderGIFH : public giftools::GifBuilder {

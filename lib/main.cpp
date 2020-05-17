@@ -1,6 +1,4 @@
-#include <GifToolsBuffer.h>
-#include <GifToolsFile.h>
-#include <GifToolsImage.h>
+#include <GifTools.h>
 
 #include <cstdint>
 #include <cstdio>
@@ -98,59 +96,6 @@ std::optional<File> fileReadBinary(const std::string& imgFilePath) {
     return {};
 }
 
-struct InputStream {
-    int64_t offset = 0;
-    std::vector<uint8_t> buffer = {};
-
-    int read(uint8_t* buf, int buf_size) {
-        int bytes_read = std::max<int>(buf_size, buffer.size() - offset);
-        memcpy(buf, buffer.data() + offset, bytes_read);
-        offset += bytes_read;
-        return bytes_read;
-    }
-};
-
-static int inputStreamRead(void* const opaque, uint8_t* p_buffer, int const buffer_capacity_bytes_count) noexcept {
-    int result{-1};
-    assert(opaque);
-
-    if (opaque && p_buffer && (0 <= buffer_capacity_bytes_count)) {
-        InputStream& stream = *reinterpret_cast<InputStream*>(opaque);
-        auto const read_result{stream.read(p_buffer, buffer_capacity_bytes_count)};
-        if ((0 <= read_result) && (read_result <= buffer_capacity_bytes_count)) { result = read_result; }
-    }
-
-    return result;
-}
-
-static int64_t inputStreamSeek(void* const opaque, int64_t const pos, int const whence) noexcept {
-    int64_t result{AVERROR(EBADF)};
-    assert(opaque);
-
-    if (opaque) {
-        InputStream& stream = *reinterpret_cast<InputStream*>(opaque);
-        auto const action{whence & (SEEK_SET | SEEK_CUR | SEEK_END | AVSEEK_SIZE)};
-        // auto const forced{0 != (whence & AVSEEK_FORCE)}; // can be ignored
-
-        switch (action) {
-            case SEEK_SET: {
-                stream.offset = pos;
-            } break;
-            case SEEK_CUR: {
-                stream.offset += pos;
-            } break;
-            case SEEK_END: {
-                stream.offset = stream.buffer.size() + pos;
-            } break;
-            case AVSEEK_SIZE: {
-                result = stream.buffer.size();
-            } break;
-        }
-    }
-
-    return result;
-}
-
 void writeRGB24ToPNG(const uint8_t* data, size_t width, size_t height, size_t frame, double duration, const std::string_view sv) {
     char buff[256] = {};
     
@@ -164,7 +109,9 @@ void writeRGB24ToPNG(const uint8_t* data, size_t width, size_t height, size_t fr
 }
 
 struct VideoStream {
-    InputStream stream = {};
+    giftools::UniqueManagedObj<giftools::Buffer> streamContents;
+    giftools::UniqueManagedObj<giftools::FFmpegInputStream> stream;
+    
     AVFormatContext* fmtContext = nullptr;
     std::vector<uint8_t> probeBuffer = {};
     AVProbeData probeData = {};
@@ -206,7 +153,8 @@ std::optional<VideoStream> videoStreamOpen(const std::string& filePath) {
     if (!optFile || optFile->buffer.empty()) { return {}; }
 
     VideoStream videoStream = {};
-    videoStream.stream = {0, std::move(optFile.value().buffer)};
+    videoStream.streamContents = giftools::bufferFromVector(std::move(optFile.value().buffer));
+    videoStream.stream = giftools::ffmpegInputStreamLoadFromMemory(videoStream.streamContents.get());
 
     // TODO(vserhiienko): deprecated.
     av_register_all();
@@ -214,20 +162,20 @@ std::optional<VideoStream> videoStreamOpen(const std::string& filePath) {
     av_log_set_level(AV_LOG_ERROR);
 
     videoStream.fmtContext = avformat_alloc_context();
-    videoStream.fmtContext->pb = avio_alloc_context(videoStream.stream.buffer.data(),
-                                                    videoStream.stream.buffer.size(),
+    videoStream.fmtContext->pb = avio_alloc_context(videoStream.streamContents->mutableData(),
+                                                    videoStream.streamContents->size(),
                                                     0,
-                                                    &videoStream.stream,
-                                                    inputStreamRead,
-                                                    NULL,
-                                                    inputStreamSeek);
+                                                    videoStream.stream.get(),
+                                                    videoStream.stream->ffmpegInputStreamReadFnPtr(),
+                                                    nullptr,
+                                                    videoStream.stream->ffmpegInputStreamSeekFnPtr());
     if (!videoStream.fmtContext->pb) { return {}; }
 
     videoStream.probeData.filename = "stream";
-    videoStream.probeData.buf_size = std::min<int>(videoStream.stream.buffer.size(), 4096);
+    videoStream.probeData.buf_size = std::min<int>(videoStream.streamContents->size(), 4096);
     videoStream.probeBuffer.resize(videoStream.probeData.buf_size);
     videoStream.probeData.buf = videoStream.probeBuffer.data();
-    memcpy(videoStream.probeData.buf, videoStream.stream.buffer.data(), 4096);
+    memcpy(videoStream.probeData.buf, videoStream.streamContents->data(), 4096);
 
     videoStream.inputFmt = av_probe_input_format(&videoStream.probeData, 1);
     if (!videoStream.inputFmt) { videoStream.inputFmt = av_probe_input_format(&videoStream.probeData, 0); }
@@ -402,7 +350,10 @@ std::vector<uint8_t> videoStreamBrutePickBestFrame(VideoStream& videoStream, dou
             
             printf("avcodec_decode_video2\n");
             int didRetrievePicture = 0;
-            ret = avcodec_decode_video2(videoStream.primaryCodecContext, currFrame.decodedFrame, &didRetrievePicture, &currFrame.packet);
+            ret = avcodec_decode_video2(videoStream.primaryCodecContext,
+                                        currFrame.decodedFrame,
+                                        &didRetrievePicture,
+                                        &currFrame.packet);
             if (ret < 0) { return {}; }
             frameAcquired = didRetrievePicture > 0;
             
@@ -425,7 +376,7 @@ std::vector<uint8_t> videoStreamBrutePickBestFrame(VideoStream& videoStream, dou
         printf("frame = %f\n", videoStream.frameDurationSeconds);
         
         if (diff < videoStream.frameDurationSeconds) {
-            printf("curr frame is good\n");
+            printf("curr frame is good (%f, %f -> %f)\n", sampleTime, mostAccurateTime, diff);
             printf("sws_scale\n");
             ret = sws_scale(videoStream.swsContext,
                             currFrame.decodedFrame->data,
@@ -439,7 +390,7 @@ std::vector<uint8_t> videoStreamBrutePickBestFrame(VideoStream& videoStream, dou
         }
 
         if (mostAccurateTime < 0) {
-            printf("last frame is the only option\n");
+            printf("last frame is the only option (%f, %f -> %f)\n", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
             printf("sws_scale\n");
             ret = sws_scale(videoStream.swsContext,
                             prevFrame.decodedFrame->data,
@@ -456,7 +407,7 @@ std::vector<uint8_t> videoStreamBrutePickBestFrame(VideoStream& videoStream, dou
             const double prevDiff = fabs(prevFrame.timeSecondsEst - sampleTime);
             const double currDiff = fabs(currFrame.timeSecondsEst - sampleTime);
             if (prevDiff < currDiff) {
-                printf("previous frame is closer\n");
+                printf("previous frame is closer (%f, %f vs %f)\n", sampleTime, prevFrame.timeSecondsEst, currFrame.timeSecondsEst);
                 printf("sws_scale\n");
                 ret = sws_scale(videoStream.swsContext,
                                 prevFrame.decodedFrame->data,
@@ -469,7 +420,7 @@ std::vector<uint8_t> videoStreamBrutePickBestFrame(VideoStream& videoStream, dou
                 return prevFrame.imageByteBuffer;
             }
             
-            printf("curr frame is closer\n");
+            printf("curr frame is closer (%f, %f vs %f)\n", sampleTime, currFrame.timeSecondsEst, diff);
             printf("sws_scale\n");
             ret = sws_scale(videoStream.swsContext,
                             currFrame.decodedFrame->data,
@@ -502,10 +453,10 @@ void testGifWriter() {
     bufferObjs[3] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg");
 
     UniqueManagedObj<Image> imageObjs[4];
-    imageObjs[0] = imageLoadFromMemory(bufferObjs[0].get());
-    imageObjs[1] = imageLoadFromMemory(bufferObjs[1].get());
-    imageObjs[2] = imageLoadFromMemory(bufferObjs[2].get());
-    imageObjs[3] = imageLoadFromMemory(bufferObjs[3].get());
+    imageObjs[0] = imageLoadFromFileMemory(bufferObjs[0].get());
+    imageObjs[1] = imageLoadFromFileMemory(bufferObjs[1].get());
+    imageObjs[2] = imageLoadFromFileMemory(bufferObjs[2].get());
+    imageObjs[3] = imageLoadFromFileMemory(bufferObjs[3].get());
 
     const size_t delay = 100;
     const size_t width = 1200;
@@ -536,21 +487,51 @@ int main(int argc, char** argv) {
     printf("Yup.");
 
     testGifWriter();
+
 #ifdef GIFTOOLS_USE_FFMPEG
 
-    const char* testMp4File = "/Users/vserhiienko/Downloads/2020-02-23 18.53.40.mp4";
-    auto optVideoStream = videoStreamOpen(testMp4File);
-    if (!optVideoStream) { return -1; }
-
-    VideoStream& videoStream = *optVideoStream;
+    const char* testFileMP4 = "/Users/vserhiienko/Downloads/2020-02-23 18.53.40.mp4";
+    auto fileBuffer = giftools::fileBinaryRead(testFileMP4);
+    auto fileStream = giftools::ffmpegInputStreamLoadFromMemory(fileBuffer.get());
+    auto videoStream = giftools::ffmpegVideoStreamOpen(fileStream.get());
+    
+    size_t frameCounter = 0;
+    
+    for (double t = 0; t <= videoStream->estimatedFrameDurationSeconds(); t += videoStream->estimatedFrameDurationSeconds()) {
+        auto sampledVideoFrame = giftools::ffmpegVideoStreamPickBestFrame(videoStream.get(), t);
+        if (sampledVideoFrame) {
+            char buff[256] = {};
+            
+            size_t mm = size_t(floor(t / 60));
+            size_t ss = size_t(floor(t));
+            double ms = double(t - size_t(t));
+            
+            sprintf(buff, "test_dump_frame_%zu-%zu-%3.3f_%09zu-%09zu.png", mm, ss, ms * 1000, frameCounter++, size_t(t * 1000.0));
+            printf("PNG: %s\n", buff);
+        
+            auto imageBuffer = giftools::imageExportToPngFileMemory(sampledVideoFrame->image());
+            giftools::fileBinaryWrite("dump_video_frame.png", imageBuffer->data(), imageBuffer->size());
+        } else {
+            printf("videoStreamBruteDumpFrameAt failed.");
+        }
+    }
+    
+    giftools::ffmpegVideoStreamClose(videoStream.get());
+    return 0;
+    
+//
+//    auto optVideoStream = videoStreamOpen(testMp4File);
+//    if (!optVideoStream) { return -1; }
+//
+//    VideoStream& videoStream = *optVideoStream;
 
 #if 1
-    size_t frameCounter = 0;
-    for (double t = 0; t <= videoStream.durationSeconds; t += videoStream.frameDurationSeconds) {
-        auto imageBuffer = videoStreamBrutePickBestFrame(videoStream, t);
-        if (!imageBuffer.empty()) { writeRGB24ToPNG(imageBuffer.data(), videoStream.width, videoStream.height, frameCounter++, t, "dump_video"); }
-        else { printf("videoStreamBruteDumpFrameAt failed."); }
-    }
+//    size_t frameCounter = 0;
+//    for (double t = 0; t <= videoStream.durationSeconds; t += videoStream.frameDurationSeconds) {
+//        auto imageBuffer = videoStreamBrutePickBestFrame(videoStream, t);
+//        if (!imageBuffer.empty()) { writeRGB24ToPNG(imageBuffer.data(), videoStream.width, videoStream.height, frameCounter++, t, "dump_video"); }
+//        else { printf("videoStreamBruteDumpFrameAt failed."); }
+//    }
 
     //    videoStreamBruteDumpFrameAt(videoStream, 0);
     //    videoStreamBruteDumpFrameAt(videoStream, 2207);
@@ -563,9 +544,10 @@ int main(int argc, char** argv) {
     //        videoStreamDumpFrameAt(videoStream, t);
     //    }
 
-    videoStreamClose(videoStream);
-    return 0;
-#endif
+//    videoStreamClose(videoStream);
+//    return 0;
+
+#else
 
     //    InputStream stream = {0, fileReadFileToBuffer(file)};
     //
@@ -722,6 +704,7 @@ int main(int argc, char** argv) {
     av_frame_free(&frame);
 
     videoStreamClose(videoStream);
+#endif
 #endif
     return 0;
 }
