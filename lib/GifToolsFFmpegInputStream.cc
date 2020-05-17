@@ -23,7 +23,7 @@ struct FFmpegInputStreamImpl : giftools::FFmpegInputStream {
     giftools::FFmpegInputStreamSeekFnPtr ffmpegInputStreamSeekFnPtr() { return nullptr; }
 };
 
-giftools::UniqueManagedObj<giftools::FFmpegInputStream> ffmpegInputStreamLoadFromBuffer(const giftools::Buffer* bufferObj) { return nullptr; }
+giftools::UniqueManagedObj<giftools::FFmpegInputStream> giftools::ffmpegInputStreamLoadFromBuffer(const giftools::Buffer* bufferObj) { return nullptr; }
 // int32_t giftools::ffmpegInputStreamRead(void* opaque, uint8_t* p_buffer, int32_t buffer_capacity_bytes_count) noexcept { return -1; }
 // int64_t giftools::ffmpegInputStreamSeek(void* opaque, int64_t pos, int32_t whence) noexcept { return -1; }
 

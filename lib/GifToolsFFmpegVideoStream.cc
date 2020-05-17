@@ -30,15 +30,23 @@ uint8_t giftools::managedType<FFmpegVideoStreamImpl>() {
 
 #ifndef GIFTOOLS_USE_FFMPEG
 
-struct FFmpegVideoFrameImpl : giftools::FFmpegVideoStream {
+struct FFmpegVideoFrameImpl : giftools::FFmpegVideoFrame {
     FFmpegVideoFrameImpl() = default;
     ~FFmpegVideoFrameImpl() override = default;
+    double estimatedSampleTimeSeconds() const override { return 0; }
+    const giftools::Image* image() const override { return nullptr; }
 };
 
 struct FFmpegVideoStreamImpl : giftools::FFmpegVideoStream {
     FFmpegVideoStreamImpl() = default;
     ~FFmpegVideoStreamImpl() override = default;
+    double estimatedTotalDurationSeconds() const override { return 0; }
+    double estimatedFrameDurationSeconds() const override { return 0; }
 };
+
+giftools::UniqueManagedObj<giftools::FFmpegVideoStream> giftools::ffmpegVideoStreamOpen(const giftools::FFmpegInputStream* ffmpegInputStream) { return {}; }
+giftools::UniqueManagedObj<giftools::FFmpegVideoFrame> giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmpegVideoStream, double sampleTime) { return {}; }
+void giftools::ffmpegVideoStreamClose(giftools::FFmpegVideoStream* ffmpegVideoStream) {}
 
 #else
 
@@ -54,17 +62,6 @@ extern "C" {
     #include <libswscale/swscale.h>
 }
 
-struct FFmpegVideoFrameImpl : public giftools::FFmpegVideoFrame {
-    double timeSecondsEst = 0.0;
-    giftools::UniqueManagedObj<giftools::Image> imageObj = {};
-    
-    FFmpegVideoFrameImpl() = default;
-    ~FFmpegVideoFrameImpl() override = default;
-    
-    double estimatedSampleTimeSeconds() const override { return timeSecondsEst; }
-    const giftools::Image* image() const override { return imageObj.get(); }
-};
-
 struct FFmpegStagingVideoFrame {
     double timeSecondsEst = 0.0;
     int64_t timeTimeBaseEst = 0;
@@ -76,9 +73,17 @@ struct FFmpegStagingVideoFrame {
     AVFrame* encodedFrame = nullptr;
     AVFrame* decodedFrame = nullptr;
     AVPacket packet = {};
+};
+
+struct FFmpegVideoFrameImpl : public giftools::FFmpegVideoFrame {
+    double timeSecondsEst = 0.0;
+    giftools::UniqueManagedObj<giftools::Image> imageObj = {};
     
-//    FFmpegStagingVideoFrame() = default;
-//    ~FFmpegStagingVideoFrame() = default;
+    FFmpegVideoFrameImpl() = default;
+    ~FFmpegVideoFrameImpl() override = default;
+    
+    double estimatedSampleTimeSeconds() const override { return timeSecondsEst; }
+    const giftools::Image* image() const override { return imageObj.get(); }
 };
 
 struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {

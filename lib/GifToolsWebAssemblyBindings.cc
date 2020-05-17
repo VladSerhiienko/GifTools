@@ -49,7 +49,7 @@ EMSCRIPTEN_KEEPALIVE int imageWidth(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageHeight(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageFormat(int imageId);
 EMSCRIPTEN_KEEPALIVE int imageClone(int imageId);
-EMSCRIPTEN_KEEPALIVE int aimageLoadFromFileBuffer(const char* bufferPtr, int bufferSize);
+EMSCRIPTEN_KEEPALIVE int imageLoadFromFileBuffer(const char* bufferPtr, int bufferSize);
 EMSCRIPTEN_KEEPALIVE int imageLoadFromBuffer(int bufferId);
 EMSCRIPTEN_KEEPALIVE int imageResizeOrClone(int imageId, int width, int height);
 EMSCRIPTEN_KEEPALIVE int imageExportToPngFileMemory(int imageId);
@@ -169,13 +169,13 @@ int imageClone(int imageId) {
     return objectReleaseAndReturnId(giftools::imageClone(imageObj));
 }
 
-int aimageLoadFromFileBuffer(const char* bufferPtr, int bufferSize) {
-    return objectReleaseAndReturnId(giftools::aimageLoadFromFileBuffer((const uint8_t*)bufferPtr, bufferSize));
+int imageLoadFromFileBuffer(const char* bufferPtr, int bufferSize) {
+    return objectReleaseAndReturnId(giftools::imageLoadFromFileBuffer((const uint8_t*)bufferPtr, bufferSize));
 }
 
 int imageLoadFromBuffer(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
-    return objectReleaseAndReturnId(giftools::aimageLoadFromFileBuffer(bufferObj));
+    return objectReleaseAndReturnId(giftools::imageLoadFromFileBuffer(bufferObj));
 }
 
 int imageResizeOrClone(int imageId, int width, int height) {
@@ -265,7 +265,7 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("imageHeight", &imageHeight);
     function("imageFormat", &imageFormat);
     function("imageClone", &imageClone);
-    function("aimageLoadFromFileBuffer", &aimageLoadFromFileBuffer, allow_raw_pointers());
+    function("imageLoadFromFileBuffer", &imageLoadFromFileBuffer, allow_raw_pointers());
     function("imageLoadFromBuffer", &imageLoadFromBuffer);
     function("imageResizeOrClone", &imageResizeOrClone);
     function("imageExportToPngFileMemory", &imageExportToPngFileMemory);

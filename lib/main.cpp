@@ -453,10 +453,10 @@ void testGifWriter() {
     bufferObjs[3] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg");
 
     UniqueManagedObj<Image> imageObjs[4];
-    imageObjs[0] = aimageLoadFromFileBuffer(bufferObjs[0].get());
-    imageObjs[1] = aimageLoadFromFileBuffer(bufferObjs[1].get());
-    imageObjs[2] = aimageLoadFromFileBuffer(bufferObjs[2].get());
-    imageObjs[3] = aimageLoadFromFileBuffer(bufferObjs[3].get());
+    imageObjs[0] = imageLoadFromFileBuffer(bufferObjs[0].get());
+    imageObjs[1] = imageLoadFromFileBuffer(bufferObjs[1].get());
+    imageObjs[2] = imageLoadFromFileBuffer(bufferObjs[2].get());
+    imageObjs[3] = imageLoadFromFileBuffer(bufferObjs[3].get());
 
     const size_t delay = 100;
     const size_t width = 1200;

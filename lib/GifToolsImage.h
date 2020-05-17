@@ -38,10 +38,10 @@ size_t imageWidth(const Image* imageObj);
 size_t imageHeight(const Image* imageObj);
 size_t imageFormat(const Image* imageObj);
 UniqueManagedObj<Image> imageClone(const Image* imageObj);
-UniqueManagedObj<Image> aimageLoadFromFileBuffer(const Buffer* bufferObj);
-UniqueManagedObj<Image> aimageLoadFromFileBuffer(const std::vector<uint8_t>& buffer);
+UniqueManagedObj<Image> imageLoadFromFileBuffer(const Buffer* bufferObj);
+UniqueManagedObj<Image> imageLoadFromFileBuffer(const std::vector<uint8_t>& buffer);
 UniqueManagedObj<Image> imageLoadFromMemory(size_t width, size_t height, PixelFormat pixelFmt, const uint8_t* bufferPtr, size_t bufferSize);
-UniqueManagedObj<Image> aimageLoadFromFileBuffer(const uint8_t* bufferPtr, size_t bufferSize);
+UniqueManagedObj<Image> imageLoadFromFileBuffer(const uint8_t* bufferPtr, size_t bufferSize);
 UniqueManagedObj<Image> imageResizeOrClone(const Image* imageObj, size_t width, size_t height);
 UniqueManagedObj<Buffer> imageExportToPngFileMemory(const Image* imageObj);
 

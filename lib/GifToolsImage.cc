@@ -193,14 +193,14 @@ void StbiWriterFn(void* context, void* data, int size) {
 
 } // namespace
 
-giftools::UniqueManagedObj<giftools::Image> giftools::aimageLoadFromFileBuffer(const Buffer* bufferObj) {
+giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileBuffer(const Buffer* bufferObj) {
     if (!bufferObj) { return nullptr; }
-    return aimageLoadFromFileBuffer(bufferObj->data(), bufferObj->size());
+    return imageLoadFromFileBuffer(bufferObj->data(), bufferObj->size());
 }
 
-giftools::UniqueManagedObj<giftools::Image> giftools::aimageLoadFromFileBuffer(const std::vector<uint8_t>& buffer) {
+giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileBuffer(const std::vector<uint8_t>& buffer) {
     if (buffer.empty()) { return nullptr; }
-    return aimageLoadFromFileBuffer(buffer.data(), buffer.size());
+    return imageLoadFromFileBuffer(buffer.data(), buffer.size());
 }
 
 
@@ -215,7 +215,7 @@ giftools::imageLoadFromMemory(size_t width, size_t height, PixelFormat pixelFmt,
     return imageObj;
 }
 
-giftools::UniqueManagedObj<giftools::Image> giftools::aimageLoadFromFileBuffer(const uint8_t* bufferPtr, size_t bufferSize) {
+giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileBuffer(const uint8_t* bufferPtr, size_t bufferSize) {
     if (!bufferPtr || !bufferSize) { return nullptr; }
 
     int x = 0, y = 0, components = 0;
