@@ -32,7 +32,9 @@ build_emscripten
 build_emscripten_node
 build_emscripten_node_ffmpeg
 build_emscripten_web_es6
+build_emscripten_web_es6_ffmpeg
 build_emscripten_web_amalgamated
+build_emscripten_web_amalgamated_ffmpeg
 build_emscripten_web_es6_amalgamated
 build_emscripten_web_es6_amalgamated_ffmpeg
 
@@ -66,3 +68,4 @@ Temporary Items
 # NPM
 node_modules
 bin_dist.zip
+build_emscripten_web_amalgamated_ffmpeg/cmake_install.cmake

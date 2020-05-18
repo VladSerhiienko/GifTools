@@ -16,64 +16,64 @@ using namespace emscripten;
 #define EMSCRIPTEN_KEEPALIVE
 #endif
 
-extern "C" {
+//extern "C" {
 
 //
 // Object
 //
 
-EMSCRIPTEN_KEEPALIVE void objectFree(int objectId);
+void objectFree(int objectId);
 
 //
 // Buffers
 //
 
-EMSCRIPTEN_KEEPALIVE int bufferCopyFromMemory(const char* bufferPtr, int bufferSize);
-EMSCRIPTEN_KEEPALIVE uint8_t* bufferMutableData(int bufferId);
-EMSCRIPTEN_KEEPALIVE const uint8_t* bufferData(int bufferId);
-EMSCRIPTEN_KEEPALIVE int bufferSize(int bufferId);
-EMSCRIPTEN_KEEPALIVE void bufferResize(int bufferId, int value);
-EMSCRIPTEN_KEEPALIVE void bufferReserve(int bufferId, int value);
-EMSCRIPTEN_KEEPALIVE void bufferFree(int bufferId);
-EMSCRIPTEN_KEEPALIVE bool bufferZeroTerminated(int bufferId);
-EMSCRIPTEN_KEEPALIVE bool bufferEmpty(int bufferId);
-EMSCRIPTEN_KEEPALIVE int bufferToStringBase64(int bufferId);
-EMSCRIPTEN_KEEPALIVE int bufferFromStringBase64(int bufferId);
+int bufferCopyFromMemory(const char* bufferPtr, int bufferSize);
+uint8_t* bufferMutableData(int bufferId);
+const uint8_t* bufferData(int bufferId);
+int bufferSize(int bufferId);
+void bufferResize(int bufferId, int value);
+void bufferReserve(int bufferId, int value);
+void bufferFree(int bufferId);
+bool bufferZeroTerminated(int bufferId);
+bool bufferEmpty(int bufferId);
+int bufferToStringBase64(int bufferId);
+int bufferFromStringBase64(int bufferId);
 
 //
 // Images
 //
 
-EMSCRIPTEN_KEEPALIVE int pixelFormatByteWidth(int format);
-EMSCRIPTEN_KEEPALIVE int imageWidth(int imageId);
-EMSCRIPTEN_KEEPALIVE int imageHeight(int imageId);
-EMSCRIPTEN_KEEPALIVE int imageFormat(int imageId);
-EMSCRIPTEN_KEEPALIVE int imageClone(int imageId);
-EMSCRIPTEN_KEEPALIVE int imageLoadFromFileBuffer(const char* bufferPtr, int bufferSize);
-EMSCRIPTEN_KEEPALIVE int imageLoadFromBuffer(int bufferId);
-EMSCRIPTEN_KEEPALIVE int imageResizeOrClone(int imageId, int width, int height);
-EMSCRIPTEN_KEEPALIVE int imageExportToPngFileMemory(int imageId);
+int pixelFormatByteWidth(int format);
+int imageWidth(int imageId);
+int imageHeight(int imageId);
+int imageFormat(int imageId);
+int imageClone(int imageId);
+int imageLoadFromFileBuffer(const char* bufferPtr, int bufferSize);
+int imageLoadFromBuffer(int bufferId);
+int imageResizeOrClone(int imageId, int width, int height);
+int imageExportToPngFileMemory(int imageId);
 
 //
 // GIFs
 //
 
-EMSCRIPTEN_KEEPALIVE int gifBuilderInitialize(int width, int height, int delay);
-EMSCRIPTEN_KEEPALIVE bool gifBuilderAddImage(int gifBuilderId, int imageId, int delay);
-EMSCRIPTEN_KEEPALIVE int gifBuilderFinalize(int gifBuilderId);
+int gifBuilderInitialize(int width, int height, int delay);
+bool gifBuilderAddImage(int gifBuilderId, int imageId, int delay);
+int gifBuilderFinalize(int gifBuilderId);
 
 //
 // Video
 //
 
-EMSCRIPTEN_KEEPALIVE int ffmpegInputStreamLoadFromBuffer(int bufferId);
-EMSCRIPTEN_KEEPALIVE int ffmpegVideoStreamOpen(int ffmpegInputStreamId);
-EMSCRIPTEN_KEEPALIVE int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime);
-EMSCRIPTEN_KEEPALIVE double ffmpegVideoFrameTimeSeconds(int ffmpegVideoFrameId);
-EMSCRIPTEN_KEEPALIVE int ffmpegVideoFrameImage(int ffmpegVideoFrameId);
-EMSCRIPTEN_KEEPALIVE void ffmpegVideoStreamClose(int ffmpegVideoStreamId);
+int ffmpegInputStreamLoadFromBuffer(int bufferId);
+int ffmpegVideoStreamOpen(int ffmpegInputStreamId);
+int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime);
+double ffmpegVideoFrameTimeSeconds(int ffmpegVideoFrameId);
+int ffmpegVideoFrameImage(int ffmpegVideoFrameId);
+void ffmpegVideoStreamClose(int ffmpegVideoStreamId);
 
-}
+//}
 
 namespace {
 int32_t objectId(const giftools::ManagedObj* object) {
@@ -269,7 +269,7 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("imageLoadFromBuffer", &imageLoadFromBuffer);
     function("imageResizeOrClone", &imageResizeOrClone);
     function("imageExportToPngFileMemory", &imageExportToPngFileMemory);
-    function("gifBuilderInitialize ", &gifBuilderInitialize);
+    function("gifBuilderInitialize", &gifBuilderInitialize);
     function("gifBuilderAddImage", &gifBuilderAddImage);
     function("gifBuilderFinalize", &gifBuilderFinalize);
     function("bufferFromUint8Array", &bufferFromUint8Array);
