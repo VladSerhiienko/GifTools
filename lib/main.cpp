@@ -490,14 +490,15 @@ int main(int argc, char** argv) {
 
 #ifdef GIFTOOLS_USE_FFMPEG
 
-    const char* testFileMP4 = "/Users/vserhiienko/Downloads/2020-02-23 18.53.40.mp4";
+    const char* testFileMP4 = "/Users/vserhiienko/Projects/GifTools/tests/bin/video/VID_20200503_154756.mp4";
+    // const char* testFileMP4 = "/Users/vserhiienko/Downloads/2020-02-23 18.53.40.mp4";
     auto fileBuffer = giftools::fileBinaryRead(testFileMP4);
     auto fileStream = giftools::ffmpegInputStreamLoadFromBuffer(fileBuffer.get());
     auto videoStream = giftools::ffmpegVideoStreamOpen(fileStream.get());
     
     size_t frameCounter = 0;
     
-    for (double t = 0; t <= videoStream->estimatedTotalDurationSeconds(); t += videoStream->estimatedFrameDurationSeconds()) {
+    for (double t = 0; t <= videoStream->estimatedTotalDurationSeconds(); t += 1.0) { // videoStream->estimatedFrameDurationSeconds()) {
         auto sampledVideoFrame = giftools::ffmpegVideoStreamPickBestFrame(videoStream.get(), t);
         if (sampledVideoFrame) {
             char buff[256] = {};

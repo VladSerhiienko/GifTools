@@ -1,4 +1,6 @@
 import GifTools from '../src';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const testImages = [
     "data:image/jpeg;base64,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",
@@ -25,7 +27,7 @@ function Uint8ToBase64(u8Arr: Uint8Array): string {
     var index = 0;
     var length = u8Arr.length;
     var result = '';
-    var slice;
+    var slice: Uint8Array;
     while (index < length) {
         slice = u8Arr.subarray(index, Math.min(index + CHUNK_SIZE, length));
         result += String.fromCharCode.apply(null, slice);
@@ -35,23 +37,74 @@ function Uint8ToBase64(u8Arr: Uint8Array): string {
 }
 
 describe('GifTools', () => {
-    test('create gif', done => {
+    test('Create GIF from base64', done => {
 
         const gifTools = new GifTools();
+        expect(gifTools.init()).toBeTruthy();
+
         setTimeout(() => {
             const delay = 100;
             const width = 1200;
             const height = 900;
 
-            gifTools.initGif(width, height, delay);
+            expect(gifTools.gifEncoderBegin(width, height, delay)).toBeTruthy();
 
             testImages.forEach(
-                image => gifTools.addImage(convertDataURIToBinary(image), width, height, delay)
+                image => {
+                    var fileBuffer = convertDataURIToBinary(image);
+                    expect(fileBuffer).toBeTruthy();
+                    var loadedImgId = gifTools.loadImageFromFileBuffer(fileBuffer);
+                    expect(loadedImgId).toBeTruthy();
+                    var resizedImgId = gifTools.resizeImage(loadedImgId, width, height);
+                    expect(resizedImgId).toBeTruthy();
+                    expect(gifTools.gifEncoderAddImage(resizedImgId, delay)).toBeTruthy();
+                }
             );
 
-            const result = gifTools.save();
+            const gifBuffer = gifTools.gifEncoderEnd();
+            gifTools.deinit();
+            expect(gifBuffer).toBeTruthy();
 
-            var b64encoded = Uint8ToBase64(result);
+            var b64encoded = Uint8ToBase64(gifBuffer);
+            expect(b64encoded).toMatchSnapshot();
+            done();
+        }, 1000);
+    });
+
+    test('Create GIF from images', done => {
+        var imgBuffers : Uint8Array[] = [fs.readFileSync("./tests/bin/image/IMG_20191217_083053.jpg"),
+                                         fs.readFileSync("./tests/bin/image/IMG_20191217_083055.jpg"),
+                                         fs.readFileSync("./tests/bin/image/IMG_20191217_083056.jpg"),
+                                         fs.readFileSync("./tests/bin/image/IMG_20191217_083058.jpg"),
+                                         fs.readFileSync("./tests/bin/image/IMG_20191217_083059.jpg"),
+                                         fs.readFileSync("./tests/bin/image/IMG_20191217_083101.jpg")];
+
+        const gifTools = new GifTools();
+        expect(gifTools.init()).toBeTruthy();
+
+        setTimeout(() => {
+            const delay = 100;
+            const width = 1200;
+            const height = 900;
+
+            expect(gifTools.gifEncoderBegin(width, height, delay)).toBeTruthy();
+
+            imgBuffers.forEach(
+                fileBuffer => {
+                    expect(fileBuffer).toBeTruthy();
+                    var loadedImgId = gifTools.loadImageFromFileBuffer(fileBuffer);
+                    expect(loadedImgId).toBeTruthy();
+                    var resizedImgId = gifTools.resizeImage(loadedImgId, width, height);
+                    expect(resizedImgId).toBeTruthy();
+                    expect(gifTools.gifEncoderAddImage(resizedImgId, delay)).toBeTruthy();
+                }
+            );
+
+            const gifBuffer = gifTools.gifEncoderEnd();
+            gifTools.deinit();
+            expect(gifBuffer).toBeTruthy();
+
+            var b64encoded = Uint8ToBase64(gifBuffer);
             expect(b64encoded).toMatchSnapshot();
             done();
         }, 1000);
