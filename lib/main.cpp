@@ -478,14 +478,21 @@ void testGifWriter() {
 }
 
 void linkEmsdk() {
+    printf("GifTools: main!\n");
 #ifdef GIFTOOLS_EMSCRIPTEN
-    EM_ASM(console.log("GifTools!"););
+    EM_ASM(console.log("GifTools(console.log): main!"););
 #endif
 }
 
-int main(int argc, char** argv) {
-    printf("Yup.");
 
+#ifndef EMSCRIPTEN_KEEPALIVE
+#define EMSCRIPTEN_KEEPALIVE
+#endif
+
+extern "C" { EMSCRIPTEN_KEEPALIVE int main(int argc, char** argv); }
+
+EMSCRIPTEN_KEEPALIVE int main(int argc, char** argv) {
+    linkEmsdk();
     testGifWriter();
 
 #ifdef GIFTOOLS_USE_FFMPEG

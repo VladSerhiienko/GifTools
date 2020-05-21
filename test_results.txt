@@ -1,0 +1,38 @@
+
+> GifTools@1.0.0 test /Users/vserhiienko/Projects/GifTools
+> jest
+
+  console.error node_modules/jsdom/lib/jsdom/virtual-console.js:29
+    Error: Uncaught [RuntimeError: memory access out of bounds]
+        at reportException (/Users/vserhiienko/Projects/GifTools/node_modules/jsdom/lib/jsdom/living/helpers/runtime-script-errors.js:62:24)
+        at Timeout.callback [as _onTimeout] (/Users/vserhiienko/Projects/GifTools/node_modules/jsdom/lib/jsdom/browser/Window.js:645:7)
+        at listOnTimeout (internal/timers.js:531:17)
+        at processTimers (internal/timers.js:475:7) RuntimeError: memory access out of bounds
+        at wasm-function[58]:0x2be9
+        at wasm-function[1487]:0x141e43
+        at wasm-function[882]:0x9f12f
+        at wasm-function[837]:0x82346
+        at wasm-function[639]:0x6f4bd
+        at wasm-function[1364]:0xf3141
+        at wasm-function[1365]:0xf38f8
+        at wasm-function[1506]:0x1496a9
+        at wasm-function[1530]:0x14cd44
+        at wasm-function[895]:0xb5fe7
+        at wasm-function[896]:0xb6233
+        at wasm-function[1106]:0xc940d
+        at wasm-function[2511]:0x2812b7
+        at wasm-function[1251]:0xd868e
+        at wasm-function[1590]:0x14eddd
+        at wasm-function[1561]:0x14e6b6
+        at wasm-function[1676]:0x14fbec
+        at Module.dynCall_iii (/Users/vserhiienko/Projects/GifTools/bin/web_amalgamated_ffmpeg/GifTools.js:9:4328411)
+        at dynCall_iii_116 (eval at makeDynCaller (/Users/vserhiienko/Projects/GifTools/bin/web_amalgamated_ffmpeg/GifTools.js:9:4298155), <anonymous>:4:12)
+        at Object.ffmpegVideoStreamOpen (eval at new_ (/Users/vserhiienko/Projects/GifTools/bin/web_amalgamated_ffmpeg/GifTools.js:9:4293595), <anonymous>:8:10)
+        at GifTools.Object.<anonymous>.GifTools.videoDecoderOpenVideoStream (/Users/vserhiienko/Projects/GifTools/src/index.ts:178:45)
+        at /Users/vserhiienko/Projects/GifTools/tests/composeGif.test.ts:127:37
+        at Array.forEach (<anonymous>)
+        at /Users/vserhiienko/Projects/GifTools/tests/composeGif.test.ts:124:26
+        at Timeout.callback [as _onTimeout] (/Users/vserhiienko/Projects/GifTools/node_modules/jsdom/lib/jsdom/browser/Window.js:643:19)
+        at listOnTimeout (internal/timers.js:531:17)
+        at processTimers (internal/timers.js:475:7)
+

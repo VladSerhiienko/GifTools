@@ -35,6 +35,7 @@ build_emscripten_web_es6
 build_emscripten_web_es6_ffmpeg
 build_emscripten_web_amalgamated
 build_emscripten_web_amalgamated_ffmpeg
+build_emscripten_web_amalgamated_ffmpegd
 build_emscripten_web_es6_amalgamated
 build_emscripten_web_es6_amalgamated_ffmpeg
 
@@ -69,3 +70,4 @@ Temporary Items
 node_modules
 bin_dist.zip
 build_emscripten_web_amalgamated_ffmpeg/cmake_install.cmake
+tests/bin/results_actual

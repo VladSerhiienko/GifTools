@@ -1,5 +1,6 @@
 
-import * as GifToolsModule from '../bin/web_amalgamated_ffmpeg/GifTools';
+// import * as GifToolsFactory from '../bin/web_amalgamated_ffmpeg/GifTools';
+import * as GifToolsFactory from '../bin/web_amalgamated_ffmpegd/GifTools';
 
 //
 // TODO(vromanchak, vserhiienko): Promote to ES6.
@@ -15,12 +16,18 @@ import * as GifToolsModule from '../bin/web_amalgamated_ffmpeg/GifTools';
 //  @ ./src/index.ts 3:21-74
 // import * as GifToolsModule from '../bin/web_es6_amalgamated_ffmpeg/GifTools';
 
-class GifToolsValidationError extends Error {
+export class GifToolsValidationError extends Error {
     constructor(message: string) {
       super(message); 
       this.name = "GifToolsValidationError";
     }
 }
+
+export class GifToolsVideoFrame {
+    frameId : number;
+    imageId : number;
+    timeSeconds : number;
+};
 
 /**
  * GifTools class wraps GifTools WebAssembly module.
@@ -28,29 +35,41 @@ class GifToolsValidationError extends Error {
  * All previously allocated objects must be manually freed.
  * This class takes care about memory, although it's up to users to deinit it.
  */
-export default class GifTools {
+export class GifTools {
     static invalidObjId : number = 0;
     static isValidObj(objId : number) : boolean { return objId > 0; }
-    static assert(cond: boolean, msg: string) {
+
+    private static vmStatusNull: string = "null";
+    private static vmStatusPending: string = "pending";
+    private static vmStatusFulfilled: string = "fullfilled";
+
+    private static assert(cond: boolean, msg: string) {
         if (!cond) { debugger; throw new GifToolsValidationError(msg); }
     }
 
     vm: any;
-    vmObjIds: Array<number> = [];
+    private vmStatus: string = GifTools.vmStatusNull;
+    private vmObjIds: Array<number> = [];
     
-    currentGifBuilderId: number = 0;
-    currentGifBuilderWidth: number = 0;
-    currentGifBuilderHeight: number = 0;
+    private currentGifBuilderId: number = 0;
+    private currentGifBuilderWidth: number = 0;
+    private currentGifBuilderHeight: number = 0;
 
-    currentInputStreamId: number = 0;
-    currentVideoStreamId: number = 0;
+    private currentInputStreamBufferId: number = 0;
+    private currentInputStreamId: number = 0;
+    private currentVideoStreamId: number = 0;
 
     /**
      * Initializes this instance.
      */
-    init() : boolean {
-        this.vm = GifToolsModule();
-        return this.vm != null;
+    async init(): Promise<boolean> {
+        this.vm = null;
+        this.vmStatus = GifTools.vmStatusPending;
+        return await GifToolsFactory().then((vm: any): boolean => {
+            this.vm = vm;
+            this.vmStatus = GifTools.vmStatusFulfilled;
+            return true;
+        });
     }
 
     /**
@@ -59,17 +78,26 @@ export default class GifTools {
      */
     deinit() {
         GifTools.assert(!GifTools.isValidObj(this.currentGifBuilderId), "Caught active GIF encoder.");
-        this.freeObjIds();
+        this.internalFreeObjIds();
+        this.vmStatus = "null";
         this.vm = null;
+    }
+
+    module() : any {
+        return this.vm;
     }
 
     /**
      * Appends object ids to the free list.
      * @param objIds Object ids (numbers).
      */
-    addObjIds(...objIds : number[]) {
+    internalAddObjIds(...objIds : number[]) {
         if (objIds == undefined || objIds == null) { return; }
-        objIds.forEach(objId => this.vmObjIds.push(objId));
+        objIds.forEach(objId => {
+            if (this.vmObjIds.indexOf(objId) < 0) {
+                this.vmObjIds.push(objId);
+            }
+        });
     }
 
     /**
@@ -77,7 +105,7 @@ export default class GifTools {
      * If object ids are not provided, previously added objects are freed.
      * @param objIds Optional object ids (numbers).
      */
-    freeObjIds(...objIds : number[]) {
+    internalFreeObjIds(...objIds : number[]) {
         if (objIds == undefined || objIds == null) {
             this.vmObjIds.forEach(objId => {
                 if (!GifTools.isValidObj(objId)) { return; }
@@ -98,11 +126,11 @@ export default class GifTools {
         if (!GifTools.isValidObj(bufferId)) { return ""; }
         var base64BufferId = this.vm.bufferToBase64(bufferId);
         if (!GifTools.isValidObj(base64BufferId)) { return ""; }
-        this.addObjIds(base64BufferId);
+        this.internalAddObjIds(base64BufferId);
         var bufferArray = this.vm.bufferToUint8Array(base64BufferId);
         var textDecoder = new TextDecoder("utf-8");
         var base64String = textDecoder.decode(bufferArray);
-        this.freeObjIds(base64BufferId);
+        this.internalFreeObjIds(base64BufferId);
         return base64String;
     }
 
@@ -110,18 +138,22 @@ export default class GifTools {
      * Loads provided file buffer into an image object, returns its id.
      * @param fileBuffer File memory stored in Uint8Array instance.
      */
-    loadImageFromFileBuffer(fileBuffer : Uint8Array) : number {
-        const bufferId = this.vm.bufferFromUint8Array(fileBuffer);
-        if (!GifTools.isValidObj(bufferId)) { return GifTools.invalidObjId; }
-
-        this.addObjIds(bufferId);
-        const imageId = this.vm.imageLoadFromBuffer(bufferId);
-        if (!GifTools.isValidObj(bufferId)) {
-            this.freeObjIds(bufferId);
+    imageLoadFromFileBuffer(fileBuffer : Uint8Array) : number {
+        if (fileBuffer == null || fileBuffer == undefined) {
             return GifTools.invalidObjId;
         }
 
-        this.addObjIds(imageId);
+        const bufferId = this.vm.bufferFromUint8Array(fileBuffer);
+        if (!GifTools.isValidObj(bufferId)) { return GifTools.invalidObjId; }
+
+        this.internalAddObjIds(bufferId);
+        const imageId = this.vm.imageLoadFromBuffer(bufferId);
+        if (!GifTools.isValidObj(bufferId)) {
+            this.internalFreeObjIds(bufferId);
+            return GifTools.invalidObjId;
+        }
+
+        this.internalAddObjIds(imageId);
         return imageId;
     }
 
@@ -131,7 +163,7 @@ export default class GifTools {
      * @param width Desired image width.
      * @param height Desired image height.
      */
-    resizeImage(imageId : number, width: number, height: number) : number {
+    imageResize(imageId : number, width: number, height: number) : number {
         if ([imageId, width, height].some(n => n <= 0)) { return imageId };
 
         if (width == this.vm.imageWidth(imageId) && height == this.vm.imageHeight(imageId)) { return imageId; }
@@ -139,8 +171,65 @@ export default class GifTools {
         const resizedImageId = this.vm.imageResizeOrClone(imageId, width, height);
         if (!GifTools.isValidObj(resizedImageId)) { return imageId; }
 
-        this.addObjIds(resizedImageId);
+        this.internalAddObjIds(resizedImageId);
         return resizedImageId;
+    }
+
+    videoDecoderOpenVideoStream(fileBuffer : Uint8Array) : boolean {
+        if (fileBuffer == null || fileBuffer == undefined) { return false; }
+
+        this.currentInputStreamBufferId = this.vm.bufferFromUint8Array(fileBuffer);
+        if (!GifTools.isValidObj(this.currentInputStreamBufferId)) { return false; }
+
+        this.internalAddObjIds(this.currentInputStreamBufferId);
+
+        this.currentInputStreamId = this.vm.ffmpegInputStreamLoadFromBuffer(this.currentInputStreamBufferId);
+        if (!GifTools.isValidObj(this.currentInputStreamBufferId)) {
+            this.internalFreeObjIds(this.currentInputStreamBufferId);
+            return false;
+        }
+
+        this.internalAddObjIds(this.currentInputStreamId);
+
+        try {
+            this.currentVideoStreamId = this.vm.ffmpegVideoStreamOpen(this.currentInputStreamId);
+            if (GifTools.isValidObj(this.currentVideoStreamId)) { return true; }
+        } catch (e) {
+            console.log(e);
+        }
+
+        this.internalFreeObjIds(this.currentInputStreamBufferId);
+        this.internalFreeObjIds(this.currentInputStreamId);
+        return false;
+    }
+
+    videoDecoderPickClosestVideoFrame(durationSeconds: number): GifToolsVideoFrame | null {
+        GifTools.assert(GifTools.isValidObj(this.currentVideoStreamId), "Caught null video stream.");
+
+        var frameId = this.vm.ffmpegVideoStreamPickBestFrame(this.currentVideoStreamId, durationSeconds);
+        if (!GifTools.isValidObj(frameId)) {
+            return null;
+        }
+
+        this.internalAddObjIds(frameId);
+
+        var frame = new GifToolsVideoFrame();
+        frame.frameId = frameId;
+        frame.imageId = this.vm.ffmpegVideoFrameImage(frameId);
+        frame.timeSeconds = this.vm.ffmpegVideoFrameTimeSeconds(frameId);
+        return frame;
+    }
+
+    videoDecoderFreeVideoFrame(frame: (GifToolsVideoFrame | null)) {
+        if (frame == null) { return; }
+
+        GifTools.assert(GifTools.isValidObj(this.currentVideoStreamId), "Caught null video stream.");
+        this.internalFreeObjIds(frame!.frameId);
+    }
+
+    videoDecoderCloseVideoStream() {
+        GifTools.assert(GifTools.isValidObj(this.currentVideoStreamId), "Caught null video stream.");
+        this.internalFreeObjIds(this.currentInputStreamId, this.currentVideoStreamId);
     }
 
     /**
@@ -154,7 +243,7 @@ export default class GifTools {
         GifTools.assert(!GifTools.isValidObj(this.currentGifBuilderId), "Caught existing GIF encoder.");
         this.currentGifBuilderId = this.vm.gifBuilderInitialize(width, height, delay);
         if (!GifTools.isValidObj(this.currentGifBuilderId)) { return false; }
-        this.addObjIds(this.currentGifBuilderId);
+        this.internalAddObjIds(this.currentGifBuilderId);
         GifTools.assert(width > 0, "Caught invalid extent.");
         GifTools.assert(height > 0, "Caught invalid extent.");
         this.currentGifBuilderWidth = width;
@@ -170,6 +259,9 @@ export default class GifTools {
      */
     gifEncoderAddImage(imageId : number, delay : number) : boolean {
         GifTools.assert(GifTools.isValidObj(this.currentGifBuilderId), "Caught null GIF encoder.");
+        GifTools.assert(GifTools.isValidObj(imageId), "Caught null image.");
+        GifTools.assert(this.vm.imageWidth(imageId) == this.currentGifBuilderWidth, "Caught invalid image.");
+        GifTools.assert(this.vm.imageHeight(imageId) == this.currentGifBuilderHeight, "Caught invalid image.");
         return this.vm.gifBuilderAddImage(this.currentGifBuilderId, imageId, delay);
     }
 
@@ -181,13 +273,15 @@ export default class GifTools {
         GifTools.assert(GifTools.isValidObj(this.currentGifBuilderId), "Caught null GIF encoder.");
         var gifBufferId = this.vm.gifBuilderFinalize(this.currentGifBuilderId);
 
-        this.freeObjIds(this.currentGifBuilderId);
+        this.internalFreeObjIds(this.currentGifBuilderId);
         this.currentGifBuilderId = GifTools.invalidObjId;
         this.currentGifBuilderWidth = 0;
         this.currentGifBuilderHeight = 0;
 
         var gifBufferArray = this.vm.bufferToUint8Array(gifBufferId);
-        this.freeObjIds(gifBufferId);
+        this.internalFreeObjIds(gifBufferId);
         return gifBufferArray;
     }
 }
+
+// export {GifToolsValidationError, GifToolsVideoFrame, GifTools};

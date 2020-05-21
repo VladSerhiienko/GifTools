@@ -1,4 +1,4 @@
-import GifTools from '../src';
+import { GifTools, GifToolsVideoFrame } from '../src';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -37,12 +37,17 @@ function Uint8ToBase64(u8Arr: Uint8Array): string {
 }
 
 describe('GifTools', () => {
+    var actualResultsDirPath = "./tests/bin/results_actual";
+    if (fs.existsSync(actualResultsDirPath)){
+        fs.rmdirSync(actualResultsDirPath, { recursive: true });
+    }
+
+    fs.mkdirSync(actualResultsDirPath);
+
     test('Create GIF from base64', done => {
-
         const gifTools = new GifTools();
-        expect(gifTools.init()).toBeTruthy();
-
-        setTimeout(() => {
+        gifTools.init().then((succeeded: boolean) => {
+            if (!succeeded) { done(); }
             const delay = 100;
             const width = 1200;
             const height = 900;
@@ -53,22 +58,27 @@ describe('GifTools', () => {
                 image => {
                     var fileBuffer = convertDataURIToBinary(image);
                     expect(fileBuffer).toBeTruthy();
-                    var loadedImgId = gifTools.loadImageFromFileBuffer(fileBuffer);
+                    var loadedImgId = gifTools.imageLoadFromFileBuffer(fileBuffer);
                     expect(loadedImgId).toBeTruthy();
-                    var resizedImgId = gifTools.resizeImage(loadedImgId, width, height);
+                    var resizedImgId = gifTools.imageResize(loadedImgId, width, height);
                     expect(resizedImgId).toBeTruthy();
                     expect(gifTools.gifEncoderAddImage(resizedImgId, delay)).toBeTruthy();
+
+                    gifTools.internalFreeObjIds(resizedImgId);
+                    gifTools.internalFreeObjIds(loadedImgId);
                 }
             );
 
             const gifBuffer = gifTools.gifEncoderEnd();
+            fs.writeFileSync(actualResultsDirPath + "/dump_animation_0.gif", gifBuffer);
+            
             gifTools.deinit();
             expect(gifBuffer).toBeTruthy();
 
-            var b64encoded = Uint8ToBase64(gifBuffer);
-            expect(b64encoded).toMatchSnapshot();
+            // var b64encoded = Uint8ToBase64(gifBuffer);
+            // expect(b64encoded).toMatchSnapshot();
             done();
-        }, 1000);
+        });
     });
 
     test('Create GIF from images', done => {
@@ -80,9 +90,8 @@ describe('GifTools', () => {
                                          fs.readFileSync("./tests/bin/image/IMG_20191217_083101.jpg")];
 
         const gifTools = new GifTools();
-        expect(gifTools.init()).toBeTruthy();
-
-        setTimeout(() => {
+        gifTools.init().then((succeeded: boolean) => {
+            if (!succeeded) { done(); }
             const delay = 100;
             const width = 1200;
             const height = 900;
@@ -90,23 +99,75 @@ describe('GifTools', () => {
             expect(gifTools.gifEncoderBegin(width, height, delay)).toBeTruthy();
 
             imgBuffers.forEach(
-                fileBuffer => {
+                (fileBuffer, i) => {
                     expect(fileBuffer).toBeTruthy();
-                    var loadedImgId = gifTools.loadImageFromFileBuffer(fileBuffer);
+                    var loadedImgId = gifTools.imageLoadFromFileBuffer(fileBuffer);
+                    console.log("loadedImgId", loadedImgId);
                     expect(loadedImgId).toBeTruthy();
-                    var resizedImgId = gifTools.resizeImage(loadedImgId, width, height);
+
+                    var resizedImgId = gifTools.imageResize(loadedImgId, width, height);
                     expect(resizedImgId).toBeTruthy();
+                    console.log("resizedImgId", resizedImgId);
+
+                    var pngBufferId = gifTools.vm.imageExportToPngFileMemory(resizedImgId);
+                    var pngArrayBuffer = gifTools.vm.bufferToUint8Array(pngBufferId);
+                    fs.writeFileSync(actualResultsDirPath + "/dump_resized_image_" + i  + ".png", pngArrayBuffer);
+
                     expect(gifTools.gifEncoderAddImage(resizedImgId, delay)).toBeTruthy();
+
+                    gifTools.vm.objectFree(pngBufferId);
+                    gifTools.internalFreeObjIds(resizedImgId);
+                    gifTools.internalFreeObjIds(loadedImgId);
                 }
             );
 
             const gifBuffer = gifTools.gifEncoderEnd();
+            fs.writeFileSync(actualResultsDirPath + "/dump_animation_1.gif", gifBuffer);
+
             gifTools.deinit();
             expect(gifBuffer).toBeTruthy();
 
-            var b64encoded = Uint8ToBase64(gifBuffer);
-            expect(b64encoded).toMatchSnapshot();
+            // var b64encoded = Uint8ToBase64(gifBuffer);
+            // expect(b64encoded).toMatchSnapshot();
             done();
-        }, 1000);
+        });
+    });
+
+    test('Decode MP4 into images', done => {
+        var videoBuffers : Uint8Array[] = [fs.readFileSync("./tests/bin/video/VID_20200503_154756.mp4")];
+
+        const gifTools = new GifTools();
+        gifTools.init().then((succeeded: boolean) => {
+            if (!succeeded) { done(); }
+
+            console.log(gifTools);
+
+            videoBuffers.forEach(
+                videoBuffer => {
+                    expect(videoBuffer).toBeTruthy();
+                    console.log("videoBuffer.byteLength", videoBuffer.byteLength); 
+
+                    expect(gifTools.videoDecoderOpenVideoStream(videoBuffer)).toBeTruthy();
+                    var frames: (GifToolsVideoFrame | null)[] = [];
+
+                    for (var i = 0; i < 25; ++i) {
+                        frames[i] = gifTools.videoDecoderPickClosestVideoFrame(i);
+                        if (frames[i] == null) { break; }
+
+                        var pngBufferId = gifTools.vm.imageExportToPngFileMemory(frames[i]!.imageId);
+                        var pngArrayBuffer = gifTools.vm.bufferToUint8Array(pngBufferId);
+                        fs.writeFileSync(actualResultsDirPath + "/dump_image_" + i  + ".png", pngArrayBuffer);
+                    }
+
+                    for (var i = 0; i < 25; ++i) {
+                        if (frames[i] == null) { break; }
+                        gifTools.videoDecoderFreeVideoFrame(frames[i]);
+                    }
+                }
+            );
+
+            gifTools.deinit();
+            done();
+        });
     });
 })

@@ -49,6 +49,7 @@
         "utility": "cpp",
         "__locale": "cpp",
         "__string": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "__config": "cpp"
     }
 }
