@@ -119,7 +119,8 @@ static av_always_inline int get_cabac_inline(CABACContext *c, uint8_t * const st
     c->range += (RangeLPS - c->range) & lps_mask;
 
     s^=lps_mask;
-    *state= (ff_h264_mlps_state+128)[s];
+    *state= (ff_h264_mlps_state)[s+128];
+    // *state= (ff_h264_mlps_state+128)[s];
     bit= s&1;
 
     lps_mask= ff_h264_norm_shift[c->range];

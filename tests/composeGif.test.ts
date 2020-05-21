@@ -49,8 +49,8 @@ describe('GifTools', () => {
         gifTools.init().then((succeeded: boolean) => {
             if (!succeeded) { done(); }
             const delay = 100;
-            const width = 1200;
-            const height = 900;
+            const width = 300;
+            const height = 200;
 
             expect(gifTools.gifEncoderBegin(width, height, delay)).toBeTruthy();
 
@@ -150,7 +150,7 @@ describe('GifTools', () => {
                     expect(gifTools.videoDecoderOpenVideoStream(videoBuffer)).toBeTruthy();
                     var frames: (GifToolsVideoFrame | null)[] = [];
 
-                    for (var i = 0; i < 25; ++i) {
+                    for (var i = 0; i < 27; ++i) {
                         frames[i] = gifTools.videoDecoderPickClosestVideoFrame(i);
                         if (frames[i] == null) { break; }
 
@@ -159,7 +159,7 @@ describe('GifTools', () => {
                         fs.writeFileSync(actualResultsDirPath + "/dump_image_" + i  + ".png", pngArrayBuffer);
                     }
 
-                    for (var i = 0; i < 25; ++i) {
+                    for (var i = 0; i < 27; ++i) {
                         if (frames[i] == null) { break; }
                         gifTools.videoDecoderFreeVideoFrame(frames[i]);
                     }
