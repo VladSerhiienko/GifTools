@@ -120,12 +120,13 @@ static av_always_inline int get_cabac_inline(CABACContext *c, uint8_t * const st
 
     s^=lps_mask;
     
-    #ifdef GIFTOOLS_ENABLE_ERROR_EMSCRIPTEN_11208
-    // TODO(vserhiienko): emcc under -O2+ optimization fucks up here.
     *state= (ff_h264_mlps_state+128)[s];
-    #else
-    *state = (ff_h264_mlps_state)[s+128];
-    #endif
+//    #ifdef GIFTOOLS_ENABLE_ERROR_EMSCRIPTEN_11208
+//    // TODO(vserhiienko): emcc under -O2+ optimization fucks up here.
+//    *state= (ff_h264_mlps_state+128)[s];
+//    #else
+//    *state = (ff_h264_mlps_state)[s+128];
+//    #endif
     
     bit= s&1;
 

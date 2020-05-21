@@ -1,20 +1,5 @@
 
 import * as GifToolsFactory from '../bin/web_amalgamated_ffmpeg/GifTools';
-// import * as GifToolsFactory from '../bin/web_amalgamated_ffmpegd/GifTools';
-
-//
-// TODO(vromanchak, vserhiienko): Promote to ES6.
-//
-
-// Module parse failed: Unexpected token (3:25)
-// You may need an appropriate loader to handle this file type, currently no loaders are configured to process this file. See https://webpack.js.org/concepts#loaders
-// | 
-// | var GifToolsModularized = (function() {
-// >   var _scriptDir = import.meta.url;
-// |   
-// |   return (
-//  @ ./src/index.ts 3:21-74
-// import * as GifToolsModule from '../bin/web_es6_amalgamated_ffmpeg/GifTools';
 
 export class GifToolsValidationError extends Error {
     constructor(message: string) {
@@ -51,10 +36,6 @@ export class GifTools {
     private vmStatus: string = GifTools.vmStatusNull;
     private vmObjIds: Array<number> = [];
     
-    private currentGifBuilderId: number = 0;
-    private currentGifBuilderWidth: number = 0;
-    private currentGifBuilderHeight: number = 0;
-
     private currentInputStreamBufferId: number = 0;
     private currentInputStreamId: number = 0;
     private currentVideoStreamId: number = 0;
@@ -77,9 +58,8 @@ export class GifTools {
      * Make sure all encoders are done.
      */
     deinit() {
-        GifTools.assert(!GifTools.isValidObj(this.currentGifBuilderId), "Caught active GIF encoder.");
         this.internalFreeObjIds();
-        this.vmStatus = "null";
+        this.vmStatus = GifTools.vmStatusNull;
         this.vm = null;
     }
 
@@ -231,57 +211,4 @@ export class GifTools {
         GifTools.assert(GifTools.isValidObj(this.currentVideoStreamId), "Caught null video stream.");
         this.internalFreeObjIds(this.currentInputStreamId, this.currentVideoStreamId);
     }
-
-    /**
-     * Starts GIF encoding.
-     * Make sure to call @function gifEncoderEnd() after GIF encoding is done.
-     * @param width Desired GIF width.
-     * @param height Desired GIF height.
-     * @param delay Desired GIF delay between loops in ms, or 0 to a single loop.
-     */
-    gifEncoderBegin(width: number, height: number, delay: number) : boolean {
-        GifTools.assert(!GifTools.isValidObj(this.currentGifBuilderId), "Caught existing GIF encoder.");
-        this.currentGifBuilderId = this.vm.gifBuilderInitialize(width, height, delay);
-        if (!GifTools.isValidObj(this.currentGifBuilderId)) { return false; }
-        this.internalAddObjIds(this.currentGifBuilderId);
-        GifTools.assert(width > 0, "Caught invalid extent.");
-        GifTools.assert(height > 0, "Caught invalid extent.");
-        this.currentGifBuilderWidth = width;
-        this.currentGifBuilderHeight = height;
-        return true;
-    }
-
-    /**
-     * Appends image to GIF.
-     * Image is not needed further and can be freed after this functions returns.
-     * @param imageId Image object id.
-     * @param delay Desired GIF delay between frames in ms.
-     */
-    gifEncoderAddImage(imageId : number, delay : number) : boolean {
-        GifTools.assert(GifTools.isValidObj(this.currentGifBuilderId), "Caught null GIF encoder.");
-        GifTools.assert(GifTools.isValidObj(imageId), "Caught null image.");
-        GifTools.assert(this.vm.imageWidth(imageId) == this.currentGifBuilderWidth, "Caught invalid image.");
-        GifTools.assert(this.vm.imageHeight(imageId) == this.currentGifBuilderHeight, "Caught invalid image.");
-        return this.vm.gifBuilderAddImage(this.currentGifBuilderId, imageId, delay);
-    }
-
-    /**
-     * Finalizes GIF encoding.
-     * Returns @class Uint8Array GIF file buffer.
-     */
-    gifEncoderEnd() : Uint8Array {
-        GifTools.assert(GifTools.isValidObj(this.currentGifBuilderId), "Caught null GIF encoder.");
-        var gifBufferId = this.vm.gifBuilderFinalize(this.currentGifBuilderId);
-
-        this.internalFreeObjIds(this.currentGifBuilderId);
-        this.currentGifBuilderId = GifTools.invalidObjId;
-        this.currentGifBuilderWidth = 0;
-        this.currentGifBuilderHeight = 0;
-
-        var gifBufferArray = this.vm.bufferToUint8Array(gifBufferId);
-        this.internalFreeObjIds(gifBufferId);
-        return gifBufferArray;
-    }
 }
-
-// export {GifToolsValidationError, GifToolsVideoFrame, GifTools};
