@@ -27,6 +27,10 @@ if(NOT DEFINED GIFTOOLS_BUILD_FFMPEG)
     set(GIFTOOLS_BUILD_FFMPEG FALSE)
 endif()
 
+if(NOT DEFINED GIFTOOLS_ENABLE_ERROR_EMSCRIPTEN_11208)
+    set(GIFTOOLS_ENABLE_ERROR_EMSCRIPTEN_11208 FALSE)
+endif()
+
 message(STATUS "Seeing GIFTOOLS_BUILD_EMSCRIPTEN=${GIFTOOLS_BUILD_EMSCRIPTEN}")
 
 if(${GIFTOOLS_BUILD_EMSCRIPTEN})
@@ -89,6 +93,18 @@ if(${GIFTOOLS_USE_EMSDK})
     # -s MALLOC=emmalloc \
     # -s INITIAL_MEMORY=50331648 \
 
+    # --profiling \
+    # --profiling-funcs \
+    # --tracing \
+    # --emit-symbol-map \
+    # -g4 \
+    # -s DEMANGLE_SUPPORT=1 \
+
+    if (${GIFTOOLS_ENABLE_ERROR_EMSCRIPTEN_11208})
+        message(STATUS "Enabling MSCRIPTEN_11208 bug.")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIFTOOLS_ENABLE_ERROR_EMSCRIPTEN_11208=1")
+    endif()
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         --bind \
         --no-entry \
@@ -96,10 +112,10 @@ if(${GIFTOOLS_USE_EMSDK})
         --profiling-funcs \
         --tracing \
         --emit-symbol-map \
-        -s WASM=1 \
-        -s FILESYSTEM=0 \
         -g4 \
         -s DEMANGLE_SUPPORT=1 \
+        -s WASM=1 \
+        -s FILESYSTEM=0 \
         -s NO_EXIT_RUNTIME=1 \
         -s ABORTING_MALLOC=0 \
         -s MALLOC=emmalloc \
@@ -124,12 +140,12 @@ if(${GIFTOOLS_USE_EMSDK})
         # SAFE_HEAP=1: Add additional memory access checks, and give clear errors for problems like dereferencing 0 and memory alignment issues.
         # STACK_OVERFLOW_CHECK=2: Verify that the user code does not accidentally write past the end of the stack.
         # DEMANGLE_SUPPORT=1: Automatically demangle stack traces.
+        # -s SAFE_HEAP_LOG=1 \
         message(STATUS "Building debug/diagnostics WASM")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
             -O0 \
             -s ASSERTIONS=1 \
             -s STACK_OVERFLOW_CHECK=2 \
-            -s SAFE_HEAP_LOG=1 \
             -s SAFE_HEAP=1")
     endif()
 

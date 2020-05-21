@@ -1,6 +1,6 @@
 
-// import * as GifToolsFactory from '../bin/web_amalgamated_ffmpeg/GifTools';
-import * as GifToolsFactory from '../bin/web_amalgamated_ffmpegd/GifTools';
+import * as GifToolsFactory from '../bin/web_amalgamated_ffmpeg/GifTools';
+// import * as GifToolsFactory from '../bin/web_amalgamated_ffmpegd/GifTools';
 
 //
 // TODO(vromanchak, vserhiienko): Promote to ES6.
