@@ -1,5 +1,6 @@
-#include <GifTools.h>
+#ifndef GIFTOOLS_EMSCRIPTEN
 
+#include <GifTools.h>
 #include <gtest/gtest.h>
 
 #include <cstdint>
@@ -11,20 +12,7 @@
 #include <vector>
 #include <filesystem>
 
-#ifndef GIFTOOLS_EMSCRIPTEN
 namespace {
-
-struct GifToolsGifParams {
-    size_t width = 0;
-    size_t height = 0;
-    std::string targetResolutionId = "";
-};
-
-struct GifToolsFFmpegParams : GifToolsGifParams {
-    std::string videoFilePath = "";
-    std::string videoResolutionId = "";
-    double stepSeconds = 1.0;
-};
 
 struct GifToolsTestBase : public testing::Test {
     static constexpr std::string_view testsBinRelativePath = "./../../tests/bin";
@@ -62,8 +50,23 @@ struct GifToolsTestBase : public testing::Test {
     }
 };
 
+struct GifToolsGifParams {
+    size_t width = 0;
+    size_t height = 0;
+    std::string targetResolutionId = "";
+};
+
 struct GifToolsGifTest : public GifToolsTestBase, public testing::WithParamInterface<GifToolsGifParams> {};
+
+#ifdef GIFTOOLS_USE_FFMPEG
+struct GifToolsFFmpegParams : GifToolsGifParams {
+    std::string videoFilePath = "";
+    std::string videoResolutionId = "";
+    double stepSeconds = 1.0;
+};
+
 struct GifToolsFFmpegTest : public GifToolsTestBase, public testing::WithParamInterface<GifToolsFFmpegParams> {};
+#endif // #ifdef GIFTOOLS_USE_FFMPEG
 
 TEST_P(GifToolsGifTest, GifToolsGifEncodingTest) {
     using namespace giftools;
@@ -162,6 +165,7 @@ TEST_P(GifToolsGifTest, GifToolsGifEncodingTest) {
     MatchOrWriteExpected(gifBufferObj.get(), actualFileName);
 }
 
+#ifdef GIFTOOLS_USE_FFMPEG
 TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     using namespace giftools;
     constexpr size_t delay = 30;
@@ -228,6 +232,7 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     
     MatchOrWriteExpected(gifBufferObj.get(), actualFileName);
 }
+#endif
 
 #define GIFTOOLS_TEST_ALL 0
 
@@ -244,6 +249,7 @@ INSTANTIATE_TEST_SUITE_P(
         #endif
     ));
 
+#ifdef GIFTOOLS_USE_FFMPEG
 INSTANTIATE_TEST_SUITE_P(
     resolutions,
     GifToolsFFmpegTest,
@@ -256,7 +262,7 @@ INSTANTIATE_TEST_SUITE_P(
         , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200503_154756_360P.mp4", "360p"}
         , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "fhd"}
         , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_UHD.mp4", "uhd"}
-        #endif
+        #endif // #if GIFTOOLS_TEST_ALL
         
         , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p"}
         
@@ -266,7 +272,9 @@ INSTANTIATE_TEST_SUITE_P(
         , GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200503_154756_360P.mp4", "360p"}
         , GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200521_193627_FHD.mp4", "fhd"}
         , GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200521_193627_UHD.mp4", "uhd"}
-        #endif
+        #endif // #if GIFTOOLS_TEST_ALL
     ));
+#endif // #ifdef GIFTOOLS_USE_FFMPEG
 }
-#endif
+
+#endif // #ifndef GIFTOOLS_EMSCRIPTEN

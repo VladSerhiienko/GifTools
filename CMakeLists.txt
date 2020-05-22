@@ -20,6 +20,8 @@ message(STATUS "CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
 if(NOT ${GIFTOOLS_BUILD_EMSCRIPTEN})
     message(STATUS "Adding Google Test externally.")
     
+    set(default_cmake_args -G "Xcode")
+
     ExternalProject_Add(
         googletest
         GIT_REPOSITORY "git@github.com:google/googletest.git"
@@ -27,7 +29,7 @@ if(NOT ${GIFTOOLS_BUILD_EMSCRIPTEN})
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/googletest"
         UPDATE_COMMAND ""
         PATCH_COMMAND ""
-        CMAKE_ARGS ${default_cmake_args} -Dgtest_force_shared_crt:BOOL=ON
+        CMAKE_ARGS ${default_cmake_args}
         TEST_COMMAND ""
         INSTALL_COMMAND ""
         LOG_DOWNLOAD ON
