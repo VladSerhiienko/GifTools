@@ -23,14 +23,20 @@
   },
   "homepage": "https://github.com/VladSerhiienko/GifTools#readme",
   "devDependencies": {
+    "@babel/core": "^7.0.0",
     "@babel/preset-typescript": "^7.8.3",
     "@types/jest": "^25.1.4",
     "@types/node": "^14.0.1",
+    "babel-core": "^7.0.0-bridge.0",
+    "babel-jest": "^23.4.2",
     "jest": "^25.1.0",
     "ts-jest": "^25.2.1",
     "ts-loader": "^6.2.1",
     "typescript": "^3.8.3",
     "webpack": "^4.42.0",
     "webpack-cli": "^3.3.11"
+  },
+  "dependencies": {
+    "babel-upgrade": "^1.0.1"
   }
 }
