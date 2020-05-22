@@ -71,3 +71,5 @@ node_modules
 bin_dist.zip
 build_emscripten_web_amalgamated_ffmpeg/cmake_install.cmake
 tests/bin/results_actual
+tests/bin/results_actual_ts/
+tests/bin/results_actual_cpp/

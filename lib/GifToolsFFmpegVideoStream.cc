@@ -62,13 +62,15 @@ extern "C" {
     #include <libswscale/swscale.h>
 }
 
+constexpr AVPixelFormat DESIRED_FMT = AV_PIX_FMT_RGBA;
+
 struct FFmpegStagingVideoFrame {
     double timeSecondsEst = 0.0;
     int64_t timeTimeBaseEst = 0;
     int width = -1;
     int height = -1;
     int alignment = 1;
-    AVPixelFormat decodeFmt = AV_PIX_FMT_RGB24;
+    AVPixelFormat decodeFmt = DESIRED_FMT;
     std::vector<uint8_t> imageByteBuffer = {};
     AVFrame* encodedFrame = nullptr;
     AVFrame* decodedFrame = nullptr;
@@ -108,11 +110,13 @@ struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     int width = -1;
     int height = -1;
     int alignment = 1;
-    AVPixelFormat decodeFmt = AV_PIX_FMT_RGB24;
+    AVPixelFormat decodeFmt = DESIRED_FMT;
     
     FFmpegVideoStreamImpl() = default;
     ~FFmpegVideoStreamImpl() override = default;
     
+    size_t frameWidth() const { return width; }
+    size_t frameHeight() const { return height; }
     double estimatedTotalDurationSeconds() const override { return durationSeconds; }
     double estimatedFrameDurationSeconds() const override { return frameDurationSeconds; }
 };
@@ -264,7 +268,7 @@ ffmpegVideoFrameFromStaging(const FFmpegVideoStreamImpl& videoStream, FFmpegStag
     
     frame->timeSecondsEst = ffmpegStagingVideoFrame.timeSecondsEst;
     
-    if constexpr(GIFTOOLS_FFMPEG_VIDEO_FRAME_FROM_STAGING_BLACKLOGGING) {
+    if constexpr (GIFTOOLS_FFMPEG_VIDEO_FRAME_FROM_STAGING_BLACKLOGGING) {
         if (ffmpegStagingVideoFrame.imageByteBuffer[0] == 0 &&
             ffmpegStagingVideoFrame.imageByteBuffer[1] == 0 &&
             ffmpegStagingVideoFrame.imageByteBuffer[2] == 0 &&
@@ -277,10 +281,10 @@ ffmpegVideoFrameFromStaging(const FFmpegVideoStreamImpl& videoStream, FFmpegStag
         }
     }
     
-    assert(ffmpegStagingVideoFrame.decodeFmt == AV_PIX_FMT_RGB24);
+    assert(ffmpegStagingVideoFrame.decodeFmt == DESIRED_FMT);
     frame->imageObj = giftools::imageLoadFromMemory(videoStream.width,
                                                     videoStream.height,
-                                                    giftools::PixelFormatR8G8B8Unorm,
+                                                    giftools::PixelFormatR8G8B8A8Unorm,
                                                     ffmpegStagingVideoFrame.imageByteBuffer.data(),
                                                     ffmpegStagingVideoFrame.imageByteBuffer.size());
     return frame;
@@ -342,7 +346,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
     bool endOfStream = false;
     bool frameAcquired = false;
 
-    if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+    if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
         printf("while\n");
     }
     
@@ -352,7 +356,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         while (!frameAcquired) {
             bool keepSearchingPackets = true;
             while (keepSearchingPackets && !endOfStream) {
-                if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+                if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
                     printf("av_read_frame\n");
                 }
 
@@ -378,7 +382,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
             // if (ret < 0) { return {}; }
             // frameAcquired = true;
             
-            if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+            if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
                 printf("avcodec_decode_video2\n");
             }
             int didRetrievePicture = 0;
@@ -402,7 +406,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         
         const double diff = fabs(mostAccurateTime - sampleTime);
 
-        if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+        if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
             printf("mostAccurateTime = %f\n", mostAccurateTime);
             printf("sampleTime = %f\n", sampleTime);
             printf("diff = %f\n", diff);
@@ -410,7 +414,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         }
         
         if (diff < videoStream.frameDurationSeconds) {
-            if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+            if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
                 printf("curr frame is good (%f, %f -> %f)\n", sampleTime, mostAccurateTime, diff);
                 printf("sws_scale\n");
             }
@@ -427,7 +431,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         }
 
         if (mostAccurateTime < 0) {
-            if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+            if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
                 printf("last frame is the only option (%f, %f -> %f)\n", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
                 printf("sws_scale\n");
             }
@@ -447,7 +451,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
             const double prevDiff = fabs(prevFrame.timeSecondsEst - sampleTime);
             const double currDiff = fabs(currFrame.timeSecondsEst - sampleTime);
             if (prevDiff < currDiff) {
-                if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+                if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
                     printf("previous frame is closer (%f, %f vs %f)\n", sampleTime, prevFrame.timeSecondsEst, currFrame.timeSecondsEst);
                     printf("sws_scale\n");
                 }
@@ -463,7 +467,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
                 return frame;
             }
             
-            if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+            if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
                 printf("curr frame is closer (%f, %f vs %f)\n", sampleTime, currFrame.timeSecondsEst, diff);
                 printf("sws_scale\n");
             }
@@ -479,7 +483,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
             return frame;
         }
         
-        if constexpr(GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
+        if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
             printf("trying next frame\n");
         }
         

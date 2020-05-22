@@ -5,75 +5,16 @@
 #warning "GifTools for Emscripten"
 #endif
 
+#ifdef GIFTOOLS_USE_FFMPEG
+#warning "GifTools with FFmpeg"
+#endif
+
 #ifdef GIFTOOLS_EMSCRIPTEN
 #include <emscripten/bind.h>
 #include <emscripten/emscripten.h>
 #include <emscripten/val.h>
 using namespace emscripten;
 #endif
-
-#ifndef EMSCRIPTEN_KEEPALIVE
-#define EMSCRIPTEN_KEEPALIVE
-#endif
-
-//extern "C" {
-
-//
-// Object
-//
-
-void objectFree(int objectId);
-
-//
-// Buffers
-//
-
-int bufferCopyFromMemory(const char* bufferPtr, int bufferSize);
-uint8_t* bufferMutableData(int bufferId);
-const uint8_t* bufferData(int bufferId);
-int bufferSize(int bufferId);
-void bufferResize(int bufferId, int value);
-void bufferReserve(int bufferId, int value);
-void bufferFree(int bufferId);
-bool bufferZeroTerminated(int bufferId);
-bool bufferEmpty(int bufferId);
-int bufferToStringBase64(int bufferId);
-int bufferFromStringBase64(int bufferId);
-
-//
-// Images
-//
-
-int pixelFormatByteWidth(int format);
-int imageWidth(int imageId);
-int imageHeight(int imageId);
-int imageFormat(int imageId);
-int imageClone(int imageId);
-int imageLoadFromFileBuffer(const char* bufferPtr, int bufferSize);
-int imageLoadFromBuffer(int bufferId);
-int imageResizeOrClone(int imageId, int width, int height);
-int imageExportToPngFileMemory(int imageId);
-
-//
-// GIFs
-//
-
-int gifBuilderInitialize(int width, int height, int delay);
-bool gifBuilderAddImage(int gifBuilderId, int imageId, int delay);
-int gifBuilderFinalize(int gifBuilderId);
-
-//
-// Video
-//
-
-int ffmpegInputStreamLoadFromBuffer(int bufferId);
-int ffmpegVideoStreamOpen(int ffmpegInputStreamId);
-int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime);
-double ffmpegVideoFrameTimeSeconds(int ffmpegVideoFrameId);
-int ffmpegVideoFrameImage(int ffmpegVideoFrameId);
-void ffmpegVideoStreamClose(int ffmpegVideoStreamId);
-
-//}
 
 namespace {
 int32_t objectId(const giftools::ManagedObj* object) {
@@ -203,6 +144,9 @@ int gifBuilderFinalize(int gifBuilderId) {
     return objectReleaseAndReturnId(giftools::gifBuilderFinalize(gifBuilderObj));
 }
 
+
+#ifdef GIFTOOLS_USE_FFMPEG
+
 int ffmpegInputStreamLoadFromBuffer(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
     return objectReleaseAndReturnId(giftools::ffmpegInputStreamLoadFromBuffer(bufferObj));
@@ -211,6 +155,26 @@ int ffmpegInputStreamLoadFromBuffer(int bufferId) {
 int ffmpegVideoStreamOpen(int ffmpegInputStreamId) {
     auto ffmpegInputStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegInputStream>(ffmpegInputStreamId);
     return objectReleaseAndReturnId(giftools::ffmpegVideoStreamOpen(ffmpegInputStreamObj));
+}
+
+int ffmpegVideoStreamWidth(int ffmpegVideoStreamId) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return ffmpegVideoStreamObj ? ffmpegVideoStreamObj->frameWidth() : 0;
+}
+
+int ffmpegVideoStreamHeight(int ffmpegVideoStreamId) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return ffmpegVideoStreamObj ? ffmpegVideoStreamObj->frameHeight() : 0;
+}
+
+double ffmpegVideoStreamDurationSeconds(int ffmpegVideoStreamId) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return ffmpegVideoStreamObj ? ffmpegVideoStreamObj->estimatedTotalDurationSeconds() : 0.0;
+}
+
+double ffmpegVideoStreamFrameDurationSeconds(int ffmpegVideoStreamId) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return ffmpegVideoStreamObj ? ffmpegVideoStreamObj->estimatedFrameDurationSeconds() : 0.0;
 }
 
 int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime) {
@@ -233,6 +197,8 @@ int ffmpegVideoFrameImage(int ffmpegVideoFrameId) {
     return objectId(ffmpegVideoFrameObj->image());
 }
 
+#endif
+
 #ifdef GIFTOOLS_EMSCRIPTEN
 
 int bufferFromUint8Array(const val& arr) {
@@ -249,6 +215,7 @@ val bufferToUint8Array(int bufferId) {
 
 EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("objectFree", &objectFree);
+    
     function("bufferCopyFromMemory", &bufferCopyFromMemory, allow_raw_pointers());
     function("bufferMutableData", &bufferMutableData, allow_raw_pointers());
     function("bufferData", &bufferData, allow_raw_pointers());
@@ -260,6 +227,7 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("bufferEmpty", &bufferEmpty);
     function("bufferToStringBase64", &bufferToStringBase64);
     function("bufferFromStringBase64", &bufferFromStringBase64);
+    
     function("pixelFormatByteWidth", &pixelFormatByteWidth);
     function("imageWidth", &imageWidth);
     function("imageHeight", &imageHeight);
@@ -269,17 +237,25 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("imageLoadFromBuffer", &imageLoadFromBuffer);
     function("imageResizeOrClone", &imageResizeOrClone);
     function("imageExportToPngFileMemory", &imageExportToPngFileMemory);
+    
     function("gifBuilderInitialize", &gifBuilderInitialize);
     function("gifBuilderAddImage", &gifBuilderAddImage);
     function("gifBuilderFinalize", &gifBuilderFinalize);
     function("bufferFromUint8Array", &bufferFromUint8Array);
     function("bufferToUint8Array", &bufferToUint8Array);
+    
+    #ifdef GIFTOOLS_USE_FFMPEG
     function("ffmpegInputStreamLoadFromBuffer", &ffmpegInputStreamLoadFromBuffer);
     function("ffmpegVideoStreamOpen", &ffmpegVideoStreamOpen);
+    function("ffmpegVideoStreamWidth", &ffmpegVideoStreamWidth);
+    function("ffmpegVideoStreamHeight", &ffmpegVideoStreamHeight);
+    function("ffmpegVideoStreamDurationSeconds", &ffmpegVideoStreamDurationSeconds);
+    function("ffmpegVideoStreamFrameDurationSeconds", &ffmpegVideoStreamFrameDurationSeconds);
     function("ffmpegVideoStreamPickBestFrame", &ffmpegVideoStreamPickBestFrame);
     function("ffmpegVideoFrameTimeSeconds", &ffmpegVideoFrameTimeSeconds);
     function("ffmpegVideoFrameImage", &ffmpegVideoFrameImage);
     function("ffmpegVideoStreamClose", &ffmpegVideoStreamClose);
+    #endif
 }
 
 #endif

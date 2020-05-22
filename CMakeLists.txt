@@ -2,6 +2,12 @@
 cmake_minimum_required(VERSION 3.5)
 
 include(ExternalProject)
+
+if(NOT DEFINED GIFTOOLS_BUILD_EMSCRIPTEN)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
+    set(GIFTOOLS_BUILD_EMSCRIPTEN FALSE)
+endif()
+
 project(GifTools)
 
 message(STATUS "CMAKE_SYSTEM_INFO_FILE = ${CMAKE_SYSTEM_INFO_FILE}")
@@ -11,6 +17,31 @@ message(STATUS "CMAKE_SYSTEM = ${CMAKE_SYSTEM}")
 message(STATUS "CMAKE_SOURCE_DIR = ${CMAKE_SOURCE_DIR}")
 message(STATUS "CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
 
+if(NOT ${GIFTOOLS_BUILD_EMSCRIPTEN})
+    message(STATUS "Adding Google Test externally.")
+    
+    ExternalProject_Add(
+        googletest
+        GIT_REPOSITORY "git@github.com:google/googletest.git"
+        GIT_TAG "release-1.10.0"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/googletest"
+        UPDATE_COMMAND ""
+        PATCH_COMMAND ""
+        CMAKE_ARGS ${default_cmake_args} -Dgtest_force_shared_crt:BOOL=ON
+        TEST_COMMAND ""
+        INSTALL_COMMAND ""
+        LOG_DOWNLOAD ON
+    )
+
+    ExternalProject_Get_Property(googletest SOURCE_DIR)
+    ExternalProject_Get_Property(googletest BINARY_DIR)
+    set(googletest_source_dir ${SOURCE_DIR})
+    set(googletest_binary_dir ${BINARY_DIR})
+    message(STATUS "googletest_source_dir = ${googletest_source_dir}")
+    message(STATUS "googletest_binary_dir = ${googletest_binary_dir}")
+
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -18,10 +49,6 @@ set(GIFTOOLS_USE_FFMPEG FALSE)
 set(GIFTOOLS_USE_EMSDK FALSE)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG=1")
-
-if(NOT DEFINED GIFTOOLS_BUILD_EMSCRIPTEN)
-    set(GIFTOOLS_BUILD_EMSCRIPTEN FALSE)
-endif()
 
 if(NOT DEFINED GIFTOOLS_BUILD_FFMPEG)
     set(GIFTOOLS_BUILD_FFMPEG FALSE)
@@ -2764,6 +2791,14 @@ file(GLOB
     ${PROJECT_SOURCE_DIR}/lib/*.cpp
 )
 
+set(GIFTOOLS_LIB_TEST_SOURCES)
+if(NOT ${GIFTOOLS_USE_EMSDK})
+    file(GLOB
+        GIFTOOLS_LIB_TEST_SOURCES
+        ${PROJECT_SOURCE_DIR}/tests/*.cpp
+    )
+endif()
+
 # message(STATUS "GIFTOOLS_FFMPEG_SOURCES=${GIFTOOLS_FFMPEG_SOURCES}")
 # message(STATUS "GIFTOOLS_LIB_SOURCES=${GIFTOOLS_LIB_SOURCES}")
 
@@ -2771,7 +2806,36 @@ add_executable(
     GifTools
     ${GIFTOOLS_LIB_SOURCES}
     ${GIFTOOLS_FFMPEG_SOURCES}
+    ${GIFTOOLS_LIB_TEST_SOURCES}
 )
+
+
+set(GifToolsLibraries)
+if(NOT ${GIFTOOLS_USE_EMSDK})
+    message(STATUS "Linking with Google Test.")
+    target_include_directories(
+        GifTools
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}/dependencies/googletest/googlemock/include
+        ${CMAKE_SOURCE_DIR}/dependencies/googletest/googletest/include
+        )
+        
+    add_dependencies(
+        GifTools
+        googletest
+    )
+
+    set(GifToolsLibraries
+        debug ${googletest_binary_dir}/lib/Debug/libgmockd.a
+        debug ${googletest_binary_dir}/lib/Debug/libgtestd.a
+        debug ${googletest_binary_dir}/lib/Debug/libgtest_maind.a
+        optimized ${googletest_binary_dir}/lib/Release/libgmock.a
+        optimized ${googletest_binary_dir}/lib/Release/libgtest.a
+        optimized ${googletest_binary_dir}/lib/Release/libgtest_main.a
+        )
+
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${GIFTOOLS_LIB_TEST_SOURCES})
+endif()
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${GIFTOOLS_LIB_SOURCES})
 
@@ -2779,4 +2843,8 @@ if (${GIFTOOLS_USE_FFMPEG})
     source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${GIFTOOLS_FFMPEG_SOURCES})
 endif()
 
-target_link_libraries(GifTools pthread)
+target_link_libraries(
+    GifTools
+    ${GifToolsLibraries}
+    pthread
+    )
