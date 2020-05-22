@@ -24,7 +24,8 @@ if(NOT ${GIFTOOLS_BUILD_EMSCRIPTEN})
 
     ExternalProject_Add(
         googletest
-        GIT_REPOSITORY "git@github.com:google/googletest.git"
+        GIT_REPOSITORY "https://github.com/google/googletest.git"
+        # "git@github.com:google/googletest.git"
         GIT_TAG "release-1.10.0"
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/googletest"
         UPDATE_COMMAND ""
