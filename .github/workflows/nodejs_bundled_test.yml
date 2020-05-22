@@ -1,4 +1,4 @@
-name: GifTools Node
+name: GifTools Ubuntu Node
 
 on:
   push:

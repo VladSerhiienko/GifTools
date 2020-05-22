@@ -1,4 +1,4 @@
-name: GifTools Emscripten
+name: GifTools macOS Emscripten
 
 on:
   push:
