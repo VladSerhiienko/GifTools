@@ -1,25 +1,43 @@
 import * as fs from 'fs';
-import {GifTools, GifToolsVideoFrame} from '../src';
+import * as path from 'path';
+import { GifTools, GifToolsVideoFrame } from '../src';
+
+function areEqual(a: Uint8Array, b: Uint8Array): boolean {
+    if (a.byteLength !== b.byteLength) return false;
+    return a.every((val, i) => val === b[i]) ? true : false;
+}
 
 describe('GifTools', () => {
-    var actualResultsDirPath = './tests/bin/results_actual_ts';
+    // Enables all tests, it takes too long to run them all.
+    const testAll = false;
 
+    // Debugging stuff.
+    const dumpResizedImgs = false;
+
+    // Common strings.
+    const videosDirPath = './tests/bin/video';
+    const imagesDirPath = './tests/bin/image';
+    const actualResultsDirPath = './tests/bin/results_actual_ts';
+    const expectedResultsDirPath = './tests/bin/results_expected';
+
+    // TODO(vserhiienko): Only empty directories can be removed, wtf.
     // if (fs.existsSync(actualResultsDirPath)) { fs.rmdirSync(actualResultsDirPath, {recursive: true}); }
-    fs.mkdirSync(actualResultsDirPath, {recursive: true});
+    
+    fs.mkdirSync(actualResultsDirPath, { recursive: true });
 
-    var baseGifToolsGifTest = function(done: any, width: number, height: number, id: string) {
+    const baseGifToolsGifTest = function (done: any, width: number, height: number, id: string) {
         const delay = 30;
 
-        var imgBuffers: Uint8Array[] = [
-            fs.readFileSync('./tests/bin/image/IMG_20191217_083053.jpg'),
-            fs.readFileSync('./tests/bin/image/IMG_20191217_083055.jpg'),
-            fs.readFileSync('./tests/bin/image/IMG_20191217_083056.jpg'),
-            fs.readFileSync('./tests/bin/image/IMG_20191217_083058.jpg'),
-            fs.readFileSync('./tests/bin/image/IMG_20191217_083059.jpg'),
-            fs.readFileSync('./tests/bin/image/IMG_20191217_083101.jpg')
+        const imgBuffers: Uint8Array[] = [
+            fs.readFileSync(imagesDirPath + '/IMG_20191217_083053.jpg'),
+            fs.readFileSync(imagesDirPath + '/IMG_20191217_083055.jpg'),
+            fs.readFileSync(imagesDirPath + '/IMG_20191217_083056.jpg'),
+            fs.readFileSync(imagesDirPath + '/IMG_20191217_083058.jpg'),
+            fs.readFileSync(imagesDirPath + '/IMG_20191217_083059.jpg'),
+            fs.readFileSync(imagesDirPath + '/IMG_20191217_083101.jpg')
         ];
 
-        var imgIndices = [0, 1, 2, 3, 4, 5, 4, 3, 2, 1];
+        const imgIndices = [0, 1, 2, 3, 4, 5, 4, 3, 2, 1];
 
         const gifTools = new GifTools();
         gifTools.init().then((succeeded: boolean) => {
@@ -30,24 +48,27 @@ describe('GifTools', () => {
             expect(gifTools.gifEncoderBegin(width, height, delay)).toBeTruthy();
 
             imgIndices.forEach((fileIndex, i) => {
-                var fileBuffer = imgBuffers[fileIndex];
+                const fileBuffer = imgBuffers[fileIndex];
                 expect(fileBuffer).toBeTruthy();
 
-                var loadedImgId = gifTools.imageLoadFromFileBuffer(fileBuffer);
-                console.log('loadedImgId', loadedImgId);
+                const loadedImgId = gifTools.imageLoadFromFileBuffer(fileBuffer);
                 expect(loadedImgId).toBeTruthy();
 
-                var resizedImgId = gifTools.imageResize(loadedImgId, width, height);
+                const resizedImgId = gifTools.imageResize(loadedImgId, width, height);
                 expect(resizedImgId).toBeTruthy();
-                console.log('resizedImgId', resizedImgId);
 
-                var pngBufferId = gifTools.vm.imageExportToPngFileMemory(resizedImgId);
-                var pngArrayBuffer = gifTools.vm.bufferToUint8Array(pngBufferId);
-                fs.writeFileSync(actualResultsDirPath + '/dump_gif_' + id + '_resized_image_' + i + '.png', pngArrayBuffer);
+                // console.log('loadedImgId', loadedImgId);
+                // console.log('resizedImgId', resizedImgId);
+
+                if (dumpResizedImgs) {
+                    const pngBufferId = gifTools.vm.imageExportToPngFileMemory(resizedImgId);
+                    const pngArrayBuffer = gifTools.vm.bufferToUint8Array(pngBufferId);
+                    fs.writeFileSync(actualResultsDirPath + '/dump_gif_' + id + '_resized_image_' + i + '.png', pngArrayBuffer);
+                    gifTools.vm.objectFree(pngBufferId);
+                }
 
                 expect(gifTools.gifEncoderAddImage(resizedImgId, delay)).toBeTruthy();
 
-                gifTools.vm.objectFree(pngBufferId);
                 gifTools.internalFreeObjIds(resizedImgId);
                 gifTools.internalFreeObjIds(loadedImgId);
             });
@@ -55,12 +76,19 @@ describe('GifTools', () => {
             const gifBuffer = gifTools.gifEncoderEnd();
             expect(gifBuffer).toBeTruthy();
 
-            fs.writeFileSync(actualResultsDirPath + '/dump_' + id + '.gif', gifBuffer);
+            const actualResultPath = actualResultsDirPath + '/dump_' + id + '.gif';
+            const expectedResultPath = expectedResultsDirPath + '/dump_' + id + '.gif';
+
+            fs.writeFileSync(actualResultPath, gifBuffer, { encoding: 'binary' });
+
+            const expectedResult: Uint8Array = fs.readFileSync(expectedResultPath);
+            expect(expectedResult).toBeTruthy();
+            expect(areEqual(gifBuffer, expectedResult)).toBe(true);
 
             gifTools.deinit();
             done();
         });
-    }; // testGifEncoder()
+    };
 
     test('GIF-360p', done => {
         const width = 640;
@@ -68,63 +96,91 @@ describe('GifTools', () => {
         baseGifToolsGifTest(done, width, height, '360p');
     });
 
-    test('GIF-720p', done => {
-        const width = 1280;
-        const height = 720;
-        baseGifToolsGifTest(done, width, height, '720p');
-    });
+    if (testAll) {
+        test('GIF-720p', done => {
+            const width = 1280;
+            const height = 720;
+            baseGifToolsGifTest(done, width, height, '720p');
+        });
 
-    test('GIF-FHD', done => {
-        const width = 1920;
-        const height = 1080;
-        baseGifToolsGifTest(done, width, height, 'fhd');
-    });
+        test('GIF-FHD', done => {
+            const width = 1920;
+            const height = 1080;
+            baseGifToolsGifTest(done, width, height, 'fhd');
+        });
 
-    test('GIF-UHD', done => {
-        const width = 4608;
-        const height = 3456;
-        baseGifToolsGifTest(done, width, height, 'uhd');
-    });
+        test('GIF-UHD', done => {
+            const width = 4608;
+            const height = 3456;
+            baseGifToolsGifTest(done, width, height, 'uhd');
+        });
+    }
 
-    test('GIF-MP4-360p', done => {
-        var videoBuffers: Uint8Array[] = [fs.readFileSync('./tests/bin/video/VID_20200503_154756_L.mp4')];
+    const baseGifToolsFFmpegTest = function (done: any, width: number, height: number, targetResolutionId: string, videoFilePath: string, videoResolutionId: string) {
+        const delay = 30;
+
+        const videoBuffer: Uint8Array = fs.readFileSync(videosDirPath + '/' + videoFilePath);
+        expect(videoBuffer).toBeTruthy();
 
         const gifTools = new GifTools();
         gifTools.init().then((succeeded: boolean) => {
             if (!succeeded) { done(); }
-            const delay = 100;
-            const width = 640;
-            const height = 360;
-
             expect(gifTools.module()).toBeTruthy();
-            expect(gifTools.gifEncoderBegin(width, height, delay)).toBeTruthy();
 
-            videoBuffers.forEach(videoBuffer => {
-                expect(videoBuffer).toBeTruthy();
-                console.log('videoBuffer.byteLength', videoBuffer.byteLength);
+            expect(gifTools.videoDecoderOpenVideoStream(videoBuffer)).toBeTruthy();
 
-                expect(gifTools.videoDecoderOpenVideoStream(videoBuffer)).toBeTruthy();
-                var frames: (GifToolsVideoFrame|null)[] = [];
+            const targetWidth = width ? width :  gifTools.videoDecoderWidth();
+            const targetHeight = height ? height :  gifTools.videoDecoderHeight();
 
-                for (var i = 0; i < 27; ++i) {
-                    frames[i] = gifTools.videoDecoderPickClosestVideoFrame(i);
-                    if (frames[i] == null) { break; }
+            expect(gifTools.gifEncoderBegin(targetWidth, targetHeight, delay)).toBeTruthy();
 
-                    var pngBufferId = gifTools.vm.imageExportToPngFileMemory(frames[i]!.imageId);
-                    var pngArrayBuffer = gifTools.vm.bufferToUint8Array(pngBufferId);
-                    fs.writeFileSync(actualResultsDirPath + '/dump_mp4_360p_image_' + i + '.png', pngArrayBuffer);
-                    pngArrayBuffer = null;
+            const duration = gifTools.videoDecoderDurationSeconds();
+            for (var t = 0.0; t < duration; t += 1.0) {
+                const frame = gifTools.videoDecoderPickClosestVideoFrame(t);
 
-                    expect(gifTools.gifEncoderAddImage(frames[i]!.imageId, delay)).toBeTruthy();
+                expect(gifTools.gifEncoderAddImage(frame!.imageId, delay)).toBeTruthy();
 
-                    gifTools.vm.objectFree(pngBufferId);
-                    gifTools.internalFreeObjIds(pngBufferId);
-                    gifTools.videoDecoderFreeVideoFrame(frames[i]);
-                }
-            });
+                gifTools.videoDecoderFreeVideoFrame(frame);
+            }
+
+            const gifBuffer = gifTools.gifEncoderEnd();
+            expect(gifBuffer).toBeTruthy();
+
+            const prefix = "dump_";
+            const fileName = path.basename(videoFilePath, '.mp4');
+            const id = videoResolutionId + "_" + targetResolutionId;
+            const resultName = prefix + "_" + fileName + "_" + id + ".gif";
+            const actualResultPath = actualResultsDirPath + '/' + resultName;
+            const expectedResultPath = expectedResultsDirPath + '/' + resultName;
+
+            fs.writeFileSync(actualResultPath, gifBuffer, { encoding: 'binary' });
+
+            const expectedResult: Uint8Array = fs.readFileSync(expectedResultPath);
+            expect(expectedResult).toBeTruthy();
+            expect(areEqual(gifBuffer, expectedResult)).toBe(true);
 
             gifTools.deinit();
             done();
         });
+    };
+
+    test('GIF-FFMPEG-360P', done => {
+        const width = 0;
+        const height = 0;
+        baseGifToolsFFmpegTest(done, width, height, 'default', 'VID_20200503_154756_360P.mp4', '360p');
     });
-})
+
+    if (testAll) {
+        test('GIF-FFMPEG-FHD', done => {
+            const width = 0;
+            const height = 0;
+            baseGifToolsFFmpegTest(done, width, height, 'default', 'VID_20200521_193627_FHD.mp4', 'fhd');
+        });
+
+        test('GIF-FFMPEG-UHD', done => {
+            const width = 0;
+            const height = 0;
+            baseGifToolsFFmpegTest(done, width, height, 'default', 'VID_20200521_193627_UHD.mp4', 'uhd');
+        });
+    }
+});

@@ -34,3 +34,6 @@ cp build_emscripten_web_amalgamated_ffmpegd/GifTools.js bin/web_amalgamated_ffmp
 cp build_emscripten_web_amalgamated_ffmpegd/GifTools.wasm.map bin/web_amalgamated_ffmpegd/GifTools.wasm.map
 # emcc:WARNING: Wasm source map won't be usable in a browser without --source-map-base
 
+
+npm run build
+npm run test

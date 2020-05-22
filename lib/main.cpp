@@ -15,13 +15,17 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 using namespace emscripten;
+
+extern "C" {
+EMSCRIPTEN_KEEPALIVE int main(int argc, char** argv);
+}
  
-EMSCRIPTEN_KEEPALIVE void linkEmsdk() {
+void linkEmsdk() {
     printf("GifTools: main!\n");
     EM_ASM(console.log("GifTools(console.log): main!"););
 }
 
-EMSCRIPTEN_KEEPALIVE int main(int argc, char** argv) {
+int main(int argc, char** argv) {
     linkEmsdk();
     return 0;
 }

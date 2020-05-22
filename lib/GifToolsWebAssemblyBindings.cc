@@ -210,6 +210,8 @@ val bufferToUint8Array(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
     auto bufferPtr = bufferObj->data();
     auto bufferSize = bufferObj->size();
+    
+    // printf("bufferToUint8Array: contents=%.*s\n", (int)bufferSize, (const char*)bufferPtr);
     return val(typed_memory_view(bufferSize, bufferPtr));
 }
 

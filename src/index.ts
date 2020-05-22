@@ -175,6 +175,26 @@ export class GifTools {
         return resizedImageId;
     }
 
+    videoDecoderWidth() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamWidth(this.currentVideoStreamId);
+    }
+
+    videoDecoderHeight() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamHeight(this.currentVideoStreamId);
+    }
+
+    videoDecoderDurationSeconds() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamDurationSeconds(this.currentVideoStreamId);
+    }
+
+    videoDecoderFrameDurationSeconds() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamFrameDurationSeconds(this.currentVideoStreamId);
+    }
+
     videoDecoderOpenVideoStream(fileBuffer : Uint8Array) : boolean {
         if (fileBuffer == null || fileBuffer == undefined) { return false; }
 
@@ -272,14 +292,15 @@ export class GifTools {
     gifEncoderEnd() : Uint8Array {
         GifTools.assert(GifTools.isValidObj(this.currentGifBuilderId), "Caught null GIF encoder.");
         var gifBufferId = this.vm.gifBuilderFinalize(this.currentGifBuilderId);
+        this.internalAddObjIds(gifBufferId);
+        // this.internalFreeObjIds(gifBufferId);
+
+        var gifBufferArray = this.vm.bufferToUint8Array(gifBufferId);
 
         this.internalFreeObjIds(this.currentGifBuilderId);
         this.currentGifBuilderId = GifTools.invalidObjId;
         this.currentGifBuilderWidth = 0;
         this.currentGifBuilderHeight = 0;
-
-        var gifBufferArray = this.vm.bufferToUint8Array(gifBufferId);
-        this.internalFreeObjIds(gifBufferId);
         return gifBufferArray;
     }
 }

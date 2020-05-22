@@ -23,24 +23,43 @@ struct GifToolsGifParams {
 struct GifToolsFFmpegParams : GifToolsGifParams {
     std::string videoFilePath = "";
     std::string videoResolutionId = "";
+    double stepSeconds = 1.0;
 };
 
 struct GifToolsTestBase : public testing::Test {
     static constexpr std::string_view testsBinRelativePath = "./../../tests/bin";
     static constexpr std::string_view resultsPath = "results_actual_cpp";
+    static constexpr std::string_view expectedResultsPath = "results_expected";
     static constexpr std::string_view imagesPath = "image";
     static constexpr std::string_view videosPath = "video";
     
+    const std::string expectedResultsRelativePath = std::string(testsBinRelativePath) + std::string("/") + std::string(expectedResultsPath);
     const std::string resultsRelativePath = std::string(testsBinRelativePath) + std::string("/") + std::string(resultsPath);
     const std::string imagesRelativePath = std::string(testsBinRelativePath) + std::string("/") + std::string(imagesPath);
     const std::string videosRelativePath = std::string(testsBinRelativePath) + std::string("/") + std::string(videosPath);
     
+    std::string expectedResultFilePath(std::string_view fileName) { return expectedResultsRelativePath + std::string("/") + std::string(fileName); }
     std::string resultFilePath(std::string_view fileName) { return resultsRelativePath + std::string("/") + std::string(fileName); }
     std::string imageFilePath(std::string_view fileName) { return imagesRelativePath + std::string("/") + std::string(fileName); }
     std::string videoFilePath(std::string_view fileName) { return videosRelativePath + std::string("/") + std::string(fileName); }
     
-    void SetUp() override { std::filesystem::create_directory(resultsPath); }
+    void SetUp() override {
+        std::filesystem::create_directory(resultsRelativePath);
+        std::filesystem::create_directory(expectedResultsRelativePath);
+    }
+    
     void TearDown() override {}
+    
+    void MatchOrWriteExpected(const giftools::Buffer* buffer, const std::string& actualFileName) {
+        auto expectedFilePath = expectedResultFilePath(actualFileName);
+        if (!std::filesystem::exists(expectedFilePath)) {
+            fileBinaryWrite(expectedFilePath.c_str(), buffer);
+        } else {
+            auto expectedBuffer = giftools::fileBinaryRead(expectedFilePath.c_str());
+            ASSERT_EQ(expectedBuffer->size(), buffer->size());
+            ASSERT_EQ(0, memcmp(expectedBuffer->data(),  buffer->data(),  buffer->size()));
+        }
+    }
 };
 
 struct GifToolsGifTest : public GifToolsTestBase, public testing::WithParamInterface<GifToolsGifParams> {};
@@ -137,7 +156,10 @@ TEST_P(GifToolsGifTest, GifToolsGifEncodingTest) {
     UniqueManagedObj<Buffer> gifBufferObj = gifBuilderFinalize(gifBuilderObj.get());
     ASSERT_TRUE(gifBufferObj);
     
-    fileBinaryWrite(resultFilePath(std::string("dump_") + params.targetResolutionId + ".gif").c_str(), gifBufferObj.get());
+    auto actualFileName = std::string("dump_") + params.targetResolutionId + ".gif";
+    
+    fileBinaryWrite(resultFilePath(actualFileName).c_str(), gifBufferObj.get());
+    MatchOrWriteExpected(gifBufferObj.get(), actualFileName);
 }
 
 TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
@@ -169,7 +191,8 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     std::vector<UniqueManagedObj<FFmpegVideoFrame>> frames = {};
     std::vector<UniqueManagedObj<Image>> resizedImages = {};
     std::vector<const Image*> images = {};
-    for (double t = 0.0; t < video->estimatedTotalDurationSeconds(); t += 1.0) {
+    
+    for (double t = 0.0; t < video->estimatedTotalDurationSeconds(); t += params.stepSeconds) {
         frames.emplace_back(ffmpegVideoStreamPickBestFrame(video.get(), t));
         ASSERT_TRUE(frames.back()->image());
         
@@ -197,38 +220,53 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     ASSERT_TRUE(gifBufferObj);
     
     auto prefix = std::string("dump_");
-    auto fileName = std::filesystem::path(params.videoFilePath).filename().string();
+    auto fileName = std::filesystem::path(params.videoFilePath).stem().string();
     auto id = params.videoResolutionId + "_" + params.targetResolutionId;
+    auto actualFileName = prefix + "_" + fileName + "_" + id + ".gif";
     
-    fileBinaryWrite(resultFilePath(prefix + "_" + fileName + "_" + id + ".gif").c_str(), gifBufferObj.get());
+    fileBinaryWrite(resultFilePath(actualFileName).c_str(), gifBufferObj.get());
+    
+    MatchOrWriteExpected(gifBufferObj.get(), actualFileName);
 }
+
+#define GIFTOOLS_TEST_ALL 0
 
 INSTANTIATE_TEST_SUITE_P(
     resolutions,
     GifToolsGifTest,
     testing::Values(
-        GifToolsGifParams{640, 360, "360p"},
-        GifToolsGifParams{1280, 720, "720p"},
-        GifToolsGifParams{4608, 3456, "4k"}
+        GifToolsGifParams{640, 360, "360p"}
+        
+        #if GIFTOOLS_TEST_ALL
+        , GifToolsGifParams{1280, 720, "720p"}
+        , GifToolsGifParams{1920, 1080, "fhd"}
+        , GifToolsGifParams{4608, 3456, "uhd"}
+        #endif
     ));
 
 INSTANTIATE_TEST_SUITE_P(
     resolutions,
     GifToolsFFmpegTest,
     testing::Values(
-        GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_L.mp4", "l"},
-        GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd"},
-        GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_UHD.mp4", "uhd"},
-        GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_L.mp4", "l"},
-        GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200503_154756_L.mp4", "l"},
-        GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "fhd"},
-        GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_UHD.mp4", "uhd"},
-        GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_L.mp4", "l"},
-        GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200521_193627_FHD.mp4", "fhd"},
-        GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200521_193627_UHD.mp4", "uhd"},
-        GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200503_154756_L.mp4", "l"},
-        GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200521_193627_FHD.mp4", "fhd"},
-        GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200521_193627_UHD.mp4", "uhd"}
+        GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_360P.mp4", "360p"}
+        
+        #if GIFTOOLS_TEST_ALL
+        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd"}
+        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_UHD.mp4", "uhd"}
+        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200503_154756_360P.mp4", "360p"}
+        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "fhd"}
+        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_UHD.mp4", "uhd"}
+        #endif
+        
+        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p"}
+        
+        #if GIFTOOLS_TEST_ALL
+        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200521_193627_FHD.mp4", "fhd"}
+        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200521_193627_UHD.mp4", "uhd"}
+        , GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200503_154756_360P.mp4", "360p"}
+        , GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200521_193627_FHD.mp4", "fhd"}
+        , GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200521_193627_UHD.mp4", "uhd"}
+        #endif
     ));
 }
 #endif
