@@ -2,6 +2,12 @@
 cmake_minimum_required(VERSION 3.5)
 
 include(ExternalProject)
+
+if(NOT DEFINED GIFTOOLS_BUILD_EMSCRIPTEN)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
+    set(GIFTOOLS_BUILD_EMSCRIPTEN FALSE)
+endif()
+
 project(GifTools)
 
 message(STATUS "CMAKE_SYSTEM_INFO_FILE = ${CMAKE_SYSTEM_INFO_FILE}")
@@ -11,6 +17,33 @@ message(STATUS "CMAKE_SYSTEM = ${CMAKE_SYSTEM}")
 message(STATUS "CMAKE_SOURCE_DIR = ${CMAKE_SOURCE_DIR}")
 message(STATUS "CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
 
+if(NOT ${GIFTOOLS_BUILD_EMSCRIPTEN})
+    message(STATUS "Adding Google Test externally.")
+    
+    set(default_cmake_args -G "Xcode")
+
+    ExternalProject_Add(
+        googletest
+        GIT_REPOSITORY "git@github.com:google/googletest.git"
+        GIT_TAG "release-1.10.0"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/googletest"
+        UPDATE_COMMAND ""
+        PATCH_COMMAND ""
+        CMAKE_ARGS ${default_cmake_args}
+        TEST_COMMAND ""
+        INSTALL_COMMAND ""
+        LOG_DOWNLOAD ON
+    )
+
+    ExternalProject_Get_Property(googletest SOURCE_DIR)
+    ExternalProject_Get_Property(googletest BINARY_DIR)
+    set(googletest_source_dir ${SOURCE_DIR})
+    set(googletest_binary_dir ${BINARY_DIR})
+    message(STATUS "googletest_source_dir = ${googletest_source_dir}")
+    message(STATUS "googletest_binary_dir = ${googletest_binary_dir}")
+
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -18,10 +51,6 @@ set(GIFTOOLS_USE_FFMPEG FALSE)
 set(GIFTOOLS_USE_EMSDK FALSE)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG=1")
-
-if(NOT DEFINED GIFTOOLS_BUILD_EMSCRIPTEN)
-    set(GIFTOOLS_BUILD_EMSCRIPTEN FALSE)
-endif()
 
 if(NOT DEFINED GIFTOOLS_BUILD_FFMPEG)
     set(GIFTOOLS_BUILD_FFMPEG FALSE)
@@ -73,26 +102,49 @@ if(${GIFTOOLS_USE_EMSDK})
 
     # Enable Emscripten, enable embind.
     # -s STRICT=1 drops support for all deprecated build options.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -DGIFTOOLS_EMSCRIPTEN=1 \
-        --bind \
-        -s STRICT=1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIFTOOLS_EMSCRIPTEN=1 -s STRICT=1")
 
     # Enable WASM, enable functioning as library.
     # Enable dynamic memory allocations, use emmalloc (small and fast).
     # FILESYSTEM=0: Force Emscripten to not include emulated file system to the code.
+
+    # --profiling
+    # --profiling-funcs
+    # --tracing
+    # --emit-symbol-map
+    # --js-opts=1
+    # --llvm-opts=-O3
+    # --llvm-lto=2
+    # -s MALLOC=emmalloc \
+    # -s INITIAL_MEMORY=50331648 \
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        --bind \
+        --no-entry \
+        --profiling \
+        --profiling-funcs \
+        --tracing \
+        --emit-symbol-map \
         -s WASM=1 \
         -s FILESYSTEM=0 \
+        -g4 \
+        -s DEMANGLE_SUPPORT=1 \
         -s NO_EXIT_RUNTIME=1 \
-        -s ALLOW_MEMORY_GROWTH=1 \
-        -s MALLOC=emmalloc")
+        -s ABORTING_MALLOC=0 \
+        -s MALLOC=emmalloc \
+        -s ALLOW_MEMORY_GROWTH=1")
 
     # Set optimization flags
     if(${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN})
         # -Os: Optimize aggressively for performance and size as a secondary criterion.
         message(STATUS "Building smallest WASM")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -O3 \
+            --js-opts 1 \
+            --llvm-opts -O3 \
+            -s ASSERTIONS=0 \
+            -s STACK_OVERFLOW_CHECK=0 \
+            -s SAFE_HEAP=0")
     else()
         # https://emscripten.org/docs/porting/Debugging.html
         # -O0: Don't do any optimization. No dead code is eliminated, and Emscripten does not minify the JavaScript code it emits, either. Good for debugging.
@@ -103,10 +155,10 @@ if(${GIFTOOLS_USE_EMSDK})
         # DEMANGLE_SUPPORT=1: Automatically demangle stack traces.
         message(STATUS "Building debug/diagnostics WASM")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-            -O0 -g4 \
+            -O0 \
             -s ASSERTIONS=1 \
-            -s DEMANGLE_SUPPORT=1 \
             -s STACK_OVERFLOW_CHECK=2 \
+            -s SAFE_HEAP_LOG=1 \
             -s SAFE_HEAP=1")
     endif()
 
@@ -2741,14 +2793,51 @@ file(GLOB
     ${PROJECT_SOURCE_DIR}/lib/*.cpp
 )
 
-message(STATUS "GIFTOOLS_FFMPEG_SOURCES=${GIFTOOLS_FFMPEG_SOURCES}")
-message(STATUS "GIFTOOLS_LIB_SOURCES=${GIFTOOLS_LIB_SOURCES}")
+set(GIFTOOLS_LIB_TEST_SOURCES)
+if(NOT ${GIFTOOLS_USE_EMSDK})
+    file(GLOB
+        GIFTOOLS_LIB_TEST_SOURCES
+        ${PROJECT_SOURCE_DIR}/tests/*.cpp
+    )
+endif()
+
+# message(STATUS "GIFTOOLS_FFMPEG_SOURCES=${GIFTOOLS_FFMPEG_SOURCES}")
+# message(STATUS "GIFTOOLS_LIB_SOURCES=${GIFTOOLS_LIB_SOURCES}")
 
 add_executable(
     GifTools
     ${GIFTOOLS_LIB_SOURCES}
     ${GIFTOOLS_FFMPEG_SOURCES}
+    ${GIFTOOLS_LIB_TEST_SOURCES}
 )
+
+
+set(GifToolsLibraries)
+if(NOT ${GIFTOOLS_USE_EMSDK})
+    message(STATUS "Linking with Google Test.")
+    target_include_directories(
+        GifTools
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}/dependencies/googletest/googlemock/include
+        ${CMAKE_SOURCE_DIR}/dependencies/googletest/googletest/include
+        )
+        
+    add_dependencies(
+        GifTools
+        googletest
+    )
+
+    set(GifToolsLibraries
+        debug ${googletest_binary_dir}/lib/Debug/libgmockd.a
+        debug ${googletest_binary_dir}/lib/Debug/libgtestd.a
+        debug ${googletest_binary_dir}/lib/Debug/libgtest_maind.a
+        optimized ${googletest_binary_dir}/lib/Release/libgmock.a
+        optimized ${googletest_binary_dir}/lib/Release/libgtest.a
+        optimized ${googletest_binary_dir}/lib/Release/libgtest_main.a
+        )
+
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${GIFTOOLS_LIB_TEST_SOURCES})
+endif()
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${GIFTOOLS_LIB_SOURCES})
 
@@ -2756,4 +2845,8 @@ if (${GIFTOOLS_USE_FFMPEG})
     source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${GIFTOOLS_FFMPEG_SOURCES})
 endif()
 
-target_link_libraries(GifTools pthread)
+target_link_libraries(
+    GifTools
+    ${GifToolsLibraries}
+    pthread
+    )

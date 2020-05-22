@@ -260,14 +260,19 @@ struct GifBuilderGIFH : public giftools::GifBuilder {
     GifBuilderGIFH() { writer.fileBuffer = &vectorBuffer; }
 
     bool Begin(size_t width, size_t height, size_t delay) override {
+        const size_t maxInitialSize = 4096 * 4096 * 4;
+        vectorBuffer.contents.reserve(std::min(width * height * 4, maxInitialSize));
         return GifBegin(&writer, "", width, height, delay);
     }
     bool AddImage(const giftools::Image* imageObj, size_t delay) override {
         if (!imageObj || !delay) { return false; }
+        if (imageObj->format() != giftools::PixelFormatR8G8B8A8Unorm) { return false; }
         return GifWriteFrame(&writer, imageObj->bufferPtr(), imageObj->width(), imageObj->height(), delay);
     }
     giftools::UniqueManagedObj<giftools::Buffer> End() override {
         if (!GifEnd(&writer)) { return {}; }
+        
+        // printf("End: contents=%.*s\n", (int)vectorBuffer.contents.size(), (const char*)vectorBuffer.contents.data());
         return giftools::bufferFromVector(std::move(vectorBuffer.contents));
     }
 };

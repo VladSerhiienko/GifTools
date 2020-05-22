@@ -10,6 +10,8 @@ uint8_t giftools::managedType<giftools::File>() {
 }
 
 void giftools::fileBinaryWrite(const char* path, const uint8_t* bufferPtr, size_t bufferSize) {
+    // printf("fileBinaryWrite: contents=%.*s\n", (int)bufferSize, (const char*)bufferPtr);
+    
     if (FILE* fileHandle = fopen(path, "wb")) {
         fwrite(bufferPtr, bufferSize, 1, fileHandle);
         fclose(fileHandle);

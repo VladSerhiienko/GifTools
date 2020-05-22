@@ -32,6 +32,7 @@
 #include <stdio.h>   // for FILE*
 #include <string.h>  // for memcpy and bzero
 #include <stdint.h>  // for integer typedefs
+#include <string_view>
 
 // Define these macros to hook into a custom memory allocator.
 // TEMP_MALLOC and TEMP_FREE will only be called in stack fashion - frees in the reverse order of mallocs
@@ -62,7 +63,7 @@
 struct GifFileBuffer {
     using FnOpen = void*(GifFileBuffer* buffer, const char * fileName, const char * mode);
     using FnPutc = int(int c, void *);
-    using FnPuts = int(const char * s, void *);
+    using FnPuts = int(std::string_view, void *);
     using FnWrite = size_t(const void*  p, size_t sz, size_t n, void *);
     using FnClose = int(void *);
     
@@ -79,11 +80,14 @@ struct GifVectorFileBuffer : GifFileBuffer {
     static int Putc(int c, void *stream) {
         GifVectorFileBuffer* buffer = (GifVectorFileBuffer*)stream; assert(buffer);
         buffer->contents.push_back(uint8_t(c));
+        // printf("Putc: contents=%.*s\n", (int)buffer->contents.size(), (const char*)buffer->contents.data());
         return 0;
     }
-    static int Puts(const char* s, void *stream) {
+    static int Puts(std::string_view sv, void *stream) {
+        // printf("Puts: sv=%s\n", sv.data());
         GifVectorFileBuffer* buffer = (GifVectorFileBuffer*)stream; assert(buffer);
-        while (*s) { buffer->contents.push_back(*s++); }
+        for (size_t i = 0; i < sv.size(); ++i) { buffer->contents.push_back(sv[i]); }
+        // printf("Puts: contents=%.*s\n", (int)buffer->contents.size(), (const char*)buffer->contents.data());
         return 0;
     }
     static size_t Write(const void*  p, size_t sz, size_t nitems, void* stream) {
@@ -92,13 +96,14 @@ struct GifVectorFileBuffer : GifFileBuffer {
         const size_t contentsToWrite = sz * nitems;
         buffer->contents.resize(buffer->contents.size() + contentsToWrite);
         std::memcpy(&buffer->contents[contentsFilled], p, contentsToWrite);
+        // printf("Puts: %.*s\n", (int)buffer->contents.size(), (const char*)buffer->contents.data());
         return 0;
     }
     static void* Open(GifFileBuffer* buffer, const char * fileName, const char * mode) {
         return buffer;
     }
     
-    std::vector<uint8_t> contents;
+    std::vector<uint8_t> contents = {};
     
     GifVectorFileBuffer() {
         this->stream = (void*)this;
@@ -114,7 +119,12 @@ struct GifVectorFileBuffer : GifFileBuffer {
 struct GifStdioFileBuffer : GifFileBuffer {
     static int Close(void *stream) { return fclose((FILE*)stream); }
     static int Putc(int c, void *stream) { return fputc(c, (FILE*)stream); }
-    static int Puts(const char* s, void *stream) { return fputs(s, (FILE*)stream); }
+    
+    static int Puts(std::string_view sv, void *stream) {
+        for (size_t i = 0; i < sv.size(); ++i) { fputc(sv[i], (FILE*)stream); }
+        // return fputs(sv.data(), (FILE*)stream);
+    }
+    
     static size_t Write(const void*  p, size_t sz, size_t nitems, void* stream) { return fwrite(p, sz, nitems, (FILE*)stream); }
     static void* Open(GifFileBuffer* buffer, const char * fileName, const char * mode) {
         #if defined(_MSC_VER) && (_MSC_VER >= 1400)

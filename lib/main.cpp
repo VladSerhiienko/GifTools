@@ -9,46 +9,26 @@
 #include <vector>
 
 #ifdef GIFTOOLS_EMSCRIPTEN
-//#warning "GifTools: emscripten"
-//#include <emscripten/emscripten.h>
-//#include <emscripten/bind.h>
-//#include <emscripten/val.h>
-// using namespace emscripten;
-//
-//
-// extern "C" {
-// EMSCRIPTEN_KEEPALIVE
-// float lerp(float a, float b, float t) ;
-// EMSCRIPTEN_KEEPALIVE
-// int imageReadFromFile(const char* imgFilePath);
-//}
-//
-// float lerp(float a, float b, float t) {
-//    return (1 - t) * a + t * b;
-//}
-//
-// int imageReadFromFile(const char* imgFilePath) {
-//    printf("%s", imgFilePath);
-//    return 3;
-//}
-//
-// EMSCRIPTEN_BINDINGS(GifTools) {
-//    function("lerp", &lerp);
-//}
-//
-// class Lerper {
-// public:
-//    static float linearStep(float a, float b, float t) {
-//        return lerp(a, b, t);
-//    }
-//};
-//
-// EMSCRIPTEN_BINDINGS(GifToolsLerper) {
-//    class_<Lerper>("Lerper")
-//        .constructor<>()
-//        .class_function("linearStep", &Lerper::linearStep)
-//        ;
-//}
+#warning "GifTools: emscripten main"
+
+#include <emscripten/emscripten.h>
+#include <emscripten/bind.h>
+#include <emscripten/val.h>
+using namespace emscripten;
+
+extern "C" {
+EMSCRIPTEN_KEEPALIVE int main(int argc, char** argv);
+}
+ 
+void linkEmsdk() {
+    printf("GifTools: main!\n");
+    EM_ASM(console.log("GifTools(console.log): main!"););
+}
+
+int main(int argc, char** argv) {
+    linkEmsdk();
+    return 0;
+}
 
 #else
 
@@ -445,7 +425,7 @@ std::vector<uint8_t> videoStreamBrutePickBestFrame(VideoStream& videoStream, dou
 
 void testGifWriter() {
     using namespace giftools;
-
+    
     UniqueManagedObj<Buffer> bufferObjs[4];
     bufferObjs[0] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083058.jpg");
     bufferObjs[1] = fileBinaryRead("/Users/vserhiienko/Downloads/Photos/IMG_20191217_083059.jpg");
@@ -478,14 +458,14 @@ void testGifWriter() {
 }
 
 void linkEmsdk() {
+    printf("GifTools: main!\n");
 #ifdef GIFTOOLS_EMSCRIPTEN
-    EM_ASM(console.log("GifTools!"););
+    EM_ASM(console.log("GifTools(console.log): main!"););
 #endif
 }
 
-int main(int argc, char** argv) {
-    printf("Yup.");
-
+int Main(int argc, char** argv) {
+    linkEmsdk();
     testGifWriter();
 
 #ifdef GIFTOOLS_USE_FFMPEG

@@ -1,7 +1,8 @@
 #include "GifToolsBuffer.h"
 #include "GifToolsManagedTypes.h"
-
 #include "base64.h"
+
+#include <stdio.h>
 
 struct ConcreteBuffer;
 
@@ -55,6 +56,8 @@ giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferFromVector(std::vec
     if (!bufferObj) { return {}; }
 
     bufferObj->contents = std::move(buffer);
+    
+    // printf("bufferFromVector: contents=%.*s\n", (int)bufferObj->contents.size(), (const char*)bufferObj->contents.data());
     return bufferObj;
 }
 
