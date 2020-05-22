@@ -20,9 +20,9 @@ jobs:
         path: dependencies/emsdk
         ref: master
 
-    - name: Web amalgamated build
+    - name: Xcode build
       run: |
-        sh giftools-build-for-xcode.sh
+        sh giftools-build-with-xcode.sh
 
     - name: Node tests
       run: |
