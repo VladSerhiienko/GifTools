@@ -115,8 +115,8 @@ struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     FFmpegVideoStreamImpl() = default;
     ~FFmpegVideoStreamImpl() override = default;
     
-    size_t frameWidth() const { return width; }
-    size_t frameHeight() const { return height; }
+    size_t frameWidth() const override { return width; }
+    size_t frameHeight() const override { return height; }
     double estimatedTotalDurationSeconds() const override { return durationSeconds; }
     double estimatedFrameDurationSeconds() const override { return frameDurationSeconds; }
 };

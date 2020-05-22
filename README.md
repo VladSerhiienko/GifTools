@@ -1,6 +1,8 @@
 # GifTools
 Utilities for creating GIFs.
 
-![GifTools Node.js](https://github.com/VladSerhiienko/GifTools/workflows/GifTools%20Node.js/badge.svg?branch=master&event=push)
+![GifTools macOS Emscripten](https://github.com/VladSerhiienko/GifTools/workflows/GifTools%20macOS%20Emscripten/badge.svg)
 
-![GifTools Emscripten](https://github.com/VladSerhiienko/GifTools/workflows/GifTools%20Emscripten/badge.svg?branch=master&event=push)
+![GifTools Ubuntu Node](https://github.com/VladSerhiienko/GifTools/workflows/GifTools%20Ubuntu%20Node/badge.svg)
+
+![GifTools macOS Xcode](https://github.com/VladSerhiienko/GifTools/workflows/GifTools%20macOS%20Xcode/badge.svg)
