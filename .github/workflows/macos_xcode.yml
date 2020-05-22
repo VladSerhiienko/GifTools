@@ -22,8 +22,12 @@ jobs:
 
     - name: Xcode build
       run: |
+        git config --global url."https://github.com/".insteadOf git@github.com:
+        git config --global url."https://".insteadOf git://
+        git lfs install
+        git lfs pull
         sh giftools-build-with-xcode.sh
 
-    - name: Node tests
+    - name: Xcode tests
       run: |
         sh giftools-run-xcode-tests.sh
