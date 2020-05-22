@@ -1,10 +1,10 @@
-name: GifTools Emscripten
+name: GifTools macOS Xcode
 
 on:
   push:
-    branches: [ master ]
+    branches: [ '**' ]
   pull_request:
-    branches: [ master ]
+    branches: [ '**' ]
 
 jobs:
   build:
@@ -20,20 +20,10 @@ jobs:
         path: dependencies/emsdk
         ref: master
 
-    - name: Install local emsdk
-      run: |
-        sh emsdk-reinstall.sh
-
     - name: Web amalgamated build
       run: |
-        sh giftools-build-for-web-single-file-with-local-emsdk.sh
-
-    - name: Archive production artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: giftools-precompiled
-        path: bin
+        sh giftools-build-for-xcode.sh
 
     - name: Node tests
       run: |
-        sh giftools-run-node-tests.sh
+        sh giftools-run-xcode-tests.sh
