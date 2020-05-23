@@ -175,26 +175,6 @@ export class GifTools {
         return resizedImageId;
     }
 
-    videoDecoderWidth() : number {
-        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
-        return this.vm.ffmpegVideoStreamWidth(this.currentVideoStreamId);
-    }
-
-    videoDecoderHeight() : number {
-        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
-        return this.vm.ffmpegVideoStreamHeight(this.currentVideoStreamId);
-    }
-
-    videoDecoderDurationSeconds() : number {
-        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
-        return this.vm.ffmpegVideoStreamDurationSeconds(this.currentVideoStreamId);
-    }
-
-    videoDecoderFrameDurationSeconds() : number {
-        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
-        return this.vm.ffmpegVideoStreamFrameDurationSeconds(this.currentVideoStreamId);
-    }
-
     videoDecoderOpenVideoStream(fileBuffer : Uint8Array) : boolean {
         if (fileBuffer == null || fileBuffer == undefined) { return false; }
 
@@ -221,6 +201,36 @@ export class GifTools {
         this.internalFreeObjIds(this.currentInputStreamBufferId);
         this.internalFreeObjIds(this.currentInputStreamId);
         return false;
+    }
+
+    videoDecoderWidth() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamWidth(this.currentVideoStreamId);
+    }
+
+    videoDecoderHeight() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamHeight(this.currentVideoStreamId);
+    }
+
+    videoDecoderDurationSeconds() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamDurationSeconds(this.currentVideoStreamId);
+    }
+
+    videoDecoderFrameDurationSeconds() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamFrameDurationSeconds(this.currentVideoStreamId);
+    }
+
+    videoDecoderPrepareAllFrames() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamPrepareAllFrames(this.currentVideoStreamId);
+    }
+
+    videoDecoderPrepareFrames(framesPerSecond: number) : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamPrepareFrames(this.currentVideoStreamId, framesPerSecond);
     }
 
     videoDecoderPickClosestVideoFrame(durationSeconds: number): GifToolsVideoFrame | null {

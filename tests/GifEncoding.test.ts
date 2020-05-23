@@ -7,9 +7,15 @@ function areEqual(a: Uint8Array, b: Uint8Array): boolean {
     return a.every((val, i) => val === b[i]) ? true : false;
 }
 
+enum GifToolsPrepareFramesType {
+    GifToolsDoNotPrepareFrames,
+    GifToolsPrepareAllFrames,
+    GifToolsPrepareFrames,
+}   
+
 describe('GifTools', () => {
     // Enables all tests, it takes too long to run them all.
-    const testAll = false;
+    // const testAll = false;
 
     // Debugging stuff.
     const dumpResizedImgs = false;
@@ -96,27 +102,27 @@ describe('GifTools', () => {
         baseGifToolsGifTest(done, width, height, '360p');
     });
 
-    if (testAll) {
-        test('GIF-720p', done => {
-            const width = 1280;
-            const height = 720;
-            baseGifToolsGifTest(done, width, height, '720p');
-        });
+    // if (testAll) {
+    //     test('GIF-720p', done => {
+    //         const width = 1280;
+    //         const height = 720;
+    //         baseGifToolsGifTest(done, width, height, '720p');
+    //     });
 
-        test('GIF-FHD', done => {
-            const width = 1920;
-            const height = 1080;
-            baseGifToolsGifTest(done, width, height, 'fhd');
-        });
+    //     test('GIF-FHD', done => {
+    //         const width = 1920;
+    //         const height = 1080;
+    //         baseGifToolsGifTest(done, width, height, 'fhd');
+    //     });
 
-        test('GIF-UHD', done => {
-            const width = 4608;
-            const height = 3456;
-            baseGifToolsGifTest(done, width, height, 'uhd');
-        });
-    }
+    //     test('GIF-UHD', done => {
+    //         const width = 4608;
+    //         const height = 3456;
+    //         baseGifToolsGifTest(done, width, height, 'uhd');
+    //     });
+    // }
 
-    const baseGifToolsFFmpegTest = function (done: any, width: number, height: number, targetResolutionId: string, videoFilePath: string, videoResolutionId: string) {
+    const baseGifToolsFFmpegTest = function (done: any, width: number, height: number, targetResolutionId: string, videoFilePath: string, videoResolutionId: string, prepareFramesType: GifToolsPrepareFramesType, framesPerSecond: number) {
         const delay = 30;
 
         const videoBuffer: Uint8Array = fs.readFileSync(videosDirPath + '/' + videoFilePath);
@@ -125,21 +131,35 @@ describe('GifTools', () => {
         const gifTools = new GifTools();
         gifTools.init().then((succeeded: boolean) => {
             if (!succeeded) { done(); }
-            expect(gifTools.module()).toBeTruthy();
 
+            expect(gifTools.module()).toBeTruthy();
             expect(gifTools.videoDecoderOpenVideoStream(videoBuffer)).toBeTruthy();
 
             const targetWidth = width ? width :  gifTools.videoDecoderWidth();
             const targetHeight = height ? height :  gifTools.videoDecoderHeight();
+            expect(targetWidth).toBeTruthy();
+            expect(targetHeight).toBeTruthy();
+
+            if (prepareFramesType == GifToolsPrepareFramesType.GifToolsPrepareAllFrames) {
+                expect(gifTools.videoDecoderPrepareAllFrames()).toBeTruthy();
+            } else if (prepareFramesType == GifToolsPrepareFramesType.GifToolsPrepareFrames) {
+                expect(gifTools.videoDecoderPrepareFrames(framesPerSecond)).toBeTruthy();
+            }
 
             expect(gifTools.gifEncoderBegin(targetWidth, targetHeight, delay)).toBeTruthy();
 
             const duration = gifTools.videoDecoderDurationSeconds();
-            for (var t = 0.0; t < duration; t += 1.0) {
+            for (var t = 0.0; t < duration; t += (1.0 / framesPerSecond)) {
                 const frame = gifTools.videoDecoderPickClosestVideoFrame(t);
+                expect(frame).toBeTruthy();
+                expect(frame!.imageId).toBeTruthy();
+                
+                const resizedImg = gifTools.imageResize(frame!.imageId, targetWidth, targetHeight);
+                expect(resizedImg).toBeTruthy();
 
-                expect(gifTools.gifEncoderAddImage(frame!.imageId, delay)).toBeTruthy();
+                expect(gifTools.gifEncoderAddImage(resizedImg, delay)).toBeTruthy();
 
+                if (frame!.imageId != resizedImg) { gifTools.internalFreeObjIds(resizedImg); }
                 gifTools.videoDecoderFreeVideoFrame(frame);
             }
 
@@ -155,9 +175,13 @@ describe('GifTools', () => {
 
             fs.writeFileSync(actualResultPath, gifBuffer, { encoding: 'binary' });
 
-            const expectedResult: Uint8Array = fs.readFileSync(expectedResultPath);
-            expect(expectedResult).toBeTruthy();
-            expect(areEqual(gifBuffer, expectedResult)).toBe(true);
+            if (fs.existsSync(expectedResultPath)) {
+                const expectedResult: Uint8Array = fs.readFileSync(expectedResultPath);
+                expect(expectedResult).toBeTruthy();
+                expect(areEqual(gifBuffer, expectedResult)).toBe(true);
+            } else {
+                console.warn("Test/GifTools/FFmpeg: No expected result!");
+            }
 
             gifTools.deinit();
             done();
@@ -167,20 +191,18 @@ describe('GifTools', () => {
     test('GIF-FFMPEG-360P', done => {
         const width = 0;
         const height = 0;
-        baseGifToolsFFmpegTest(done, width, height, 'default', 'VID_20200503_154756_360P.mp4', '360p');
+        baseGifToolsFFmpegTest(done, width, height, 'default', 'VID_20200503_154756_360P.mp4', '360p', GifToolsPrepareFramesType.GifToolsDoNotPrepareFrames, 1.0);
     });
 
-    if (testAll) {
-        test('GIF-FFMPEG-FHD', done => {
-            const width = 0;
-            const height = 0;
-            baseGifToolsFFmpegTest(done, width, height, 'default', 'VID_20200521_193627_FHD.mp4', 'fhd');
-        });
+    test('GIF-FFMPEG-FHD-360P-RATE', done => {
+        const width = 640;
+        const height = 360;
+        baseGifToolsFFmpegTest(done, width, height, '360p', 'VID_20200521_193627_FHD.mp4', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
+    });
 
-        test('GIF-FFMPEG-UHD', done => {
-            const width = 0;
-            const height = 0;
-            baseGifToolsFFmpegTest(done, width, height, 'default', 'VID_20200521_193627_UHD.mp4', 'uhd');
-        });
-    }
+    test('GIF-FFMPEG-UHD-360P-RATE', done => {
+        const width = 640;
+        const height = 360;
+        baseGifToolsFFmpegTest(done, width, height, '360p', 'VID_20200521_193627_UHD.mp4', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
+    });
 });

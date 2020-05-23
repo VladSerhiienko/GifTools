@@ -206,6 +206,8 @@ giftools::UniqueManagedObj<giftools::Image> giftools::imageLoadFromFileBuffer(co
 
 giftools::UniqueManagedObj<giftools::Image>
 giftools::imageLoadFromMemory(size_t width, size_t height, PixelFormat pixelFmt, const uint8_t* bufferPtr, size_t bufferSize) {
+    // GIFTOOLS_LOGW("bufferSize=%zu", bufferSize);
+    
     auto imageObj = managedObjStorageDefault().make<ConcreteImage>();
     imageObj->internals.width = width;
     imageObj->internals.height = height;

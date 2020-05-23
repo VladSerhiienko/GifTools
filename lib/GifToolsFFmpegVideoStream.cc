@@ -389,6 +389,8 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
     bool frameAcquired = false;
 
     GIFTOOLS_LOGT("Starting main loop.");
+    GIFTOOLS_LOGW("Reporting progress:");
+    
     while (!endOfStream || frameAcquired) {
         frameAcquired = false;
 
@@ -450,6 +452,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
 
         if (diff < videoStream.frameDurationSeconds) {
             GIFTOOLS_LOGT("Current frame is good (%f, %f -> %f).", sampleTime, mostAccurateTime, diff);
+            GIFTOOLS_LOGW("\t> Progress: 100.0%%");
     
             auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
             return frame;
@@ -457,12 +460,15 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
 
         if (mostAccurateTime < 0) {
             GIFTOOLS_LOGT("Last frame is the only option (%f, %f -> %f).", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
+            GIFTOOLS_LOGW("\t> Progress: 100.0%%");
             
             auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
             return frame;
         }
         
         if (mostAccurateTime > sampleTime) {
+            GIFTOOLS_LOGW("\t> Progress: 100.0%%");
+            
             const double prevDiff = fabs(prevFrame.timeSecondsEst - sampleTime);
             const double currDiff = fabs(currFrame.timeSecondsEst - sampleTime);
             
@@ -480,6 +486,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         }
         
         GIFTOOLS_LOGT("Trying the next frame.");
+        GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (mostAccurateTime / sampleTime)));
         
         if (mostAccurateTime >= 0.0) {
             GIFTOOLS_LOGT("Swapping staing frames.");
@@ -487,6 +494,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         }
     }
 
+    GIFTOOLS_LOGW("\t> Progress: 100.0%%");
     return {};
 }
 
@@ -525,6 +533,8 @@ size_t giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmp
     bool frameAcquired = false;
 
     GIFTOOLS_LOGT("Starting main loop.");
+    GIFTOOLS_LOGW("Reporting progress:");
+    
     while (!endOfStream || frameAcquired) {
         frameAcquired = false;
 
@@ -583,6 +593,7 @@ size_t giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmp
         if (mostAccurateTime < 0) { GIFTOOLS_LOGE("mostAccurateTime is negative."); break; }
 
         videoStream.preparedFrames.emplace_back(ffmpegVideoFrameFromStaging(videoStream, currFrame));
+        GIFTOOLS_LOGW("\t> Progress: %.1f%%", 100.0 * (mostAccurateTime / videoStream.durationSeconds));
     }
     
     GIFTOOLS_LOGT("Sorting prepared frames: %zu", videoStream.preparedFrames.size());
@@ -593,6 +604,7 @@ size_t giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmp
                   return lhs->estimatedSampleTimeSeconds() < rhs->estimatedSampleTimeSeconds();
               });
 
+    GIFTOOLS_LOGW("\t> Progress: 100.0%%");
     return videoStream.preparedFrames.size();
 }
 
@@ -658,6 +670,8 @@ size_t giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegV
     double sampleTime = 0.0f;
     
     GIFTOOLS_LOGT("Starting main loop.");
+    GIFTOOLS_LOGW("Reporting progress:");
+    
     while (!endOfStream || frameAcquired) {
         frameAcquired = false;
 
@@ -718,23 +732,26 @@ size_t giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegV
         GIFTOOLS_LOGT("frame = %f", videoStream.frameDurationSeconds);
         
         if (diff < videoStream.frameDurationSeconds) {
-            GIFTOOLS_LOGT("curr frame is good (%f, %f -> %f)", sampleTime, mostAccurateTime, diff);
-            
+            GIFTOOLS_LOGT("Current frame is good (%f, %f -> %f)", sampleTime, mostAccurateTime, diff);
             
             auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
             if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
             sampleTime += desiredFrameTimeSeconds;
+            
+            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
             continue;
         }
 
         if (mostAccurateTime < 0) {
-            GIFTOOLS_LOGT("last frame is the only option (%f, %f -> %f)", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
+            GIFTOOLS_LOGT("Last frame is the only option (%f, %f -> %f)", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
 
             auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
             if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
             
             std::swap(prevFrame, currFrame);
             sampleTime += desiredFrameTimeSeconds;
+            
+            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
             continue;
         }
         
@@ -743,23 +760,27 @@ size_t giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegV
             const double currDiff = fabs(currFrame.timeSecondsEst - sampleTime);
             
             if (prevDiff < currDiff) {
-                GIFTOOLS_LOGT("previous frame is closer (%f, %f vs %f)\n", sampleTime, prevFrame.timeSecondsEst, currFrame.timeSecondsEst);
+                GIFTOOLS_LOGT("Previous frame is closer (%f, %f vs %f)\n", sampleTime, prevFrame.timeSecondsEst, currFrame.timeSecondsEst);
 
                 auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
                 if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
                 
                 std::swap(prevFrame, currFrame);
                 sampleTime += desiredFrameTimeSeconds;
+                
+                GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
                 continue;
             }
 
-            GIFTOOLS_LOGT("curr frame is closer (%f, %f vs %f)", sampleTime, currFrame.timeSecondsEst, diff);
+            GIFTOOLS_LOGT("Current frame is closer (%f, %f vs %f)", sampleTime, currFrame.timeSecondsEst, diff);
 
             auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
             if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
             
             std::swap(prevFrame, currFrame);
             sampleTime += desiredFrameTimeSeconds;
+        
+            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
             continue;
         }
 
@@ -771,6 +792,7 @@ size_t giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegV
         }
     }
 
+    GIFTOOLS_LOGW("\t> Progress: 100.0%%");
     return videoStream.preparedFrames.size();
 }
 

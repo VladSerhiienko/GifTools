@@ -32,5 +32,6 @@ UniqueManagedObj<Buffer> bufferCopyFromVector(const std::vector<uint8_t>& buffer
 UniqueManagedObj<Buffer> bufferToStringBase64(const Buffer* bufferObj);
 UniqueManagedObj<Buffer> bufferFromVector(std::vector<uint8_t>&& buffer);
 UniqueManagedObj<Buffer> bufferFromStringBase64(const Buffer* bufferObj);
+UniqueManagedObj<Buffer> bufferWithSize(size_t size);
 
 } // namespace giftools

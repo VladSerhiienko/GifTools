@@ -210,7 +210,7 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     std::vector<UniqueManagedObj<Image>> resizedImages = {};
     std::vector<const Image*> images = {};
     
-    for (double t = 0.0; t < video->estimatedTotalDurationSeconds(); t += params.desiredFramesPerSecond) {
+    for (double t = 0.0; t < video->estimatedTotalDurationSeconds(); t += (1.0 / params.desiredFramesPerSecond)) {
         frames.emplace_back(ffmpegVideoStreamPickBestFrame(video.get(), t));
         ASSERT_TRUE(frames.back()->image());
         
@@ -269,22 +269,20 @@ INSTANTIATE_TEST_SUITE_P(
     GifToolsFFmpegTest,
     testing::Values(
           GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_360P.mp4", "360p", GifToolsDoNotPrepareFrames, 1.0}
-        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd_all", GifToolsPrepareFrames, 1.0}
-        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_UHD.mp4", "uhd_rate", GifToolsPrepareFrames, 1.0}
-        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
-        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p_all", GifToolsPrepareAllFrames, 1.0}
+        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
+        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_UHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
+//        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd_rate", GifToolsPrepareFrames, 1.0}
+//        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_UHD.mp4", "uhd_rate", GifToolsPrepareFrames, 1.0}
         
         #if GIFTOOLS_TEST_ALL
+        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p_all", GifToolsPrepareAllFrames, 1.0}
+        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
         , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd"}
         , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_UHD.mp4", "uhd"}
         , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200503_154756_360P.mp4", "360p"}
         , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "fhd"}
         , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_UHD.mp4", "uhd"}
-        #endif // #if GIFTOOLS_TEST_ALL
-        
         , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p"}
-        
-        #if GIFTOOLS_TEST_ALL
         , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200521_193627_FHD.mp4", "fhd"}
         , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200521_193627_UHD.mp4", "uhd"}
         , GifToolsFFmpegParams{{4608, 3456, "4k"}, "VID_20200503_154756_360P.mp4", "360p"}

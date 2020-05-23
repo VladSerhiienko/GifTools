@@ -36,6 +36,11 @@ void objectFree(int objectId) {
     }
 }
 
+int bufferWithSize(int bufferSize) {
+    if (bufferSize <= 0) { return {}; }
+    return objectReleaseAndReturnId(giftools::bufferWithSize(bufferSize));
+}
+
 int bufferCopyFromMemory(const char* bufferPtr, int bufferSize) {
     return objectReleaseAndReturnId(giftools::bufferCopyFromMemory((const uint8_t*)bufferPtr, bufferSize));
 }
@@ -181,6 +186,16 @@ double ffmpegVideoStreamFrameDurationSeconds(int ffmpegVideoStreamId) {
     return ffmpegVideoStreamObj ? ffmpegVideoStreamObj->estimatedFrameDurationSeconds() : 0.0;
 }
 
+int ffmpegVideoStreamPrepareAllFrames(int ffmpegVideoStreamId) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return ffmpegVideoStreamObj ? giftools::ffmpegVideoStreamPrepareAllFrames(ffmpegVideoStreamObj) : 0;
+}
+
+int ffmpegVideoStreamPrepareFrames(int ffmpegVideoStreamId, double framesPerSecond) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return ffmpegVideoStreamObj ? giftools::ffmpegVideoStreamPrepareFrames(ffmpegVideoStreamObj, framesPerSecond) : 0;
+}
+
 int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime) {
     auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
     return objectReleaseAndReturnId(giftools::ffmpegVideoStreamPickBestFrame(ffmpegVideoStreamObj, sampleTime));
@@ -226,16 +241,10 @@ namespace giftools::bindings {
 
 namespace giftools::bindings {
     struct BufferBindings {
-        UniqueManagedObj<Buffer> bufferObj;
+        UniqueManagedObj<Buffer> bufferObj = {};
         
         BufferBindings() = default;
         ~BufferBindings() = default;
-        
-        bool ensureInitialized() {
-            if (bufferObj) { return true; }
-            bufferObj = giftools::managedObjStorageDefault().make<giftools::Buffer>();
-            return bufferObj != nullptr;
-        }
         
         bool empty() const { return bufferObj ? bufferObj->empty() : true; }
         uint8_t* mutableData() { return bufferObj ? bufferObj->mutableData() : nullptr; };
@@ -248,7 +257,7 @@ namespace giftools::bindings {
         
         bool fromUint8ArrayView(const val& uint8Arr) {
             if (uint8Arr.isNull() || uint8Arr.isUndefined()) { return false; }
-            if (!ensureInitialized()) { return false; }
+            if (!bufferObj) { bufferObj = bufferFromVector(vecFromJSArray<uint8_t>(uint8Arr)); return true; }
             
             bufferObj->initFrom(vecFromJSArray<uint8_t>(uint8Arr));
             return true;
@@ -257,8 +266,13 @@ namespace giftools::bindings {
 }
 
 EMSCRIPTEN_BINDINGS(GifToolsBindings) {
+    //
+    // Functions.
+    //
+
     function("objectFree", &objectFree);
     
+    function("bufferWithSize", &bufferWithSize);
     function("bufferCopyFromMemory", &bufferCopyFromMemory, allow_raw_pointers());
     function("bufferMutableData", &bufferMutableData, allow_raw_pointers());
     function("bufferData", &bufferData, allow_raw_pointers());
@@ -270,17 +284,6 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("bufferEmpty", &bufferEmpty);
     function("bufferToStringBase64", &bufferToStringBase64);
     function("bufferFromStringBase64", &bufferFromStringBase64);
-
-    class_<giftools::bindings::BufferBindings>("Buffer")
-        .function("mutableData", &giftools::bindings::BufferBindings::mutableData, allow_raw_pointers())
-        .function("data", &giftools::bindings::BufferBindings::data, allow_raw_pointers())
-        .function("size", &giftools::bindings::BufferBindings::size)
-        .function("resize", &giftools::bindings::BufferBindings::resize)
-        .function("toStringBase64", &giftools::bindings::BufferBindings::toStringBase64)
-        .function("asUint8ArrayView", &giftools::bindings::BufferBindings::asUint8ArrayView)
-        .function("fromUint8ArrayView", &giftools::bindings::BufferBindings::fromUint8ArrayView)
-        .smart_ptr_constructor("makeBuffer", &std::make_shared<giftools::bindings::BufferBindings>)
-        .smart_ptr<std::shared_ptr<giftools::bindings::BufferBindings>>("Buffer");
     
     function("pixelFormatByteWidth", &pixelFormatByteWidth);
     function("imageWidth", &imageWidth);
@@ -312,6 +315,21 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("ffmpegVideoFrameImage", &ffmpegVideoFrameImage);
     function("ffmpegVideoStreamClose", &ffmpegVideoStreamClose);
     #endif
+    
+    //
+    // Classes.
+    //
+
+    class_<giftools::bindings::BufferBindings>("Buffer")
+        .function("mutableData", &giftools::bindings::BufferBindings::mutableData, allow_raw_pointers())
+        .function("data", &giftools::bindings::BufferBindings::data, allow_raw_pointers())
+        .function("size", &giftools::bindings::BufferBindings::size)
+        .function("resize", &giftools::bindings::BufferBindings::resize)
+        .function("toStringBase64", &giftools::bindings::BufferBindings::toStringBase64)
+        .function("asUint8ArrayView", &giftools::bindings::BufferBindings::asUint8ArrayView)
+        .function("fromUint8ArrayView", &giftools::bindings::BufferBindings::fromUint8ArrayView)
+        .smart_ptr_constructor("makeBuffer", &std::make_shared<giftools::bindings::BufferBindings>);
+        // .smart_ptr<std::shared_ptr<giftools::bindings::BufferBindings>>("BufferPtr");
 }
 
 #endif

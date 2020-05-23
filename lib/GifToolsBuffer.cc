@@ -84,3 +84,11 @@ giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferFromStringBase64(co
     auto decodedBufferObj = bufferFromVector(std::move(decodedBuffer));
     return decodedBufferObj;
 }
+
+giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferWithSize(size_t size) {
+    if (!size) { return {}; }
+    
+    auto bufferObj = managedObjStorageDefault().make<ConcreteBuffer>();
+    bufferObj->resize(size);
+    return bufferObj;
+}
