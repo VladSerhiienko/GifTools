@@ -272,7 +272,7 @@ struct GifBuilderGIFH : public giftools::GifBuilder {
     giftools::UniqueManagedObj<giftools::Buffer> End() override {
         if (!GifEnd(&writer)) { return {}; }
         
-        // printf("End: contents=%.*s\n", (int)vectorBuffer.contents.size(), (const char*)vectorBuffer.contents.data());
+        // GIFTOOLS_LOGT("End: contents=%.*s\n", (int)vectorBuffer.contents.size(), (const char*)vectorBuffer.contents.data());
         return giftools::bufferFromVector(std::move(vectorBuffer.contents));
     }
 };

@@ -38,7 +38,7 @@ struct GifToolsTestBase : public testing::Test {
     
     void TearDown() override {}
     
-    void MatchOrWriteExpected(const giftools::Buffer* buffer, const std::string& actualFileName) {
+    void MatchToExpectedOrWriteActualAsExpected(const giftools::Buffer* buffer, const std::string& actualFileName) {
         auto expectedFilePath = expectedResultFilePath(actualFileName);
         if (!std::filesystem::exists(expectedFilePath)) {
             fileBinaryWrite(expectedFilePath.c_str(), buffer);
@@ -59,10 +59,18 @@ struct GifToolsGifParams {
 struct GifToolsGifTest : public GifToolsTestBase, public testing::WithParamInterface<GifToolsGifParams> {};
 
 #ifdef GIFTOOLS_USE_FFMPEG
+
+enum GifToolsPrepareFramesType {
+    GifToolsDoNotPrepareFrames,
+    GifToolsPrepareAllFrames,
+    GifToolsPrepareFrames,
+};
+
 struct GifToolsFFmpegParams : GifToolsGifParams {
     std::string videoFilePath = "";
     std::string videoResolutionId = "";
-    double stepSeconds = 1.0;
+    GifToolsPrepareFramesType preparedAllFrames = GifToolsDoNotPrepareFrames;
+    double desiredFramesPerSecond = 1.0;
 };
 
 struct GifToolsFFmpegTest : public GifToolsTestBase, public testing::WithParamInterface<GifToolsFFmpegParams> {};
@@ -162,7 +170,7 @@ TEST_P(GifToolsGifTest, GifToolsGifEncodingTest) {
     auto actualFileName = std::string("dump_") + params.targetResolutionId + ".gif";
     
     fileBinaryWrite(resultFilePath(actualFileName).c_str(), gifBufferObj.get());
-    MatchOrWriteExpected(gifBufferObj.get(), actualFileName);
+    MatchToExpectedOrWriteActualAsExpected(gifBufferObj.get(), actualFileName);
 }
 
 #ifdef GIFTOOLS_USE_FFMPEG
@@ -186,6 +194,12 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     ASSERT_TRUE(video->estimatedTotalDurationSeconds() > 0);
     ASSERT_TRUE(video->estimatedFrameDurationSeconds() > 0);
     
+    if (params.preparedAllFrames == GifToolsPrepareAllFrames) {
+        ASSERT_NE(0, ffmpegVideoStreamPrepareAllFrames(video.get()));
+    } else if (params.preparedAllFrames == GifToolsPrepareFrames) {
+        ASSERT_NE(0, ffmpegVideoStreamPrepareFrames(video.get(), params.desiredFramesPerSecond));
+    }
+    
     auto width = params.width ? params.width : video->frameWidth();
     auto height = params.height ? params.height : video->frameHeight();
     
@@ -196,7 +210,7 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     std::vector<UniqueManagedObj<Image>> resizedImages = {};
     std::vector<const Image*> images = {};
     
-    for (double t = 0.0; t < video->estimatedTotalDurationSeconds(); t += params.stepSeconds) {
+    for (double t = 0.0; t < video->estimatedTotalDurationSeconds(); t += params.desiredFramesPerSecond) {
         frames.emplace_back(ffmpegVideoStreamPickBestFrame(video.get(), t));
         ASSERT_TRUE(frames.back()->image());
         
@@ -226,11 +240,11 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     auto prefix = std::string("dump_");
     auto fileName = std::filesystem::path(params.videoFilePath).stem().string();
     auto id = params.videoResolutionId + "_" + params.targetResolutionId;
-    auto actualFileName = prefix + "_" + fileName + "_" + id + ".gif";
+    auto actualFileName = prefix + fileName + "_" + id + ".gif";
     
     fileBinaryWrite(resultFilePath(actualFileName).c_str(), gifBufferObj.get());
     
-    MatchOrWriteExpected(gifBufferObj.get(), actualFileName);
+    MatchToExpectedOrWriteActualAsExpected(gifBufferObj.get(), actualFileName);
 }
 #endif
 
@@ -254,7 +268,11 @@ INSTANTIATE_TEST_SUITE_P(
     resolutions,
     GifToolsFFmpegTest,
     testing::Values(
-        GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_360P.mp4", "360p"}
+          GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_360P.mp4", "360p", GifToolsDoNotPrepareFrames, 1.0}
+        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd_all", GifToolsPrepareFrames, 1.0}
+        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_UHD.mp4", "uhd_rate", GifToolsPrepareFrames, 1.0}
+        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
+        , GifToolsFFmpegParams{{1280, 720, "720p"}, "VID_20200503_154756_360P.mp4", "360p_all", GifToolsPrepareAllFrames, 1.0}
         
         #if GIFTOOLS_TEST_ALL
         , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd"}

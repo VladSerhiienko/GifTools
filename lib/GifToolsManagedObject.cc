@@ -112,7 +112,7 @@ giftools::ManagedObjStorage Instance = {};
 giftools::ManagedObjStorage& giftools::ManagedObjStorage::instance() { return Instance; }
 giftools::ManagedObjStorage& giftools::managedObjStorageDefault() { return Instance; }
 giftools::ManagedObjStorage::ManagedObjStorage() { mPages.reserve(InitialPageCount); }
-giftools::ManagedObjStorage::~ManagedObjStorage() = default;
+giftools::ManagedObjStorage::~ManagedObjStorage() { mPages.clear(); }
 
 void giftools::ManagedObjStorage::init(ManagedObj* managedObj, size_t pageIndex, size_t slotIndex, uint8_t type) {
     managedObj->mutableObjId().identifier = managedIndex(pageIndex, slotIndex);

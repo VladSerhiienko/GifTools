@@ -19,7 +19,9 @@ public:
     virtual void wipe() = 0;
     virtual bool zeroTerminated() const = 0;
     virtual bool empty() const = 0;
-    virtual std::vector<uint8_t> CopyToByteVector(const Buffer* bufferObj) const = 0;
+    
+    virtual void initFrom(std::vector<uint8_t>&& data) = 0;
+    virtual std::vector<uint8_t> copyToByteVector(const Buffer* bufferObj) const = 0;
     
 protected:
     Buffer() = default;

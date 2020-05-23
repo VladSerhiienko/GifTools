@@ -82,7 +82,7 @@ struct FFmpegVideoFrameImpl : public giftools::FFmpegVideoFrame {
     giftools::UniqueManagedObj<giftools::Image> imageObj = {};
     
     FFmpegVideoFrameImpl() = default;
-    ~FFmpegVideoFrameImpl() override = default;
+    ~FFmpegVideoFrameImpl() override { imageObj = nullptr; }
     
     double estimatedSampleTimeSeconds() const override { return timeSecondsEst; }
     const giftools::Image* image() const override { return imageObj.get(); }
@@ -91,6 +91,8 @@ struct FFmpegVideoFrameImpl : public giftools::FFmpegVideoFrame {
 struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     giftools::Buffer* contentsBufferObj = nullptr;
     const giftools::FFmpegInputStream* streamObj = nullptr;
+    
+    std::vector<giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>> preparedFrames = {};
     
     AVFormatContext* fmtContext = nullptr;
     std::vector<uint8_t> probeBuffer = {};
@@ -113,7 +115,16 @@ struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     AVPixelFormat decodeFmt = DESIRED_FMT;
     
     FFmpegVideoStreamImpl() = default;
-    ~FFmpegVideoStreamImpl() override = default;
+    ~FFmpegVideoStreamImpl() override { close(); }
+    
+    void close() {
+        preparedFrames.clear();
+        
+        sws_freeContext(swsContext);
+        avcodec_close(primaryCodecContext);
+        avformat_close_input(&fmtContext);
+        new (this) FFmpegVideoStreamImpl();
+    }
     
     size_t frameWidth() const override { return width; }
     size_t frameHeight() const override { return height; }
@@ -211,9 +222,7 @@ void giftools::ffmpegVideoStreamClose(FFmpegVideoStream* ffmpegVideoStream) {
     if (!ffmpegVideoStream) { return; }
     
     auto ffmpegVideoStreamImpl = (FFmpegVideoStreamImpl*)ffmpegVideoStream;
-    sws_freeContext(ffmpegVideoStreamImpl->swsContext);
-    avcodec_close(ffmpegVideoStreamImpl->primaryCodecContext);
-    avformat_close_input(&ffmpegVideoStreamImpl->fmtContext);
+    ffmpegVideoStreamImpl->close();
 }
 
 struct FlushBuffersGuard {
@@ -258,28 +267,20 @@ struct FreeFrameGuard {
 
 giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>
 ffmpegVideoFrameFromStaging(const FFmpegVideoStreamImpl& videoStream, FFmpegStagingVideoFrame& ffmpegStagingVideoFrame) {
-    #if defined(DEBUG) && DEBUG
-    constexpr bool GIFTOOLS_FFMPEG_VIDEO_FRAME_FROM_STAGING_BLACKLOGGING = true;
-    #else
-    constexpr bool GIFTOOLS_FFMPEG_VIDEO_FRAME_FROM_STAGING_BLACKLOGGING = false;
-    #endif
+    int ret;
+    
+    GIFTOOLS_LOGT("sws_scale");
+    ret = sws_scale(videoStream.swsContext,
+                    ffmpegStagingVideoFrame.decodedFrame->data,
+                    ffmpegStagingVideoFrame.decodedFrame->linesize,
+                    0,
+                    ffmpegStagingVideoFrame.decodedFrame->height,
+                    ffmpegStagingVideoFrame.encodedFrame->data,
+                    ffmpegStagingVideoFrame.encodedFrame->linesize);
+    if (ret < 0) { GIFTOOLS_LOGE("sws_scale failed."); return {}; }
     
     auto frame = giftools::managedObjStorageDefault().make<FFmpegVideoFrameImpl>();
-    
     frame->timeSecondsEst = ffmpegStagingVideoFrame.timeSecondsEst;
-    
-    if constexpr (GIFTOOLS_FFMPEG_VIDEO_FRAME_FROM_STAGING_BLACKLOGGING) {
-        if (ffmpegStagingVideoFrame.imageByteBuffer[0] == 0 &&
-            ffmpegStagingVideoFrame.imageByteBuffer[1] == 0 &&
-            ffmpegStagingVideoFrame.imageByteBuffer[2] == 0 &&
-            ffmpegStagingVideoFrame.imageByteBuffer[3] == 0 &&
-            ffmpegStagingVideoFrame.imageByteBuffer[4] == 0 &&
-            ffmpegStagingVideoFrame.imageByteBuffer[5] == 0 &&
-            ffmpegStagingVideoFrame.imageByteBuffer[6] == 0 &&
-            ffmpegStagingVideoFrame.imageByteBuffer[7] == 0) {
-            printf("black!\n");
-        }
-    }
     
     assert(ffmpegStagingVideoFrame.decodeFmt == DESIRED_FMT);
     frame->imageObj = giftools::imageLoadFromMemory(videoStream.width,
@@ -291,16 +292,322 @@ ffmpegVideoFrameFromStaging(const FFmpegVideoStreamImpl& videoStream, FFmpegStag
 }
 
 giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>
-giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmpegVideoStream, double sampleTime) {
-    #if defined(DEBUG) && DEBUG
-    constexpr bool GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING = true;
-    #else
-    constexpr bool GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING = false;
-    #endif
+ffmpegCloneFrame(const giftools::FFmpegVideoFrame& targetFrame) {
 
-    if (!ffmpegVideoStream) { return {}; }
+    auto frame = giftools::managedObjStorageDefault().make<FFmpegVideoFrameImpl>();
+    frame->timeSecondsEst = targetFrame.estimatedSampleTimeSeconds();
+    frame->imageObj = giftools::imageClone(targetFrame.image());
+    return frame;
+}
+
+giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>
+ffmpegVideoStreamPickBestFrameFromPrepared(const giftools::FFmpegVideoStream* ffmpegVideoStream, double sampleTime) {
+    if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return {}; }
+    
+    auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
+    if (videoStream.preparedFrames.empty()) { GIFTOOLS_LOGT("No prepared frames."); return {}; }
+    
+    auto lowerBoundIt = std::lower_bound(
+        videoStream.preparedFrames.begin(),
+        videoStream.preparedFrames.end(),
+        sampleTime,
+        [](giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>& frame, double sampleTime) {
+            return frame->estimatedSampleTimeSeconds() < sampleTime;
+        }
+        );
+    
+    if (lowerBoundIt == videoStream.preparedFrames.end()) {
+        GIFTOOLS_LOGT("No lower bound, returning the last prepared frame.");
+        return ffmpegCloneFrame(*videoStream.preparedFrames.back());
+    }
+    
+    auto upperBoundIt = lowerBoundIt + 1;
+    if (upperBoundIt == videoStream.preparedFrames.end()) {
+        GIFTOOLS_LOGT("No upper bound, returning the last prepared frame.");
+        return ffmpegCloneFrame(*videoStream.preparedFrames.back());
+    }
+    
+    const double lowerDiff = fabs(lowerBoundIt->get()->estimatedSampleTimeSeconds() - sampleTime);
+    const double upperDiff = fabs(upperBoundIt->get()->estimatedSampleTimeSeconds() - sampleTime);
+    GIFTOOLS_LOGT("Choosing between two frames, diffs: %f, %f.", lowerDiff, upperDiff);
+
+    return lowerDiff <= upperDiff ? ffmpegCloneFrame(**lowerBoundIt) : ffmpegCloneFrame(**upperBoundIt);
+}
+
+giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>
+giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmpegVideoStream, double sampleTime) {
+    if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return {}; }
+    
+    auto preparedFrame = ffmpegVideoStreamPickBestFrameFromPrepared(ffmpegVideoStream, sampleTime);
+    if (preparedFrame) { GIFTOOLS_LOGT("Found prepared frame."); return preparedFrame; }
+    
+    auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
+    
+    // clang-format off
+    assert(videoStream.width > 0);
+    assert(videoStream.height > 0);
+    assert(videoStream.alignment == 1);
+    const size_t imgBufferSize = av_image_get_buffer_size(videoStream.decodeFmt, videoStream.width, videoStream.height, videoStream.alignment);
+    // clang-format on
+
+    FFmpegStagingVideoFrame prevFrame = {};
+    prevFrame.decodedFrame = av_frame_alloc();
+    prevFrame.encodedFrame = av_frame_alloc();
+    prevFrame.imageByteBuffer.resize(imgBufferSize);
+
+    int ret = 0;
+    ret = av_image_fill_arrays(prevFrame.encodedFrame->data,
+                               prevFrame.encodedFrame->linesize,
+                               prevFrame.imageByteBuffer.data(),
+                               videoStream.decodeFmt,
+                               videoStream.width,
+                               videoStream.height,
+                               videoStream.alignment);
+    if (ret < 0) { GIFTOOLS_LOGE("av_image_fill_arrays failed."); return {}; }
+    
+    FFmpegStagingVideoFrame currFrame = {};
+    currFrame.decodedFrame = av_frame_alloc();
+    currFrame.encodedFrame = av_frame_alloc();
+    currFrame.imageByteBuffer.resize(imgBufferSize);
+
+    ret = av_image_fill_arrays(currFrame.encodedFrame->data,
+                               currFrame.encodedFrame->linesize,
+                               currFrame.imageByteBuffer.data(),
+                               videoStream.decodeFmt,
+                               videoStream.width,
+                               videoStream.height,
+                               videoStream.alignment);
+    if (ret < 0) { GIFTOOLS_LOGE("av_image_fill_arrays failed."); return {}; }
+
+    FlushBuffersGuard flushBuffersGuard{videoStream};
+    FreeFramePacketGuard freePrevPacketGuard{prevFrame};
+    FreeFramePacketGuard freeCurrPacketGuard{currFrame};
+    FreeFrameGuard freePrevFrameGuard{currFrame};
+    FreeFrameGuard freeCurrFrameGuard{prevFrame};
+
+    bool endOfStream = false;
+    bool frameAcquired = false;
+
+    GIFTOOLS_LOGT("Starting main loop.");
+    while (!endOfStream || frameAcquired) {
+        frameAcquired = false;
+
+        while (!frameAcquired) {
+            bool keepSearchingPackets = true;
+            while (keepSearchingPackets && !endOfStream) {
+                GIFTOOLS_LOGT("av_read_frame");
+
+                FreeFramePacketGuard::videoFrameFreePacket(currFrame);
+                ret = av_read_frame(videoStream.fmtContext, &currFrame.packet);
+                endOfStream = (ret == AVERROR_EOF);
+                if (ret < 0 && ret != AVERROR_EOF) { GIFTOOLS_LOGE("av_read_frame failed."); return {}; }
+
+                if (ret == 0 && currFrame.packet.stream_index == videoStream.primaryStreamIndex) {
+                    GIFTOOLS_LOGT("Packet found.");
+                    keepSearchingPackets = false;
+                    break;
+                }
+            }
+
+            // clang-format off
+            
+            // printf("avcodec_send_packet\n");
+            // ret = avcodec_send_packet(videoStream.primaryCodecContext, &currFrame.packet);
+            // if (ret < 0) { return {}; }
+            //
+            // printf("avcodec_receive_frame\n");
+            // ret = avcodec_receive_frame(videoStream.primaryCodecContext, currFrame.decodedFrame);
+            // if (ret < 0) { return {}; }
+            // frameAcquired = true;
+            
+            GIFTOOLS_LOGT("avcodec_decode_video2");
+            
+            int didRetrievePicture = 0;
+            ret = avcodec_decode_video2(videoStream.primaryCodecContext,
+                                        currFrame.decodedFrame,
+                                        &didRetrievePicture,
+                                        &currFrame.packet);
+            if (ret < 0) { GIFTOOLS_LOGE("avcodec_decode_video2 failed."); return {}; }
+            frameAcquired = didRetrievePicture > 0;
+            
+            // clang-format on
+
+            if (endOfStream) { break; }
+        }
+
+        // av_frame_get_best_effort_timestamp(currFrame.decodedFrame);
+        const int64_t mostAccurateTimestamp = currFrame.decodedFrame->best_effort_timestamp;
+        const double mostAccurateTime = mostAccurateTimestamp * videoStream.primaryStreamTimeBase;
+        currFrame.timeTimeBaseEst = mostAccurateTimestamp;
+        currFrame.timeSecondsEst = mostAccurateTime;
+        
+        const double diff = fabs(mostAccurateTime - sampleTime);
+
+        GIFTOOLS_LOGT("mostAccurateTime = %f.", mostAccurateTime);
+        GIFTOOLS_LOGT("sampleTime = %f.", sampleTime);
+        GIFTOOLS_LOGT("diff = %f.", diff);
+        GIFTOOLS_LOGT("frame = %f.", videoStream.frameDurationSeconds);
+
+        if (diff < videoStream.frameDurationSeconds) {
+            GIFTOOLS_LOGT("Current frame is good (%f, %f -> %f).", sampleTime, mostAccurateTime, diff);
+    
+            auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
+            return frame;
+        }
+
+        if (mostAccurateTime < 0) {
+            GIFTOOLS_LOGT("Last frame is the only option (%f, %f -> %f).", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
+            
+            auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
+            return frame;
+        }
+        
+        if (mostAccurateTime > sampleTime) {
+            const double prevDiff = fabs(prevFrame.timeSecondsEst - sampleTime);
+            const double currDiff = fabs(currFrame.timeSecondsEst - sampleTime);
+            
+            if (prevDiff < currDiff) {
+                GIFTOOLS_LOGT("Previous frame is closer (%f, %f vs %f).", sampleTime, prevFrame.timeSecondsEst, currFrame.timeSecondsEst);
+                
+                auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
+                return frame;
+            }
+            
+            GIFTOOLS_LOGT("Current frame is closer (%f, %f vs %f).", sampleTime, currFrame.timeSecondsEst, diff);
+
+            auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
+            return frame;
+        }
+        
+        GIFTOOLS_LOGT("Trying the next frame.");
+        
+        if (mostAccurateTime >= 0.0) {
+            GIFTOOLS_LOGT("Swapping staing frames.");
+            std::swap(prevFrame, currFrame);
+        }
+    }
+
+    return {};
+}
+
+size_t giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideoStream) {
+    if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return 0; }
 
     auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
+
+    // clang-format off
+    assert(videoStream.width > 0);
+    assert(videoStream.height > 0);
+    assert(videoStream.alignment == 1);
+    const size_t imgBufferSize = av_image_get_buffer_size(videoStream.decodeFmt, videoStream.width, videoStream.height, videoStream.alignment);
+    // clang-format on
+    
+    FFmpegStagingVideoFrame currFrame = {};
+    currFrame.decodedFrame = av_frame_alloc();
+    currFrame.encodedFrame = av_frame_alloc();
+    currFrame.imageByteBuffer.resize(imgBufferSize);
+
+    int ret;
+    ret = av_image_fill_arrays(currFrame.encodedFrame->data,
+                               currFrame.encodedFrame->linesize,
+                               currFrame.imageByteBuffer.data(),
+                               videoStream.decodeFmt,
+                               videoStream.width,
+                               videoStream.height,
+                               videoStream.alignment);
+    if (ret < 0) { GIFTOOLS_LOGE("av_image_fill_arrays failed."); return 0; }
+
+    FlushBuffersGuard flushBuffersGuard{videoStream};
+    FreeFramePacketGuard freeCurrPacketGuard{currFrame};
+    FreeFrameGuard freePrevFrameGuard{currFrame};
+
+    bool endOfStream = false;
+    bool frameAcquired = false;
+
+    GIFTOOLS_LOGT("Starting main loop.");
+    while (!endOfStream || frameAcquired) {
+        frameAcquired = false;
+
+        while (!frameAcquired) {
+            bool keepSearchingPackets = true;
+            while (keepSearchingPackets && !endOfStream) {
+                GIFTOOLS_LOGT("av_read_frame");
+
+                FreeFramePacketGuard::videoFrameFreePacket(currFrame);
+                ret = av_read_frame(videoStream.fmtContext, &currFrame.packet);
+                endOfStream = (ret == AVERROR_EOF);
+                if (ret < 0 && ret != AVERROR_EOF) { GIFTOOLS_LOGE("av_read_frame failed."); return 0; }
+
+                if (ret == 0 && currFrame.packet.stream_index == videoStream.primaryStreamIndex) {
+                    GIFTOOLS_LOGT("Packet found.");
+                    keepSearchingPackets = false;
+                    break;
+                }
+            }
+
+            // clang-format off
+            
+            // printf("avcodec_send_packet\n");
+            // ret = avcodec_send_packet(videoStream.primaryCodecContext, &currFrame.packet);
+            // if (ret < 0) { return {}; }
+            //
+            // printf("avcodec_receive_frame\n");
+            // ret = avcodec_receive_frame(videoStream.primaryCodecContext, currFrame.decodedFrame);
+            // if (ret < 0) { return {}; }
+            // frameAcquired = true;
+            
+            GIFTOOLS_LOGT("avcodec_decode_video2");
+            
+            int didRetrievePicture = 0;
+            ret = avcodec_decode_video2(videoStream.primaryCodecContext,
+                                        currFrame.decodedFrame,
+                                        &didRetrievePicture,
+                                        &currFrame.packet);
+            if (ret < 0) { GIFTOOLS_LOGE("avcodec_decode_video2 failed."); return 0; }
+            frameAcquired = didRetrievePicture > 0;
+            
+            // clang-format on
+
+            if (endOfStream) { break; }
+        }
+        
+        // av_frame_get_best_effort_timestamp(currFrame.decodedFrame);
+        const int64_t mostAccurateTimestamp = currFrame.decodedFrame->best_effort_timestamp;
+        const double mostAccurateTime = mostAccurateTimestamp * videoStream.primaryStreamTimeBase;
+        currFrame.timeTimeBaseEst = mostAccurateTimestamp;
+        currFrame.timeSecondsEst = mostAccurateTime;
+
+        GIFTOOLS_LOGT("mostAccurateTime = %f", mostAccurateTime);
+        GIFTOOLS_LOGT("frame = %f", videoStream.frameDurationSeconds);
+        
+        if (mostAccurateTime < 0) { GIFTOOLS_LOGE("mostAccurateTime is negative."); break; }
+
+        videoStream.preparedFrames.emplace_back(ffmpegVideoFrameFromStaging(videoStream, currFrame));
+    }
+    
+    GIFTOOLS_LOGT("Sorting prepared frames: %zu", videoStream.preparedFrames.size());
+    
+    std::sort(videoStream.preparedFrames.begin(),
+              videoStream.preparedFrames.end(),
+              [&](const UniqueManagedObj<FFmpegVideoFrame>& lhs, const UniqueManagedObj<FFmpegVideoFrame>& rhs){
+                  return lhs->estimatedSampleTimeSeconds() < rhs->estimatedSampleTimeSeconds();
+              });
+
+    return videoStream.preparedFrames.size();
+}
+
+size_t giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStream, double framesPerSecond) {
+    if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return false; }
+    
+    if (framesPerSecond <= 0.0001) {
+        GIFTOOLS_LOGW("Caught invalid framerate, preparing all frames.");
+        return ffmpegVideoStreamPrepareAllFrames(ffmpegVideoStream);
+    }
+    
+    auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
+    double maxFramesPerSecond = double(videoStream.frameCount) / videoStream.durationSeconds;
+    
+    if (framesPerSecond >= maxFramesPerSecond) { return ffmpegVideoStreamPrepareAllFrames(ffmpegVideoStream); }
 
     // clang-format off
     assert(videoStream.width > 0);
@@ -322,6 +629,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
                                videoStream.width,
                                videoStream.height,
                                videoStream.alignment);
+    if (ret < 0) { GIFTOOLS_LOGE("av_image_fill_arrays failed."); return 0; }
     
     FFmpegStagingVideoFrame currFrame = {};
     currFrame.decodedFrame = av_frame_alloc();
@@ -335,7 +643,7 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
                                videoStream.width,
                                videoStream.height,
                                videoStream.alignment);
-    if (ret < 0) { return {}; }
+    if (ret < 0) { GIFTOOLS_LOGE("av_image_fill_arrays failed."); return 0; }
 
     FlushBuffersGuard flushBuffersGuard{videoStream};
     FreeFramePacketGuard freePrevPacketGuard{prevFrame};
@@ -346,26 +654,25 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
     bool endOfStream = false;
     bool frameAcquired = false;
 
-    if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-        printf("while\n");
-    }
+    double desiredFrameTimeSeconds = 1.0 / framesPerSecond;
+    double sampleTime = 0.0f;
     
+    GIFTOOLS_LOGT("Starting main loop.");
     while (!endOfStream || frameAcquired) {
         frameAcquired = false;
 
         while (!frameAcquired) {
             bool keepSearchingPackets = true;
             while (keepSearchingPackets && !endOfStream) {
-                if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-                    printf("av_read_frame\n");
-                }
+                GIFTOOLS_LOGT("av_read_frame");
 
                 FreeFramePacketGuard::videoFrameFreePacket(currFrame);
                 ret = av_read_frame(videoStream.fmtContext, &currFrame.packet);
                 endOfStream = (ret == AVERROR_EOF);
-                if (ret < 0 && ret != AVERROR_EOF) { return {}; }
+                if (ret < 0 && ret != AVERROR_EOF) { GIFTOOLS_LOGE("av_read_frame failed."); return 0; }
 
                 if (ret == 0 && currFrame.packet.stream_index == videoStream.primaryStreamIndex) {
+                    GIFTOOLS_LOGT("Packet found.");
                     keepSearchingPackets = false;
                     break;
                 }
@@ -382,15 +689,14 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
             // if (ret < 0) { return {}; }
             // frameAcquired = true;
             
-            if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-                printf("avcodec_decode_video2\n");
-            }
+            GIFTOOLS_LOGT("avcodec_decode_video2");
+            
             int didRetrievePicture = 0;
             ret = avcodec_decode_video2(videoStream.primaryCodecContext,
                                         currFrame.decodedFrame,
                                         &didRetrievePicture,
                                         &currFrame.packet);
-            if (ret < 0) { return {}; }
+            if (ret < 0) { GIFTOOLS_LOGE("avcodec_decode_video2 failed."); return 0; }
             frameAcquired = didRetrievePicture > 0;
             
             // clang-format on
@@ -406,93 +712,66 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         
         const double diff = fabs(mostAccurateTime - sampleTime);
 
-        if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-            printf("mostAccurateTime = %f\n", mostAccurateTime);
-            printf("sampleTime = %f\n", sampleTime);
-            printf("diff = %f\n", diff);
-            printf("frame = %f\n", videoStream.frameDurationSeconds);
-        }
+        GIFTOOLS_LOGT("mostAccurateTime = %f", mostAccurateTime);
+        GIFTOOLS_LOGT("sampleTime = %f", sampleTime);
+        GIFTOOLS_LOGT("diff = %f", diff);
+        GIFTOOLS_LOGT("frame = %f", videoStream.frameDurationSeconds);
         
         if (diff < videoStream.frameDurationSeconds) {
-            if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-                printf("curr frame is good (%f, %f -> %f)\n", sampleTime, mostAccurateTime, diff);
-                printf("sws_scale\n");
-            }
-            ret = sws_scale(videoStream.swsContext,
-                            currFrame.decodedFrame->data,
-                            currFrame.decodedFrame->linesize,
-                            0,
-                            currFrame.decodedFrame->height,
-                            currFrame.encodedFrame->data,
-                            currFrame.encodedFrame->linesize);
-            if (ret < 0) { return {}; }
+            GIFTOOLS_LOGT("curr frame is good (%f, %f -> %f)", sampleTime, mostAccurateTime, diff);
+            
+            
             auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
-            return frame;
+            if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
+            sampleTime += desiredFrameTimeSeconds;
+            continue;
         }
 
         if (mostAccurateTime < 0) {
-            if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-                printf("last frame is the only option (%f, %f -> %f)\n", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
-                printf("sws_scale\n");
-            }
-            ret = sws_scale(videoStream.swsContext,
-                            prevFrame.decodedFrame->data,
-                            prevFrame.decodedFrame->linesize,
-                            0,
-                            prevFrame.decodedFrame->height,
-                            prevFrame.encodedFrame->data,
-                            prevFrame.encodedFrame->linesize);
-            if (ret < 0) { return {}; }
+            GIFTOOLS_LOGT("last frame is the only option (%f, %f -> %f)", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
+
             auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
-            return frame;
+            if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
+            
+            std::swap(prevFrame, currFrame);
+            sampleTime += desiredFrameTimeSeconds;
+            continue;
         }
         
         if (mostAccurateTime > sampleTime) {
             const double prevDiff = fabs(prevFrame.timeSecondsEst - sampleTime);
             const double currDiff = fabs(currFrame.timeSecondsEst - sampleTime);
-            if (prevDiff < currDiff) {
-                if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-                    printf("previous frame is closer (%f, %f vs %f)\n", sampleTime, prevFrame.timeSecondsEst, currFrame.timeSecondsEst);
-                    printf("sws_scale\n");
-                }
-                ret = sws_scale(videoStream.swsContext,
-                                prevFrame.decodedFrame->data,
-                                prevFrame.decodedFrame->linesize,
-                                0,
-                                prevFrame.decodedFrame->height,
-                                prevFrame.encodedFrame->data,
-                                prevFrame.encodedFrame->linesize);
-                if (ret < 0) { return {}; }
-                auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
-                return frame;
-            }
             
-            if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-                printf("curr frame is closer (%f, %f vs %f)\n", sampleTime, currFrame.timeSecondsEst, diff);
-                printf("sws_scale\n");
+            if (prevDiff < currDiff) {
+                GIFTOOLS_LOGT("previous frame is closer (%f, %f vs %f)\n", sampleTime, prevFrame.timeSecondsEst, currFrame.timeSecondsEst);
+
+                auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
+                if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
+                
+                std::swap(prevFrame, currFrame);
+                sampleTime += desiredFrameTimeSeconds;
+                continue;
             }
-            ret = sws_scale(videoStream.swsContext,
-                            currFrame.decodedFrame->data,
-                            currFrame.decodedFrame->linesize,
-                            0,
-                            currFrame.decodedFrame->height,
-                            currFrame.encodedFrame->data,
-                            currFrame.encodedFrame->linesize);
-            if (ret < 0) { return {}; }
+
+            GIFTOOLS_LOGT("curr frame is closer (%f, %f vs %f)", sampleTime, currFrame.timeSecondsEst, diff);
+
             auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
-            return frame;
+            if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
+            
+            std::swap(prevFrame, currFrame);
+            sampleTime += desiredFrameTimeSeconds;
+            continue;
         }
-        
-        if constexpr (GIFTOOLS_FFMPEG_VIDEO_STREAM_PICK_BEST_FRAME_LOGGING) {
-            printf("trying next frame\n");
-        }
+
+        GIFTOOLS_LOGT("Trying the next frame.");
         
         if (mostAccurateTime >= 0) {
+            GIFTOOLS_LOGT("Swapping staging frames.");
             std::swap(prevFrame, currFrame);
         }
     }
 
-    return {};
+    return videoStream.preparedFrames.size();
 }
 
 #pragma clang diagnostic pop

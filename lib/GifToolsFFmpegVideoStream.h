@@ -38,6 +38,8 @@ protected:
 };
 
 UniqueManagedObj<FFmpegVideoStream> ffmpegVideoStreamOpen(const FFmpegInputStream* ffmpegInputStream);
+size_t ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideoStream);
+size_t ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStream, double framesPerSecond);
 UniqueManagedObj<FFmpegVideoFrame> ffmpegVideoStreamPickBestFrame(const FFmpegVideoStream* ffmpegVideoStream, double sampleTime);
 void ffmpegVideoStreamClose(FFmpegVideoStream* ffmpegVideoStream);
 

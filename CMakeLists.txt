@@ -185,9 +185,10 @@ if(${GIFTOOLS_USE_EMSDK})
 endif()
 
 include_directories(
-    FFmpeg
+    ${PROJECT_SOURCE_DIR}/FFmpeg
     ${PROJECT_SOURCE_DIR}/lib
     ${PROJECT_SOURCE_DIR}/lib/zlib
+    ${PROJECT_SOURCE_DIR}/dependencies/emsdk/upstream/emscripten/system/include  
 )
 
 set(GIFTOOLS_FFMPEG_SOURCES )

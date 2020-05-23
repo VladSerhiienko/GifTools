@@ -1,6 +1,10 @@
 #include "GifToolsWebAssemblyBindings.h"
 #include "GifTools.h"
 
+#include "base64.h"
+
+//#define GIFTOOLS_EMSCRIPTEN 1
+
 #ifdef GIFTOOLS_EMSCRIPTEN
 #warning "GifTools for Emscripten"
 #endif
@@ -215,6 +219,43 @@ val bufferToUint8Array(int bufferId) {
     return val(typed_memory_view(bufferSize, bufferPtr));
 }
 
+namespace giftools::bindings {
+    struct BufferBindings;
+    struct ImageBindings;
+}
+
+namespace giftools::bindings {
+    struct BufferBindings {
+        UniqueManagedObj<Buffer> bufferObj;
+        
+        BufferBindings() = default;
+        ~BufferBindings() = default;
+        
+        bool ensureInitialized() {
+            if (bufferObj) { return true; }
+            bufferObj = giftools::managedObjStorageDefault().make<giftools::Buffer>();
+            return bufferObj != nullptr;
+        }
+        
+        bool empty() const { return bufferObj ? bufferObj->empty() : true; }
+        uint8_t* mutableData() { return bufferObj ? bufferObj->mutableData() : nullptr; };
+        const uint8_t* data() const { return bufferObj ? bufferObj->data() : nullptr; };
+        size_t size() const { return bufferObj ? bufferObj->size() : 0; };
+        void resize(size_t size) { if (bufferObj) { bufferObj->resize(size); }  }
+        
+        val asUint8ArrayView() const { return empty() ? val::null() : val(typed_memory_view(size(), data())); }
+        std::string toStringBase64() const { return empty() ? "" : base64_encode_string(data(), size()); }
+        
+        bool fromUint8ArrayView(const val& uint8Arr) {
+            if (uint8Arr.isNull() || uint8Arr.isUndefined()) { return false; }
+            if (!ensureInitialized()) { return false; }
+            
+            bufferObj->initFrom(vecFromJSArray<uint8_t>(uint8Arr));
+            return true;
+        }
+    };
+}
+
 EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("objectFree", &objectFree);
     
@@ -229,6 +270,17 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("bufferEmpty", &bufferEmpty);
     function("bufferToStringBase64", &bufferToStringBase64);
     function("bufferFromStringBase64", &bufferFromStringBase64);
+
+    class_<giftools::bindings::BufferBindings>("Buffer")
+        .function("mutableData", &giftools::bindings::BufferBindings::mutableData, allow_raw_pointers())
+        .function("data", &giftools::bindings::BufferBindings::data, allow_raw_pointers())
+        .function("size", &giftools::bindings::BufferBindings::size)
+        .function("resize", &giftools::bindings::BufferBindings::resize)
+        .function("toStringBase64", &giftools::bindings::BufferBindings::toStringBase64)
+        .function("asUint8ArrayView", &giftools::bindings::BufferBindings::asUint8ArrayView)
+        .function("fromUint8ArrayView", &giftools::bindings::BufferBindings::fromUint8ArrayView)
+        .smart_ptr_constructor("makeBuffer", &std::make_shared<giftools::bindings::BufferBindings>)
+        .smart_ptr<std::shared_ptr<giftools::bindings::BufferBindings>>("Buffer");
     
     function("pixelFormatByteWidth", &pixelFormatByteWidth);
     function("imageWidth", &imageWidth);
@@ -253,6 +305,8 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("ffmpegVideoStreamHeight", &ffmpegVideoStreamHeight);
     function("ffmpegVideoStreamDurationSeconds", &ffmpegVideoStreamDurationSeconds);
     function("ffmpegVideoStreamFrameDurationSeconds", &ffmpegVideoStreamFrameDurationSeconds);
+    function("ffmpegVideoStreamPrepareAllFrames", &ffmpegVideoStreamPrepareAllFrames);
+    function("ffmpegVideoStreamPrepareFrames", &ffmpegVideoStreamPrepareFrames);
     function("ffmpegVideoStreamPickBestFrame", &ffmpegVideoStreamPickBestFrame);
     function("ffmpegVideoFrameTimeSeconds", &ffmpegVideoFrameTimeSeconds);
     function("ffmpegVideoFrameImage", &ffmpegVideoFrameImage);

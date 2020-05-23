@@ -30,7 +30,9 @@ struct ConcreteBuffer : public giftools::Buffer {
     void wipe() override { decltype(contents)().swap(contents); }
     bool zeroTerminated() const override { return contents.back() == 0; }
     bool empty() const override { return contents.empty(); }
-    std::vector<uint8_t> CopyToByteVector(const Buffer* bufferObj) const override { return contents; }
+    
+    void initFrom(std::vector<uint8_t>&& data) override { contents = std::move(data); }
+    std::vector<uint8_t> copyToByteVector(const Buffer* bufferObj) const override { return contents; }
 };
 
 giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferCopyFromMemory(const uint8_t* bufferPtr, size_t bufferSize) {
@@ -57,7 +59,7 @@ giftools::UniqueManagedObj<giftools::Buffer> giftools::bufferFromVector(std::vec
 
     bufferObj->contents = std::move(buffer);
     
-    // printf("bufferFromVector: contents=%.*s\n", (int)bufferObj->contents.size(), (const char*)bufferObj->contents.data());
+    // GIFTOOLS_LOGT("bufferFromVector: contents=%.*s\n", (int)bufferObj->contents.size(), (const char*)bufferObj->contents.data());
     return bufferObj;
 }
 

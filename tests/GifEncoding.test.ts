@@ -149,7 +149,7 @@ describe('GifTools', () => {
             const prefix = "dump_";
             const fileName = path.basename(videoFilePath, '.mp4');
             const id = videoResolutionId + "_" + targetResolutionId;
-            const resultName = prefix + "_" + fileName + "_" + id + ".gif";
+            const resultName = prefix + fileName + "_" + id + ".gif";
             const actualResultPath = actualResultsDirPath + '/' + resultName;
             const expectedResultPath = expectedResultsDirPath + '/' + resultName;
 

@@ -8,6 +8,30 @@
 #include <type_traits>
 #include <vector>
 
+#ifndef GIFTOOLS_LOG
+#define GIFTOOLS_LOG(log_level, function_name, fmt, ...) printf("%s/%s:" fmt "\n", log_level, function_name, ## __VA_ARGS__)
+#endif // #ifndef GIFTOOLS_LOG
+
+#ifndef GIFTOOLS_FUNC_NAME
+// Note, too verbose.
+// #define GIFTOOLS_FUNC_NAME __PRETTY_FUNCTION__
+#define GIFTOOLS_FUNC_NAME __FUNCTION__
+#endif // #ifndef GIFTOOLS_FUNC_NAME
+
+#ifndef GIFTOOLS_LOGE
+#define GIFTOOLS_LOGE(fmt, ...) GIFTOOLS_LOG("E", GIFTOOLS_FUNC_NAME, fmt, ## __VA_ARGS__)
+#define GIFTOOLS_LOGW(fmt, ...) GIFTOOLS_LOG("W", GIFTOOLS_FUNC_NAME, fmt, ## __VA_ARGS__)
+#define GIFTOOLS_LOGI(fmt, ...) GIFTOOLS_LOG("I", GIFTOOLS_FUNC_NAME, fmt, ## __VA_ARGS__)
+#define GIFTOOLS_LOGT(fmt, ...) GIFTOOLS_LOG("T", GIFTOOLS_FUNC_NAME, fmt, ## __VA_ARGS__)
+#endif // #ifndef GIFTOOLS_LOGE
+
+#if !defined(DEBUG) || !DEBUG
+#undef GIFTOOLS_LOGI
+#undef GIFTOOLS_LOGT
+#define GIFTOOLS_LOGI(fmt, ...)
+#define GIFTOOLS_LOGT(fmt, ...)
+#endif // #if !defined(DEBUG) || !DEBUG
+
 namespace giftools {
 
 using ManagedObjIdInt = uint32_t;
