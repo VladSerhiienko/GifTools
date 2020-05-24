@@ -201,6 +201,16 @@ int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime) {
     return objectReleaseAndReturnId(giftools::ffmpegVideoStreamPickBestFrame(ffmpegVideoStreamObj, sampleTime));
 }
 
+int ffmpegVideoStreamPickBestPreparedFrame(int ffmpegVideoStreamId, double sampleTime) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return objectReleaseAndReturnId(giftools::ffmpegVideoStreamPickBestPreparedFrame(ffmpegVideoStreamObj, sampleTime));
+}
+
+void ffmpegVideoStreamClearPreparedFrames(int ffmpegVideoStreamId) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return giftools::ffmpegVideoStreamClearPreparedFrames(ffmpegVideoStreamObj);
+}
+
 void ffmpegVideoStreamClose(int ffmpegVideoStreamId) {
     auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
     return giftools::ffmpegVideoStreamClose(ffmpegVideoStreamObj);
@@ -310,7 +320,9 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("ffmpegVideoStreamFrameDurationSeconds", &ffmpegVideoStreamFrameDurationSeconds);
     function("ffmpegVideoStreamPrepareAllFrames", &ffmpegVideoStreamPrepareAllFrames);
     function("ffmpegVideoStreamPrepareFrames", &ffmpegVideoStreamPrepareFrames);
+    function("ffmpegVideoStreamClearPreparedFrames", &ffmpegVideoStreamClearPreparedFrames);
     function("ffmpegVideoStreamPickBestFrame", &ffmpegVideoStreamPickBestFrame);
+    function("ffmpegVideoStreamPickBestPreparedFrame", &ffmpegVideoStreamPickBestPreparedFrame);
     function("ffmpegVideoFrameTimeSeconds", &ffmpegVideoFrameTimeSeconds);
     function("ffmpegVideoFrameImage", &ffmpegVideoFrameImage);
     function("ffmpegVideoStreamClose", &ffmpegVideoStreamClose);

@@ -118,12 +118,26 @@ struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     ~FFmpegVideoStreamImpl() override { close(); }
     
     void close() {
-        preparedFrames.clear();
+        clearPreparedFrames();
         
         sws_freeContext(swsContext);
         avcodec_close(primaryCodecContext);
         avformat_close_input(&fmtContext);
         new (this) FFmpegVideoStreamImpl();
+    }
+    
+    void clearPreparedFrames(bool wipePreparedFrames = true) {
+        if (wipePreparedFrames) { decltype(preparedFrames)().swap(preparedFrames); return; }
+        preparedFrames.clear();
+    }
+    
+    void sortPreparedFrames() {
+        using namespace giftools;
+        std::sort(preparedFrames.begin(),
+                  preparedFrames.end(),
+                  [&](const UniqueManagedObj<FFmpegVideoFrame>& lhs, const UniqueManagedObj<FFmpegVideoFrame>& rhs){
+                      return lhs->estimatedSampleTimeSeconds() < rhs->estimatedSampleTimeSeconds();
+                  });
     }
     
     size_t frameWidth() const override { return width; }
@@ -301,7 +315,7 @@ ffmpegCloneFrame(const giftools::FFmpegVideoFrame& targetFrame) {
 }
 
 giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>
-ffmpegVideoStreamPickBestFrameFromPrepared(const giftools::FFmpegVideoStream* ffmpegVideoStream, double sampleTime) {
+ffmpegVideoStreamPickBestFrameFromPrepared(const giftools::FFmpegVideoStream* ffmpegVideoStream, double sampleTime, double tolerance = -1.0) {
     if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return {}; }
     
     auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
@@ -313,8 +327,7 @@ ffmpegVideoStreamPickBestFrameFromPrepared(const giftools::FFmpegVideoStream* ff
         sampleTime,
         [](giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>& frame, double sampleTime) {
             return frame->estimatedSampleTimeSeconds() < sampleTime;
-        }
-        );
+        });
     
     if (lowerBoundIt == videoStream.preparedFrames.end()) {
         GIFTOOLS_LOGT("No lower bound, returning the last prepared frame.");
@@ -330,7 +343,8 @@ ffmpegVideoStreamPickBestFrameFromPrepared(const giftools::FFmpegVideoStream* ff
     const double lowerDiff = fabs(lowerBoundIt->get()->estimatedSampleTimeSeconds() - sampleTime);
     const double upperDiff = fabs(upperBoundIt->get()->estimatedSampleTimeSeconds() - sampleTime);
     GIFTOOLS_LOGT("Choosing between two frames, diffs: %f, %f.", lowerDiff, upperDiff);
-
+    
+    if (tolerance > 0.0 && std::min(lowerDiff, upperDiff) > tolerance) { return {}; }
     return lowerDiff <= upperDiff ? ffmpegCloneFrame(**lowerBoundIt) : ffmpegCloneFrame(**upperBoundIt);
 }
 
@@ -338,10 +352,9 @@ giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>
 giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmpegVideoStream, double sampleTime) {
     if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return {}; }
     
-    auto preparedFrame = ffmpegVideoStreamPickBestFrameFromPrepared(ffmpegVideoStream, sampleTime);
-    if (preparedFrame) { GIFTOOLS_LOGT("Found prepared frame."); return preparedFrame; }
-    
     auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
+    auto preparedFrame = ffmpegVideoStreamPickBestFrameFromPrepared(ffmpegVideoStream, sampleTime, videoStream.frameDurationSeconds * 0.5);
+    if (preparedFrame) { GIFTOOLS_LOGT("Found good prepared frame."); return preparedFrame; }
     
     // clang-format off
     assert(videoStream.width > 0);
@@ -534,6 +547,7 @@ size_t giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmp
 
     GIFTOOLS_LOGT("Starting main loop.");
     GIFTOOLS_LOGW("Reporting progress:");
+    videoStream.clearPreparedFrames(false);
     
     while (!endOfStream || frameAcquired) {
         frameAcquired = false;
@@ -597,12 +611,7 @@ size_t giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmp
     }
     
     GIFTOOLS_LOGT("Sorting prepared frames: %zu", videoStream.preparedFrames.size());
-    
-    std::sort(videoStream.preparedFrames.begin(),
-              videoStream.preparedFrames.end(),
-              [&](const UniqueManagedObj<FFmpegVideoFrame>& lhs, const UniqueManagedObj<FFmpegVideoFrame>& rhs){
-                  return lhs->estimatedSampleTimeSeconds() < rhs->estimatedSampleTimeSeconds();
-              });
+    videoStream.sortPreparedFrames();
 
     GIFTOOLS_LOGW("\t> Progress: 100.0%%");
     return videoStream.preparedFrames.size();
@@ -671,6 +680,7 @@ size_t giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegV
     
     GIFTOOLS_LOGT("Starting main loop.");
     GIFTOOLS_LOGW("Reporting progress:");
+    videoStream.clearPreparedFrames(false);
     
     while (!endOfStream || frameAcquired) {
         frameAcquired = false;
@@ -792,8 +802,23 @@ size_t giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegV
         }
     }
 
+    GIFTOOLS_LOGT("Sorting prepared frames: %zu", videoStream.preparedFrames.size());
+    videoStream.sortPreparedFrames();
+
     GIFTOOLS_LOGW("\t> Progress: 100.0%%");
     return videoStream.preparedFrames.size();
+}
+
+giftools::UniqueManagedObj<giftools::FFmpegVideoFrame> giftools::ffmpegVideoStreamPickBestPreparedFrame(const FFmpegVideoStream* ffmpegVideoStream, double sampleTime) {
+    auto preparedFrame = ffmpegVideoStreamPickBestFrameFromPrepared(ffmpegVideoStream, sampleTime);
+    if (!preparedFrame) { return {}; }
+    return preparedFrame;
+}
+
+void giftools::ffmpegVideoStreamClearPreparedFrames(const giftools::FFmpegVideoStream* ffmpegVideoStream) {
+    if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return; }
+    auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
+    videoStream.clearPreparedFrames();
 }
 
 #pragma clang diagnostic pop

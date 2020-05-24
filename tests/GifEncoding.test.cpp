@@ -211,7 +211,12 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     std::vector<const Image*> images = {};
     
     for (double t = 0.0; t < video->estimatedTotalDurationSeconds(); t += (1.0 / params.desiredFramesPerSecond)) {
-        frames.emplace_back(ffmpegVideoStreamPickBestFrame(video.get(), t));
+        if (params.preparedAllFrames == GifToolsDoNotPrepareFrames) {
+            frames.emplace_back(ffmpegVideoStreamPickBestFrame(video.get(), t));
+        } else {
+            frames.emplace_back(ffmpegVideoStreamPickBestPreparedFrame(video.get(), t));
+        }
+    
         ASSERT_TRUE(frames.back()->image());
         
         if (frames.back()->image()->width() != width || frames.back()->image()->height() != height) {
@@ -224,6 +229,8 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
         
         printf("Progress: %.1f%%\n", 50.0 * (t / video->estimatedTotalDurationSeconds()));
     }
+    
+    ffmpegVideoStreamClearPreparedFrames(video.get());
     
     UniqueManagedObj<GifBuilder> gifBuilderObj = gifBuilderInitialize(width, height, delay);
     ASSERT_TRUE(gifBuilderObj);

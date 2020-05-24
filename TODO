@@ -1,6 +1,0 @@
-
-* PickBestFrame should be return the best frame, not closest cached one
-* Add separate function to pick the best cached frame
-* Add function to clear cached frames
-* Ensure before each prepare call cached frames are cleared
-* Ensure after each prepare call cached frames are sorted
