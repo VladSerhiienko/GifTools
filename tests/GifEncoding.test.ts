@@ -150,7 +150,10 @@ describe('GifTools', () => {
 
             const duration = gifTools.videoDecoderDurationSeconds();
             for (var t = 0.0; t < duration; t += (1.0 / framesPerSecond)) {
-                const frame = gifTools.videoDecoderPickClosestVideoFrame(t);
+                const frame = prepareFramesType == GifToolsPrepareFramesType.GifToolsDoNotPrepareFrames
+                    ? gifTools.videoDecoderPickClosestVideoFrame(t)
+                    : gifTools.videoDecoderPickClosestPreparedVideoFrame(t); 
+
                 expect(frame).toBeTruthy();
                 expect(frame!.imageId).toBeTruthy();
                 

@@ -233,13 +233,26 @@ export class GifTools {
         return this.vm.ffmpegVideoStreamPrepareFrames(this.currentVideoStreamId, framesPerSecond);
     }
 
+    videoDecoderPickClosestPreparedVideoFrame(durationSeconds: number): GifToolsVideoFrame | null {
+        GifTools.assert(GifTools.isValidObj(this.currentVideoStreamId), "Caught null video stream.");
+
+        var frameId = this.vm.ffmpegVideoStreamPickBestPreparedFrame(this.currentVideoStreamId, durationSeconds);
+        if (!GifTools.isValidObj(frameId)) { return null; }
+
+        this.internalAddObjIds(frameId);
+
+        var frame = new GifToolsVideoFrame();
+        frame.frameId = frameId;
+        frame.imageId = this.vm.ffmpegVideoFrameImage(frameId);
+        frame.timeSeconds = this.vm.ffmpegVideoFrameTimeSeconds(frameId);
+        return frame;
+    }
+
     videoDecoderPickClosestVideoFrame(durationSeconds: number): GifToolsVideoFrame | null {
         GifTools.assert(GifTools.isValidObj(this.currentVideoStreamId), "Caught null video stream.");
 
         var frameId = this.vm.ffmpegVideoStreamPickBestFrame(this.currentVideoStreamId, durationSeconds);
-        if (!GifTools.isValidObj(frameId)) {
-            return null;
-        }
+        if (!GifTools.isValidObj(frameId)) { return null; }
 
         this.internalAddObjIds(frameId);
 
