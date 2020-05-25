@@ -10,7 +10,7 @@
         "sourceMap": true
     },
     "include": [
-        "./src/**/*"
+        "./src/**/*", "webpack.config.dev.js"
     ],
     "exclude": [
         "node_modules"
