@@ -6,9 +6,9 @@ worker.onmessage = data => {
     console.log(data);
 }
 
-worker.postMessage(10);
-
-console.log(worker);
+export default function post(message: any) {
+    worker.postMessage(message);
+}
 
 // let instance = wokrer123()
 

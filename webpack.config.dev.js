@@ -4,7 +4,7 @@ const WorkerPlugin = require('worker-plugin');
 
 
 module.exports = {
-    entry: "./src/index.ts",
+    entry: "./example/index.ts",
     module: {
         rules: [
             {

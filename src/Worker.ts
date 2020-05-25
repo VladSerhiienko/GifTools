@@ -1,4 +1,5 @@
 export function expensive(time : number) {
+    console.log('received', time);
     return time * time;
 }
 
