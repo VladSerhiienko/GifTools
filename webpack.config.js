@@ -1,13 +1,10 @@
 const path = require("path");
 
 module.exports = {
-    entry: {
-        bundle: "./src/index.ts",
-        worker: "./src/worker.ts",
-    },
+    entry: "./src/index.ts",
     module: {
         rules: [
-            { test: /\.worker\.ts$/, loader: 'worker-loader' },
+            { test: /\.worker\.js$/, loader: 'worker-loader' },
             {
                 test: /\.ts?$/,
                 use: 'ts-loader',

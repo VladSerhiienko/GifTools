@@ -1,4 +1,7 @@
-import GifTools from '../src';
+import '../src/index'
 
-console.log(GifTools);
-console.log('Hello World! 2');
+// eslint-disable-next-line import/no-webpack-loader-syntax
+
+
+
+// const tools = new GifTools();

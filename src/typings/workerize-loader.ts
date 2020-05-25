@@ -1,6 +1,8 @@
-declare module "worker-loader!*" {
+// typings/custom.d.ts
+declare module "workerize-loader!*" {
     class WebpackWorker extends Worker {
         constructor();
     }
+
     export default WebpackWorker;
 }

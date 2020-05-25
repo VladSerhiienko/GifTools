@@ -1,7 +1,7 @@
-const ctx: Worker = self as any;
+export function expensive(time : number) {
+    return time * time;
+}
 
-// Post data to parent thread
-ctx.postMessage({ foo: "foo" });
-
-// Respond to message from parent thread
-ctx.addEventListener("message", (event) => console.log(event));
+addEventListener('message', event => {
+    postMessage(expensive(event.data));
+});

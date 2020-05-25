@@ -1,17 +1,17 @@
 const path = require("path");
-const HtmlWebPackPlugin = require('html-webpack-plugin')
+const HtmlWebPackPlugin = require('html-webpack-plugin');
+const WorkerPlugin = require('worker-plugin');
+
 
 module.exports = {
-    entry: {
-        bundle: "./example/index.ts",
-        worker: "./src/worker.ts",
-    },
+    entry: "./src/index.ts",
     module: {
         rules: [
-            { test: /\.worker\.ts$/, loader: 'worker-loader' },
             {
                 test: /\.ts?$/,
-                use: 'ts-loader',
+                use: {
+                    loader: 'ts-loader',
+                },
                 exclude: /node_modules/,
             }
         ]
@@ -26,7 +26,8 @@ module.exports = {
         umdNamedDefine: true
     },
     plugins: [
-        new HtmlWebPackPlugin()
+        new HtmlWebPackPlugin(),
+        new WorkerPlugin()
     ],
     devServer: {
         contentBase: path.join(__dirname, 'example'),
