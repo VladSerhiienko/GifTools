@@ -1,6 +1,5 @@
 // @ts-ignore
 // eslint-disable-next-line import/no-webpack-loader-syntax
-
 const worker = new Worker('./worker.ts', { type: 'module' });
 
 worker.onmessage = data => {
