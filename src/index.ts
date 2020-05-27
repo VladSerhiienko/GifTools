@@ -1,12 +1,13 @@
 // @ts-ignore
 // eslint-disable-next-line import/no-webpack-loader-syntax
-const worker = new Worker('./worker.ts', { type: 'module' });
+const worker = new Worker('./Worker.ts', { type: 'module' });
 
-worker.onmessage = data => {
-    console.log(data);
+worker.onmessage = event => {
+    console.log('index.ts:worker.onmessage: event.data=', event.data);
 }
 
 export default function post(message: any) {
+    console.log('index.ts:post: message=', message);
     worker.postMessage(message);
 }
 
