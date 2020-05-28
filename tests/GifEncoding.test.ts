@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { GifTools, GifToolsVideoFrame } from '../src/Wrapper';
+import { GifTools, GifToolsVideoFrame } from '../src/GifTools';
 
 function areEqual(a: Uint8Array, b: Uint8Array): boolean {
     if (a.byteLength !== b.byteLength) return false;

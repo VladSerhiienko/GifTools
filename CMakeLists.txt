@@ -97,6 +97,9 @@ if(${GIFTOOLS_USE_EMSDK})
     if(NOT DEFINED GIFTOOLS_BUILD_SINGLE_FILE_EMSCRIPTEN)
         set(GIFTOOLS_BUILD_SINGLE_FILE_EMSCRIPTEN FALSE)
     endif()
+    if(NOT DEFINED DGIFTOOLS_BUILD_WORKER)
+        set(DGIFTOOLS_BUILD_WORKER FALSE)
+    endif()
 
     message(STATUS "Seeing GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN=${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN}")
 
@@ -167,8 +170,18 @@ if(${GIFTOOLS_USE_EMSDK})
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORT_ES6=1")
     endif()
 
-    if(${GIFTOOLS_BUILD_WEB_EMSCRIPTEN})
-        message(STATUS "Building web WASM")
+    # https://github.com/emscripten-core/emscripten/pull/7809
+    if ((${GIFTOOLS_BUILD_WORKER} STREQUAL "TRUE") AND (${GIFTOOLS_BUILD_WEB_EMSCRIPTEN} STREQUAL "TRUE"))
+        message(STATUS "Building web,worker module.")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ENVIRONMENT='web,worker'")
+
+        # AssertionError: -s MODULARIZE=1 is not compatible with --proxy-to-worker (if you want to run in a worker with -s MODULARIZE=1, you likely want to do the worker side setup manually)
+        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ENVIRONMENT='worker' -s BUILD_AS_WORKER=1 --proxy-to-worker")
+    elseif(${GIFTOOLS_BUILD_WORKER})
+        message(STATUS "Building worker module")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ENVIRONMENT='worker'")
+    elseif(${GIFTOOLS_BUILD_WEB_EMSCRIPTEN})
+        message(STATUS "Building web module")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ENVIRONMENT='web'")
     endif()
 

@@ -27,6 +27,22 @@ cp build_emscripten_web_amalgamated_ffmpeg/GifTools.wasm.map bin/web_amalgamated
 
 #
 #
+#
+
+cmake -Bbuild_emscripten_web_amalgamated_ffmpeg_worker -H. \
+    -DCMAKE_TOOLCHAIN_FILE=$(pwd)/dependencies/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake \
+    -DGIFTOOLS_BUILD_EMSCRIPTEN:BOOL=TRUE \
+    -DGIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN:BOOL=TRUE \
+    -DGIFTOOLS_BUILD_SINGLE_FILE_EMSCRIPTEN:BOOL=TRUE \
+    -DGIFTOOLS_BUILD_WORKER:BOOL=TRUE \
+    -DGIFTOOLS_BUILD_FFMPEG:BOOL=TRUE
+emmake make -C build_emscripten_web_amalgamated_ffmpeg_worker
+mkdir -p bin/web_amalgamated_ffmpeg_worker
+cp build_emscripten_web_amalgamated_ffmpeg_worker/GifTools.js bin/web_amalgamated_ffmpeg_worker/GifTools.js
+cp build_emscripten_web_amalgamated_ffmpeg_worker/GifTools.wasm.map bin/web_amalgamated_ffmpeg_worker/GifTools.wasm.map
+
+#
+#
 # Build without FFmpeg.
 #
 #

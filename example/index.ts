@@ -1,7 +1,7 @@
-import post from '../src'
+import {GifToolsAsync} from '../src/GifToolsAsync'
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
-
-post(5);
-
-// const tools = new GifTools();
+GifToolsAsync.get().init().then((vmPro) => {
+    console.log("index: GifToolsAsync.init: succeeded");
+}, () => {
+    console.log("index: GifToolsAsync.init: failed");
+});
