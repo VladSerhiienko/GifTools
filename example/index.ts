@@ -7,15 +7,26 @@ GifToolsAsync.get().init().then(() => {
 });
 
 const result = document.getElementById('result');
+if (result) {
+    const button = document.getElementById('myFile');
+    if (button) {
+        button.onclick = event => {
+            if (!event) { return; }
+            if (!event.target) { return; }
 
-const button = document.getElementById('myFile');
-button.onclick = event => {
-    const file = (<HTMLInputElement>event.target).files[0];
-    console.log('file ?', file);
+            const target = <HTMLInputElement>event.target;
+            if (!target) { return; }
+            if (!target.files) { return; }
+            if (!target.files[0]) { return; }
 
-    setTimeout(() => {
-        result.setAttribute('src', 'https://itlab.am/images/How-to/gif-man-melting.gif');
-    }, 3000);
-};
+            const file = (<HTMLInputElement>event!.target)!.files![0];
+            console.log('file ?', file);
+
+            setTimeout(() => {
+                result.setAttribute('src', 'https://itlab.am/images/How-to/gif-man-melting.gif');
+            }, 3000);
+        }
+    }
+}
 
 
