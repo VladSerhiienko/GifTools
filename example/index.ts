@@ -14,18 +14,13 @@ function arrayBufferFromFile(file: File) {
     // https://gist.github.com/hanayashiki/8dac237671343e7f0b15de617b0051bd
     if (!file.arrayBuffer) {
         return new Promise((resolve, reject) => {
-            console.log('arrayBufferFromFile: promise');
+            let reader = new FileReader();
 
-            let fileReader = new FileReader();
-            console.log('arrayBufferFromFile: fileReader', fileReader);
-            
-            fileReader.onloadend = () => { console.log('arrayBufferFromFile: resolved'); resolve(fileReader.result); };
-            fileReader.onerror = () => { console.log('arrayBufferFromFile: rejected'); reject(); };
-            fileReader.onabort = () => { console.log('arrayBufferFromFile: aborted'); reject(); };
-            fileReader.onprogress = () => { console.log('arrayBufferFromFile: progress'); };
+            reader.addEventListener('load', event => {
+                resolve(event.target!.result)
+            });
 
-            console.log('arrayBufferFromFile: readAsArrayBuffer', fileReader);
-            fileReader.readAsArrayBuffer(this);
+            reader.readAsArrayBuffer(file);
         });
     }
 
@@ -36,16 +31,14 @@ const result = document.getElementById('result');
 console.log('result ?', result);
 if (result) {
     const button = document.getElementById('myFile');
-    console.log('button ?', button);
     if (button) {
-        button.onchange = event => {
+        button.addEventListener('change', (event) => {
             console.log('button.onclick!');
 
             if (!event) { return; }
             if (!event.target) { return; }
 
             const target = <HTMLInputElement>event.target;
-            console.log('button.onclick! target', target);
             if (!target) { return; }
             if (!target.files) { return; }
             if (!target.files[0]) { return; }
@@ -65,11 +58,7 @@ if (result) {
             }, () => {
                 console.log('Failed to open sesion from', file);
             });
-
-            // setTimeout(() => {
-            //     result.setAttribute('src', 'https://media.giphy.com/media/xTk9ZvMnbIiIew7IpW/giphy.gif');
-            // }, 3000);
-        }
+        });
     }
 }
 
