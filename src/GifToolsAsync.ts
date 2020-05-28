@@ -4,6 +4,7 @@ export class GifToolsSession {
     height: number;
     frameCount: number;
     durationSeconds: number;
+    frameDurationSeconds: number;
 };
 
 export class GifToolsAsync {
@@ -85,7 +86,19 @@ export class GifToolsAsync {
         } else if (msgType === 'MSG_TYPE_SET_VM_FAILED') {
             this.reject(msgId);
         } else if (msgType === 'MSG_TYPE_OPEN_SESSION_SUCCEEDED') {
-            this.resolve(msgId);
+            if(!payload.hasOwnProperty('session')) { return; }
+            if(!payload.session.hasOwnProperty('width')) { return; }
+            if(!payload.session.hasOwnProperty('height')) { return; }
+            if(!payload.session.hasOwnProperty('durationSeconds')) { return; }
+            if(!payload.session.hasOwnProperty('frameDurationSeconds')) { return; }
+
+            let session = new GifToolsSession();
+            session.width = payload.session.width;
+            session.height = payload.session.height;
+            session.durationSeconds = payload.session.durationSeconds;
+            session.frameDurationSeconds = payload.session.frameDurationSeconds;
+
+            this.resolve(msgId, session);
         } else if (msgType === 'MSG_TYPE_OPEN_SESSION_FAILED') {
             this.reject(msgId);
         }

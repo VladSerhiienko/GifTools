@@ -62,6 +62,8 @@ if (result) {
                 console.log('Failed to retrieve fileBuffer from', file);
             }).then((session: GifToolsSession) => {
                 console.log('session', session);
+            }, () => {
+                console.log('Failed to open sesion from', file);
             });
 
             // setTimeout(() => {
