@@ -26,7 +26,10 @@ module.exports = {
         umdNamedDefine: true
     },
     plugins: [
-        new HtmlWebPackPlugin(),
+        new HtmlWebPackPlugin({
+            title: 'GifTools',
+            template: 'example/index.html',
+        }),
         new WorkerPlugin()
     ],
     devServer: {
