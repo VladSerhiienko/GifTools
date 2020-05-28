@@ -89,12 +89,14 @@ export class GifToolsAsync {
             if(!payload.hasOwnProperty('session')) { return; }
             if(!payload.session.hasOwnProperty('width')) { return; }
             if(!payload.session.hasOwnProperty('height')) { return; }
+            if(!payload.session.hasOwnProperty('frameCount')) { return; }
             if(!payload.session.hasOwnProperty('durationSeconds')) { return; }
             if(!payload.session.hasOwnProperty('frameDurationSeconds')) { return; }
 
             let session = new GifToolsSession();
             session.width = payload.session.width;
             session.height = payload.session.height;
+            session.frameCount = payload.session.frameCount;
             session.durationSeconds = payload.session.durationSeconds;
             session.frameDurationSeconds = payload.session.frameDurationSeconds;
 

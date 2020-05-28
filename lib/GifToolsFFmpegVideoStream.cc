@@ -40,6 +40,9 @@ struct FFmpegVideoFrameImpl : giftools::FFmpegVideoFrame {
 struct FFmpegVideoStreamImpl : giftools::FFmpegVideoStream {
     FFmpegVideoStreamImpl() = default;
     ~FFmpegVideoStreamImpl() override = default;
+    size_t frameWidth() const override { return 0; }
+    size_t frameHeight() const override { return 0; }
+    size_t frameCount() const override { return 0; }
     double estimatedTotalDurationSeconds() const override { return 0; }
     double estimatedFrameDurationSeconds() const override { return 0; }
 };
@@ -103,7 +106,7 @@ struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     AVStream* primaryStream = nullptr;
     int primaryStreamIndex = -1;
     SwsContext* swsContext = nullptr;
-    int64_t frameCount = 0;
+    int64_t frameCount_ = 0;
     double durationSeconds = 0.0;
     int64_t durationTimeBase = 0;
     int64_t frameDurationTimeBase = 0;
@@ -142,6 +145,7 @@ struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     
     size_t frameWidth() const override { return width; }
     size_t frameHeight() const override { return height; }
+    size_t frameCount() const override { return frameCount_; }
     double estimatedTotalDurationSeconds() const override { return durationSeconds; }
     double estimatedFrameDurationSeconds() const override { return frameDurationSeconds; }
 };
@@ -203,9 +207,9 @@ giftools::ffmpegVideoStreamOpen(const giftools::FFmpegInputStream* ffmpegInputSt
 
     videoStream.primaryStream = videoStream.fmtContext->streams[videoStream.primaryStreamIndex];
     videoStream.primaryStreamTimeBase = av_q2d(videoStream.primaryStream->time_base);
-    videoStream.frameCount = videoStream.primaryStream->nb_frames;
+    videoStream.frameCount_ = videoStream.primaryStream->nb_frames;
     videoStream.durationTimeBase = videoStream.primaryStream->duration;
-    videoStream.frameDurationTimeBase = videoStream.durationTimeBase / videoStream.frameCount;
+    videoStream.frameDurationTimeBase = videoStream.durationTimeBase / videoStream.frameCount_;
     videoStream.durationSeconds = double(videoStream.durationTimeBase) * videoStream.primaryStreamTimeBase;
     videoStream.frameDurationSeconds = double(videoStream.frameDurationTimeBase) * videoStream.primaryStreamTimeBase;
 
@@ -626,7 +630,7 @@ size_t giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegV
     }
     
     auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
-    double maxFramesPerSecond = double(videoStream.frameCount) / videoStream.durationSeconds;
+    double maxFramesPerSecond = double(videoStream.frameCount_) / videoStream.durationSeconds;
     
     if (framesPerSecond >= maxFramesPerSecond) { return ffmpegVideoStreamPrepareAllFrames(ffmpegVideoStream); }
 

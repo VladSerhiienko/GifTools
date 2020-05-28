@@ -171,6 +171,11 @@ int ffmpegVideoStreamWidth(int ffmpegVideoStreamId) {
     return ffmpegVideoStreamObj ? ffmpegVideoStreamObj->frameWidth() : 0;
 }
 
+int ffmpegVideoStreamFrameCount(int ffmpegVideoStreamId) {
+    auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
+    return ffmpegVideoStreamObj ? ffmpegVideoStreamObj->frameCount() : 0;
+}
+
 int ffmpegVideoStreamHeight(int ffmpegVideoStreamId) {
     auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
     return ffmpegVideoStreamObj ? ffmpegVideoStreamObj->frameHeight() : 0;
@@ -314,6 +319,7 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     #ifdef GIFTOOLS_USE_FFMPEG
     function("ffmpegInputStreamLoadFromBuffer", &ffmpegInputStreamLoadFromBuffer);
     function("ffmpegVideoStreamOpen", &ffmpegVideoStreamOpen);
+    function("ffmpegVideoStreamFrameCount", &ffmpegVideoStreamFrameCount);
     function("ffmpegVideoStreamWidth", &ffmpegVideoStreamWidth);
     function("ffmpegVideoStreamHeight", &ffmpegVideoStreamHeight);
     function("ffmpegVideoStreamDurationSeconds", &ffmpegVideoStreamDurationSeconds);

@@ -205,6 +205,11 @@ class GifTools {
         return this.vm.ffmpegVideoStreamHeight(this.currentVideoStreamId);
     }
 
+    videoDecoderFrameCount() : number {
+        if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
+        return this.vm.ffmpegVideoStreamFrameCount(this.currentVideoStreamId);
+    }
+
     videoDecoderDurationSeconds() : number {
         if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
         return this.vm.ffmpegVideoStreamDurationSeconds(this.currentVideoStreamId);
@@ -392,6 +397,7 @@ class GifToolsWorker {
             this.postMessage({msgType : 'MSG_TYPE_OPEN_SESSION_SUCCEEDED', msgId: msgId, session: {
                 width: this.gifTools.videoDecoderWidth(),
                 height: this.gifTools.videoDecoderHeight(),
+                frameCount: this.gifTools.videoDecoderFrameCount(),
                 durationSeconds: this.gifTools.videoDecoderDurationSeconds(),
                 frameDurationSeconds: this.gifTools.videoDecoderFrameDurationSeconds(),
             }});
