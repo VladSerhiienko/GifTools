@@ -9,12 +9,12 @@ GifToolsAsync.get().init().then(() => {
 const result = document.getElementById('result');
 
 const button = document.getElementById('myFile');
-button.onclick = event => {
-    const file = (<HTMLInputElement>event.target).files[0];
-    console.log('file ?', file);
+button!.onclick = event => {
+    const files = (<HTMLInputElement>event.target).files;
+    console.log('file ?', files![0]);
 
     setTimeout(() => {
-        result.setAttribute('src', 'https://itlab.am/images/How-to/gif-man-melting.gif');
+        result!.setAttribute('src', 'https://itlab.am/images/How-to/gif-man-melting.gif');
     }, 3000);
 };
 
