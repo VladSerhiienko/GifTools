@@ -62,8 +62,8 @@ export class GifToolsAsync {
         const msgId = this.nextMsgId();
         return new Promise((resolve, reject) => {
             this.schedule(msgId, resolve, reject);
-            let payload = {msgType: 'MSG_TYPE_OPEN_SESSION', msgId: msgId, fileBuffer: fileBuffer};
-            this.postMessage(payload, [fileBuffer]);
+            let payload = {msgType: 'MSG_TYPE_OPEN_SESSION', msgId: msgId, fileBuffer: fileBuffer.buffer};
+            this.postMessage(payload, [fileBuffer.buffer]);
         });
     }
 
