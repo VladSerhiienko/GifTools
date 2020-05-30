@@ -1,11 +1,16 @@
 export declare class GifToolsRunConfig {
+    width: number;
+    height: number;
     startTimeSeconds: number;
     endTimeSeconds: number;
     framesPerSecond: number;
     frameDelaySeconds: number;
+    loop: boolean;
+    boomerang: boolean;
 }
 export declare class GifToolsRunOutput {
     gifBuffer: (Uint8Array | null);
+    gifBase64: (string | null);
 }
 export declare class GifToolsSession {
     width: number;

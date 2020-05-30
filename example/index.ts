@@ -1,4 +1,4 @@
-import {GifToolsAsync, GifToolsSession} from '../src/GifToolsAsync'
+import {GifToolsAsync, GifToolsSession, GifToolsRunConfig, GifToolsRunOutput} from '../src/GifToolsAsync'
 
 GifToolsAsync.get().init().then(() => {
     console.log("index: GifToolsAsync.init: succeeded");
@@ -52,9 +52,26 @@ if (result) {
                 console.log('Failed to retrieve fileBuffer from', file);
             }).then((session: GifToolsSession) => {
                 console.log('session', session);
+
+                const runConfig = new GifToolsRunConfig();
+                runConfig.width = session.width;
+                runConfig.height = session.height;
+                runConfig.startTimeSeconds = 0;
+                runConfig.endTimeSeconds = session.durationSeconds;
+                runConfig.framesPerSecond = 1;
+                runConfig.frameDelaySeconds = 1;
+                runConfig.loop = true;
+                runConfig.boomerang = true;
+
+                return GifToolsAsync.get().run(runConfig);
             }, () => {
-                console.log('Failed to open sesion from', file);
-            });
+                console.log('Failed to open session from', file);
+            }).then((output: GifToolsRunOutput) => {
+                console.log('output', output);
+                result!.setAttribute('src', 'data:image/gif;base64,' + output.gifBase64);
+            }, () => {
+                console.log('Failed to creat GIF');
+            });;
         });
     }
 }

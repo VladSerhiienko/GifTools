@@ -658,6 +658,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
     
     durationSeconds = std::min(durationSeconds, videoStream.durationSeconds - offsetSeconds);
     
+    double endTimeSeconds = durationSeconds + offsetSeconds;
+    
     if (framesPerSecond >= maxFramesPerSecond) { return ffmpegVideoStreamPrepareAllFrames(ffmpegVideoStream); }
 
     if (cancellationToken.isCancelled()) { return 0; }
@@ -775,12 +777,17 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
         currFrame.timeTimeBaseEst = mostAccurateTimestamp;
         currFrame.timeSecondsEst = mostAccurateTime;
         
-        if (mostAccurateTime < offsetSeconds) {
+        if (mostAccurateTime > endTimeSeconds) {
+            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
+            break;
+        }
+        
+        if (mostAccurateTime > 0 && mostAccurateTime < offsetSeconds) {
         
             std::swap(prevFrame, currFrame);
             sampleTime += desiredFrameTimeSeconds;
             
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
+            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             continue;
         }
         
@@ -800,7 +807,7 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
             if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
             sampleTime += desiredFrameTimeSeconds;
             
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
+            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             continue;
         }
 
@@ -815,7 +822,7 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
             std::swap(prevFrame, currFrame);
             sampleTime += desiredFrameTimeSeconds;
             
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
+            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             continue;
         }
         
@@ -835,7 +842,7 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
                 std::swap(prevFrame, currFrame);
                 sampleTime += desiredFrameTimeSeconds;
                 
-                GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
+                GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
                 continue;
             }
 
@@ -847,7 +854,7 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
             std::swap(prevFrame, currFrame);
             sampleTime += desiredFrameTimeSeconds;
         
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / videoStream.durationSeconds)));
+            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             continue;
         }
 

@@ -1,4 +1,5 @@
 import * as GifToolsFactory from '../bin/web_amalgamated_ffmpeg_worker/GifTools'; // @ts-ignore
+import { start } from 'repl';
 // import * as GifToolsFactory from '../bin/web_amalgamated_ffmpeg/GifTools'; // @ts-ignore
 
 //
@@ -225,9 +226,9 @@ class GifTools {
         return this.vm.ffmpegVideoStreamPrepareAllFrames(this.currentVideoStreamId);
     }
 
-    videoDecoderPrepareFrames(framesPerSecond: number) : number {
+    videoDecoderPrepareFrames(framesPerSecond: number, offsetSeconds: number, durationSeconds: number) : number {
         if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
-        return this.vm.ffmpegVideoStreamPrepareFrames(this.currentVideoStreamId, framesPerSecond);
+        return this.vm.ffmpegVideoStreamPrepareFrames(this.currentVideoStreamId, framesPerSecond, offsetSeconds, durationSeconds);
     }
 
     videoDecoderPickClosestPreparedVideoFrame(durationSeconds: number): GifToolsVideoFrame | null {
@@ -353,6 +354,100 @@ class GifToolsWorker {
         this.postMessage({msgType : 'MSG_TYPE_REPORT_PROGRESS', msgId: -1, progress: progress});
     }
 
+    toBase64(arr: Uint8Array) : string {
+        return this.gifTools.vm.uint8ArrayToBase64String(arr);
+    }
+
+    run(width: number,
+        height: number,
+        startTimeSeconds: number,
+        endTimeSeconds: number,
+        framesPerSecond: number,
+        frameDelaySeconds: number,
+        loop: boolean,
+        boomerang: boolean) : (Uint8Array|null) {
+    
+        if (!this.gifTools) { return null; }
+
+        if (width <= 0) { return null; }
+        if (height <= 0) { return null; }
+        if (framesPerSecond <= 0) { return null; }
+        if (frameDelaySeconds <= 0) { return null; }
+        if (frameDelaySeconds <= 0) { return null; }
+        if (startTimeSeconds === endTimeSeconds) { return null; }
+
+        const duration = this.gifTools.videoDecoderDurationSeconds();
+
+        if (startTimeSeconds < 0) { return null; }
+        if (startTimeSeconds >= duration) { return null; }
+        if (endTimeSeconds < 0) { return null; }
+        if (endTimeSeconds > duration) { return null; }
+
+        const shouldResize = width != this.gifTools.videoDecoderWidth() || height != this.gifTools.videoDecoderHeight();
+
+        if (!this.gifTools.videoDecoderPrepareFrames(framesPerSecond, startTimeSeconds, endTimeSeconds - startTimeSeconds)) {
+            return null;
+        }
+
+        const imgIds: number[] = [];
+
+        const dt = 1.0 / framesPerSecond;
+        for (var t = 0.0; t < duration; t += dt) {
+            console.log('cycle, t=', t);
+
+            const frame = this.gifTools.videoDecoderPickClosestPreparedVideoFrame(t); 
+            if (!frame) { return null; }
+            if (!frame!.imageId) { return null; }
+
+            if (shouldResize) {
+                const resizedImg = this.gifTools.imageResize(frame!.imageId, width, height);
+                if (!resizedImg) { return null; }
+                imgIds.push(resizedImg);
+            } else {
+                const clonedImg = this.gifTools.vm.imageClone(frame!.imageId);
+                if (!clonedImg) { return null; }
+                imgIds.push(clonedImg);
+            }
+            
+            this.gifTools.videoDecoderFreeVideoFrame(frame);
+        }
+
+        console.log('imgIds=', imgIds);
+
+        const imgIndices: number[] = [];
+        for (let i = 0; i < imgIds.length; ++i) {
+            imgIndices.push(i);
+        }
+
+        console.log('imgIndices=', imgIndices);
+
+        if (boomerang) {
+            for (let i = 1; i < imgIds.length; ++i) {
+                imgIndices.push(imgIds.length - i - 1);
+            }
+
+            console.log('imgIndices=', imgIndices);
+        }
+
+        console.log('gif begin');
+        if (!this.gifTools.gifEncoderBegin(width, height, loop ? frameDelaySeconds * 100 : 0)) {
+            return null;
+        }
+        
+        for (let i = 0; i < imgIndices.length; ++i) {
+            console.log('gif, i=', i, ', img=', imgIds[imgIndices[i]]);
+            this.gifTools.gifEncoderAddImage(imgIds[imgIndices[i]], frameDelaySeconds * 100);
+        }
+
+        console.log('free imgs');
+        for (let i = 0; i < imgIds.length; ++i) {
+            this.gifTools.internalFreeObjIds(imgIds[i]);
+        }
+
+        const gifBuffer = this.gifTools.gifEncoderEnd();
+        return gifBuffer;
+    }
+
     receiveMessage(messageEvent: MessageEvent) {
         let payload = messageEvent.data;
 
@@ -424,7 +519,32 @@ class GifToolsWorker {
                 frameDurationSeconds: this.gifTools.videoDecoderFrameDurationSeconds(),
             }});
         } else if (msgType === 'MSG_TYPE_RUN') {
-            this.postMessage({msgType : 'MSG_TYPE_RUN_FAILED', msgId: msgId});
+            if(!payload.hasOwnProperty('runConfig')) { return; }
+            
+            const width = payload.runConfig.width;
+            const height = payload.runConfig.height;
+            const startTimeSeconds = payload.runConfig.startTimeSeconds;
+            const endTimeSeconds = payload.runConfig.endTimeSeconds;
+            const framesPerSecond = payload.runConfig.framesPerSecond;
+            const frameDelaySeconds = payload.runConfig.frameDelaySeconds;
+            const loop = payload.runConfig.loop;
+            const boomerang = payload.runConfig.boomerang;
+
+            const gifBuffer = this.run(width, height, startTimeSeconds, endTimeSeconds, framesPerSecond, frameDelaySeconds, loop, boomerang);
+            if (gifBuffer == null) {
+                this.postMessage({msgType : 'MSG_TYPE_RUN_FAILED', msgId: msgId});
+                return;
+            }
+
+            console.log('gifBuffer=', gifBuffer);
+
+            const gifBase64 = this.toBase64(gifBuffer);
+            console.log('gifBase64=', gifBase64);
+
+            this.gifTools.internalAddObjIds();
+
+            this.postMessage({msgType : 'MSG_TYPE_RUN_SUCCEEDED', msgId: msgId, gifBase64: gifBase64});
+            // this.postMessage({msgType : 'MSG_TYPE_RUN_SUCCEEDED', msgId: msgId, gifBuffer: gifBuffer, gifBase64: gifBase64}, [gifBuffer.buffer]);
         } else if (msgType === 'MSG_TYPE_CLOSE_SESSION') {
             if (!this.gifTools) {
                 this.postMessage({msgType : 'MSG_TYPE_CLOSE_SESSION_FAILED', msgId: msgId, error: 'Caught null GifTools instance.'});

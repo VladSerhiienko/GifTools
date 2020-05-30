@@ -1,13 +1,18 @@
 
 export class GifToolsRunConfig {
+    width: number;
+    height: number;
     startTimeSeconds: number;
     endTimeSeconds: number;
     framesPerSecond: number;
     frameDelaySeconds: number;
+    loop: boolean;
+    boomerang: boolean;
 }
 
 export class GifToolsRunOutput {
     gifBuffer: (Uint8Array | null);
+    gifBase64: (string | null);
 }
 
 export class GifToolsSession {
@@ -163,7 +168,8 @@ export class GifToolsAsync {
             this.reject(msgId);
         } else if (msgType === 'MSG_TYPE_RUN_SUCCEEDED') {
             let output = new GifToolsRunOutput();
-            output.gifBuffer = payload.gifBuffer as Uint8Array;
+            output.gifBuffer = null; // payload.gifBuffer as Uint8Array;
+            output.gifBase64 = payload.gifBase64 as string;
             this.resolve(msgId, output);
         } else if (msgType === 'MSG_TYPE_RUN_FAILED') {
             this.reject(msgId);

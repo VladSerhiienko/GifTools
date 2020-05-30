@@ -251,6 +251,12 @@ val bufferToUint8Array(int bufferId) {
     return val(typed_memory_view(bufferSize, bufferPtr));
 }
 
+val uint8ArrayToBase64String(val uint8Array) {
+    std::vector<uint8_t> c = vecFromJSArray<uint8_t>(uint8Array);
+    std::string b = base64_encode_string(c.data(), c.size());
+    return val(b);
+}
+
 //
 // Progress/Cancellation
 //
@@ -383,6 +389,7 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("ffmpegVideoStreamClose", &ffmpegVideoStreamClose);
     #endif
 
+    function("uint8ArrayToBase64String", &uint8ArrayToBase64String);
     function("progressTokenSetProgressReporter", &progressTokenSetProgressReporter);
     function("cancellationTokenSetCancellationSource", &cancellationTokenSetCancellationSource);
     

@@ -277,9 +277,9 @@ INSTANTIATE_TEST_SUITE_P(
     resolutions,
     GifToolsFFmpegTest,
     testing::Values(
-          GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_360P.mp4", "360p", GifToolsDoNotPrepareFrames, 1.0}
-        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
-        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_UHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
+//          GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_360P.mp4", "360p", GifToolsDoNotPrepareFrames, 1.0}
+//        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
+        GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_UHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
 //        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd_rate", GifToolsPrepareFrames, 1.0}
 //        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_UHD.mp4", "uhd_rate", GifToolsPrepareFrames, 1.0}
         
