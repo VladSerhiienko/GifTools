@@ -335,11 +335,22 @@ class GifToolsWorker {
     
     worker: Worker = worker;
     gifTools = new GifTools();
+    cancellationToken: Uint32Array;
 
-    postMessage(message: any) {
-        console.log('GifToolsWorker.postMessage: message=', message);
+    postMessage(message: any, transferable?:Transferable[]) {
+        console.log('GifToolsWorker.postMessage: message=', message, ', transferable=', transferable);
         
+        if (transferable) { return this.worker.postMessage(message, transferable); }
         return this.worker.postMessage(message);
+    }
+
+    shouldCancel() : boolean {
+        return this.cancellationToken ? this.cancellationToken[0] == 1 : false;
+    }
+
+    onReportedProgress(progress: number) {
+        console.log('GifToolsWorker.onReportedProgress: progress=', progress);
+        this.postMessage({msgType : 'MSG_TYPE_REPORT_PROGRESS', msgId: -1, progress: progress});
     }
 
     receiveMessage(messageEvent: MessageEvent) {
@@ -357,8 +368,20 @@ class GifToolsWorker {
         console.log('GifToolsAsync.receiveMessage: msgId=', msgId);
 
         if (msgType === 'MSG_TYPE_SET_VM') {
+            this.cancellationToken = payload.cancellationToken as Uint32Array;
+            console.log('GifToolsAsync.receiveMessage: this.cancellationToken=', this.cancellationToken);
+
             GifToolsFactory().then((vm: any) => {
+                console.log('GifToolsAsync.receiveMessage: vm=', vm);
                 if (vm) {
+
+                    if (!vm.progressTokenSetProgressReporter({reportProgress: (progress: number) => this.onReportedProgress(progress) })) {
+                        console.log('GifToolsAsync.receiveMessage: failed to set progress reporter.');
+                    }
+                    if (!vm.cancellationTokenSetCancellationSource({shouldCancel: () => this.shouldCancel() })) {
+                        console.log('GifToolsAsync.receiveMessage: failed to set cancellation source.');
+                    }
+
                     this.gifTools.init(vm);
                     this.postMessage({msgType : 'MSG_TYPE_SET_VM_SUCCEEDED', msgId: msgId});
                 } else {

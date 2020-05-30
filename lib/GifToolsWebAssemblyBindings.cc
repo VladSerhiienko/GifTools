@@ -196,9 +196,9 @@ int ffmpegVideoStreamPrepareAllFrames(int ffmpegVideoStreamId) {
     return ffmpegVideoStreamObj ? giftools::ffmpegVideoStreamPrepareAllFrames(ffmpegVideoStreamObj) : 0;
 }
 
-int ffmpegVideoStreamPrepareFrames(int ffmpegVideoStreamId, double framesPerSecond) {
+int ffmpegVideoStreamPrepareFrames(int ffmpegVideoStreamId, double framesPerSecond, double offsetSeconds, double durationSeconds) {
     auto ffmpegVideoStreamObj = giftools::managedObjStorageDefault().get<giftools::FFmpegVideoStream>(ffmpegVideoStreamId);
-    return ffmpegVideoStreamObj ? giftools::ffmpegVideoStreamPrepareFrames(ffmpegVideoStreamObj, framesPerSecond) : 0;
+    return ffmpegVideoStreamObj ? giftools::ffmpegVideoStreamPrepareFrames(ffmpegVideoStreamObj, framesPerSecond, offsetSeconds, durationSeconds) : 0;
 }
 
 int ffmpegVideoStreamPickBestFrame(int ffmpegVideoStreamId, double sampleTime) {
@@ -235,6 +235,10 @@ int ffmpegVideoFrameImage(int ffmpegVideoFrameId) {
 
 #ifdef GIFTOOLS_EMSCRIPTEN
 
+//
+// Buffer
+//
+
 int bufferFromUint8Array(const val& arr) {
     std::vector<uint8_t> contents = vecFromJSArray<uint8_t>(arr);
     return objectReleaseAndReturnId(giftools::bufferFromVector(std::move(contents)));
@@ -244,10 +248,54 @@ val bufferToUint8Array(int bufferId) {
     auto bufferObj = giftools::managedObjStorageDefault().get<giftools::Buffer>(bufferId);
     auto bufferPtr = bufferObj->data();
     auto bufferSize = bufferObj->size();
-    
-    // printf("bufferToUint8Array: contents=%.*s\n", (int)bufferSize, (const char*)bufferPtr);
     return val(typed_memory_view(bufferSize, bufferPtr));
 }
+
+//
+// Progress/Cancellation
+//
+
+class ProgressReporter : public giftools::IProgressReporter {
+public:
+    val progressReporterObj = val::null();
+    ProgressReporter(val progressReporterObj) : progressReporterObj(progressReporterObj) {}
+
+    void reportProgress(double value) override {
+        assert(!progressReporterObj.isUndefined() && !progressReporterObj.isNull());
+        assert(progressReporterObj.hasOwnProperty("reportProgress"));
+        progressReporterObj.call<void>("reportProgress", value);
+    }
+};
+
+class CancellationSource : public giftools::ICancellationSource {
+public:
+    val cancellationSourceObj = val::null();
+    CancellationSource(val cancellationSourceObj) : cancellationSourceObj(cancellationSourceObj) {}
+    ~CancellationSource() override = default;
+    
+    bool shouldCancel() const override {
+        assert(!cancellationSourceObj.isUndefined() && !cancellationSourceObj.isNull());
+        assert(cancellationSourceObj.hasOwnProperty("shouldCancel"));
+        return cancellationSourceObj.call<bool>("shouldCancel");
+    }
+};
+
+bool progressTokenSetProgressReporter(val progressReporterObj) {
+    if (progressReporterObj.isUndefined() || progressReporterObj.isNull()) { GIFTOOLS_LOGE("Null progress reporter."); return false; }
+    if (!progressReporterObj.hasOwnProperty("reportProgress")) { GIFTOOLS_LOGE("Invalid progress reporter."); return false; }
+    giftools::getMutableProgressToken()->setReporter(std::make_unique<ProgressReporter>(progressReporterObj));
+    return true;
+}
+
+bool cancellationTokenSetCancellationSource(val cancellationStorageObj) {
+    if (cancellationStorageObj.isUndefined() || cancellationStorageObj.isNull()) { GIFTOOLS_LOGE("Null cancellation storage."); return false; }
+    giftools::getMutableCancellationToken()->setSource(std::make_unique<CancellationSource>(cancellationStorageObj));
+    return true;
+}
+
+//
+// Bindings
+//
 
 namespace giftools::bindings {
     struct BufferBindings;
@@ -333,6 +381,9 @@ EMSCRIPTEN_BINDINGS(GifToolsBindings) {
     function("ffmpegVideoFrameImage", &ffmpegVideoFrameImage);
     function("ffmpegVideoStreamClose", &ffmpegVideoStreamClose);
     #endif
+
+    function("progressTokenSetProgressReporter", &progressTokenSetProgressReporter);
+    function("cancellationTokenSetCancellationSource", &cancellationTokenSetCancellationSource);
     
     //
     // Classes.

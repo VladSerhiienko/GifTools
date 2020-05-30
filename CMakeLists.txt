@@ -2799,7 +2799,8 @@ if (${GIFTOOLS_USE_FFMPEG})
 )
 endif()
 
-file(GLOB
+file(
+    GLOB
     GIFTOOLS_LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/lib/*.h
     ${PROJECT_SOURCE_DIR}/lib/*.c
