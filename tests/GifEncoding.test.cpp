@@ -197,7 +197,9 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     if (params.preparedAllFrames == GifToolsPrepareAllFrames) {
         ASSERT_NE(0, ffmpegVideoStreamPrepareAllFrames(video.get()));
     } else if (params.preparedAllFrames == GifToolsPrepareFrames) {
-        ASSERT_NE(0, ffmpegVideoStreamPrepareFrames(video.get(), params.desiredFramesPerSecond));
+        auto offsetSeconds = 0.0;
+        auto durationSeconds = video->estimatedTotalDurationSeconds();
+        ASSERT_NE(0, ffmpegVideoStreamPrepareFrames(video.get(), params.desiredFramesPerSecond, offsetSeconds, durationSeconds));
     }
     
     auto width = params.width ? params.width : video->frameWidth();

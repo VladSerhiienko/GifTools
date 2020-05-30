@@ -1,10 +1,29 @@
 
+export class GifToolsRunConfig {
+    startTimeSeconds: number;
+    endTimeSeconds: number;
+    framesPerSecond: number;
+    frameDelaySeconds: number;
+}
+
+export class GifToolsRunOutput {
+    gifBuffer: (Uint8Array | null);
+}
+
 export class GifToolsSession {
     width: number;
     height: number;
     frameCount: number;
     durationSeconds: number;
     frameDurationSeconds: number;
+
+    async run(runConfig: GifToolsRunConfig) : Promise<GifToolsRunOutput> {
+        return GifToolsAsync.get().run(runConfig);
+    }
+
+    async close() : Promise<void> {
+        return GifToolsAsync.get().closeSession();
+    }
 };
 
 export class GifToolsAsync {
@@ -84,6 +103,24 @@ export class GifToolsAsync {
         });
     }
 
+    async run(runConfig: GifToolsRunConfig) : Promise<GifToolsRunOutput> {
+        const msgId = this.nextMsgId();
+        return new Promise((resolve, reject) => {
+            this.schedule(msgId, resolve, reject);
+            let payload = { msgType: 'MSG_TYPE_RUN', msgId: msgId, runConfig: runConfig };
+            this.postMessage(payload);
+        });
+    }
+
+    async closeSession(): Promise<void> {
+        const msgId = this.nextMsgId();
+        return new Promise((resolve, reject) => {
+            this.schedule(msgId, resolve, reject);
+            let payload = { msgType: 'MSG_TYPE_CLOSE_SESSION', msgId: msgId };
+            this.postMessage(payload);
+        });
+    }
+
     private receiveMessage(message: MessageEvent) {
         let payload = message.data;
         console.log('GifToolsAsync.receiveMessage: payload=', payload);
@@ -102,6 +139,7 @@ export class GifToolsAsync {
         } else if (msgType === 'MSG_TYPE_SET_VM_FAILED') {
             this.reject(msgId);
         } else if (msgType === 'MSG_TYPE_OPEN_SESSION_SUCCEEDED') {
+
             if (!payload.hasOwnProperty('session')) { return; }
             if (!payload.session.hasOwnProperty('width')) { return; }
             if (!payload.session.hasOwnProperty('height')) { return; }
@@ -118,6 +156,16 @@ export class GifToolsAsync {
 
             this.resolve(msgId, session);
         } else if (msgType === 'MSG_TYPE_OPEN_SESSION_FAILED') {
+            this.reject(msgId);
+        } else if (msgType === 'MSG_TYPE_CLOSE_SESSION_SUCCEEDED') {
+            this.resolve(msgId);
+        } else if (msgType === 'MSG_TYPE_CLOSE_SESSION_FAILED') {
+            this.reject(msgId);
+        } else if (msgType === 'MSG_TYPE_RUN_SUCCEEDED') {
+            let output = new GifToolsRunOutput();
+            output.gifBuffer = payload.gifBuffer as Uint8Array;
+            this.resolve(msgId, output);
+        } else if (msgType === 'MSG_TYPE_RUN_FAILED') {
             this.reject(msgId);
         } else if (msgType === 'MSG_TYPE_REPORT_PROGRESS') {
             if (!payload.hasOwnProperty('progress')) { return; }

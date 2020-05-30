@@ -143,7 +143,9 @@ describe('GifTools', () => {
             if (prepareFramesType == GifToolsPrepareFramesType.GifToolsPrepareAllFrames) {
                 expect(gifTools.videoDecoderPrepareAllFrames()).toBeTruthy();
             } else if (prepareFramesType == GifToolsPrepareFramesType.GifToolsPrepareFrames) {
-                expect(gifTools.videoDecoderPrepareFrames(framesPerSecond)).toBeTruthy();
+                let offset = 0;
+                let duration = gifTools.videoDecoderDurationSeconds();
+                expect(gifTools.videoDecoderPrepareFrames(framesPerSecond, offset, duration)).toBeTruthy();
             }
 
             expect(gifTools.gifEncoderBegin(targetWidth, targetHeight, delay)).toBeTruthy();

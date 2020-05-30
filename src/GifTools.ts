@@ -228,9 +228,9 @@ export class GifTools {
         return this.vm.ffmpegVideoStreamPrepareAllFrames(this.currentVideoStreamId);
     }
 
-    videoDecoderPrepareFrames(framesPerSecond: number) : number {
+    videoDecoderPrepareFrames(framesPerSecond: number, offsetSeconds: number, durationSeconds: number) : number {
         if (!GifTools.isValidObj(this.currentVideoStreamId)) { return 0; }
-        return this.vm.ffmpegVideoStreamPrepareFrames(this.currentVideoStreamId, framesPerSecond);
+        return this.vm.ffmpegVideoStreamPrepareFrames(this.currentVideoStreamId, framesPerSecond, offsetSeconds, durationSeconds);
     }
 
     videoDecoderPickClosestPreparedVideoFrame(durationSeconds: number): GifToolsVideoFrame | null {

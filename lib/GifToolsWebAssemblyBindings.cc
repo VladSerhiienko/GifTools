@@ -259,6 +259,7 @@ class ProgressReporter : public giftools::IProgressReporter {
 public:
     val progressReporterObj = val::null();
     ProgressReporter(val progressReporterObj) : progressReporterObj(progressReporterObj) {}
+    ~ProgressReporter() override = default;
 
     void reportProgress(double value) override {
         assert(!progressReporterObj.isUndefined() && !progressReporterObj.isNull());

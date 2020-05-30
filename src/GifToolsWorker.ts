@@ -349,7 +349,7 @@ class GifToolsWorker {
     }
 
     onReportedProgress(progress: number) {
-        console.log('GifToolsWorker.onReportedProgress: progress=', progress);
+        // console.log('GifToolsWorker.onReportedProgress: progress=', progress);
         this.postMessage({msgType : 'MSG_TYPE_REPORT_PROGRESS', msgId: -1, progress: progress});
     }
 
@@ -371,27 +371,26 @@ class GifToolsWorker {
             this.cancellationToken = payload.cancellationToken as Uint32Array;
             console.log('GifToolsAsync.receiveMessage: this.cancellationToken=', this.cancellationToken);
 
-            GifToolsFactory().then((vm: any) => {
-                console.log('GifToolsAsync.receiveMessage: vm=', vm);
-                if (vm) {
-
-                    if (!vm.progressTokenSetProgressReporter({reportProgress: (progress: number) => this.onReportedProgress(progress) })) {
-                        console.log('GifToolsAsync.receiveMessage: failed to set progress reporter.');
-                    }
-                    if (!vm.cancellationTokenSetCancellationSource({shouldCancel: () => this.shouldCancel() })) {
-                        console.log('GifToolsAsync.receiveMessage: failed to set cancellation source.');
-                    }
-
-                    this.gifTools.init(vm);
-                    this.postMessage({msgType : 'MSG_TYPE_SET_VM_SUCCEEDED', msgId: msgId});
-                } else {
-                    this.gifTools.init(null);
-                    this.postMessage({msgType : 'MSG_TYPE_SET_VM_FAILED', msgId: msgId});
-                }
-            }, () => {
+            let rejectGifTools = () => {
                 this.gifTools.init(null);
                 this.postMessage({msgType : 'MSG_TYPE_SET_VM_FAILED', msgId: msgId});
-            });
+            };
+
+            GifToolsFactory().then((vm: any) => {
+                console.log('GifToolsAsync.receiveMessage: vm=', vm);
+                if (!vm) { rejectGifTools(); return; }
+
+                if (!vm.progressTokenSetProgressReporter({reportProgress: (progress: number) => this.onReportedProgress(progress) })) {
+                    console.log('GifToolsAsync.receiveMessage: failed to set progress reporter.');
+                }
+                if (!vm.cancellationTokenSetCancellationSource({shouldCancel: () => this.shouldCancel() })) {
+                    console.log('GifToolsAsync.receiveMessage: failed to set cancellation source.');
+                }
+
+                this.gifTools.init(vm);
+                this.postMessage({msgType : 'MSG_TYPE_SET_VM_SUCCEEDED', msgId: msgId});
+
+            }, rejectGifTools);
         } else if (msgType === 'MSG_TYPE_OPEN_SESSION') {
             if(!payload.hasOwnProperty('fileBuffer')) { return; }
 
@@ -424,6 +423,16 @@ class GifToolsWorker {
                 durationSeconds: this.gifTools.videoDecoderDurationSeconds(),
                 frameDurationSeconds: this.gifTools.videoDecoderFrameDurationSeconds(),
             }});
+        } else if (msgType === 'MSG_TYPE_RUN') {
+            this.postMessage({msgType : 'MSG_TYPE_RUN_FAILED', msgId: msgId});
+        } else if (msgType === 'MSG_TYPE_CLOSE_SESSION') {
+            if (!this.gifTools) {
+                this.postMessage({msgType : 'MSG_TYPE_CLOSE_SESSION_FAILED', msgId: msgId, error: 'Caught null GifTools instance.'});
+                return;
+            }
+
+            this.gifTools.videoDecoderCloseVideoStream();
+            this.postMessage({msgType : 'MSG_TYPE_CLOSE_SESSION_SUCCEEDED', msgId: msgId});
         }
     }
 };

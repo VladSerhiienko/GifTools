@@ -1,9 +1,20 @@
+export declare class GifToolsRunConfig {
+    startTimeSeconds: number;
+    endTimeSeconds: number;
+    framesPerSecond: number;
+    frameDelaySeconds: number;
+}
+export declare class GifToolsRunOutput {
+    gifBuffer: (Uint8Array | null);
+}
 export declare class GifToolsSession {
     width: number;
     height: number;
     frameCount: number;
     durationSeconds: number;
     frameDurationSeconds: number;
+    run(runConfig: GifToolsRunConfig): Promise<GifToolsRunOutput>;
+    close(): Promise<void>;
 }
 export declare class GifToolsAsync {
     private static worker;
@@ -23,6 +34,8 @@ export declare class GifToolsAsync {
     init(): Promise<void>;
     cancel(): boolean;
     openSession(fileBuffer: Uint8Array): Promise<GifToolsSession>;
+    run(runConfig: GifToolsRunConfig): Promise<GifToolsRunOutput>;
+    closeSession(): Promise<void>;
     private receiveMessage;
     private postMessage;
 }

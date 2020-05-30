@@ -1,5 +1,4 @@
 import {GifToolsAsync, GifToolsSession} from '../src/GifToolsAsync'
-import { rejects } from 'assert';
 
 GifToolsAsync.get().init().then(() => {
     console.log("index: GifToolsAsync.init: succeeded");
@@ -8,17 +7,15 @@ GifToolsAsync.get().init().then(() => {
 });
 
 function arrayBufferFromFile(file: File) {
-    console.log('arrayBufferFromFile: file.arrayBuffer', file.arrayBuffer);
-
     // Newer stuff that is not available in Safari.
     // https://gist.github.com/hanayashiki/8dac237671343e7f0b15de617b0051bd
     if (!file.arrayBuffer) {
         return new Promise((resolve, reject) => {
             let reader = new FileReader();
 
-            reader.addEventListener('load', event => {
-                resolve(event.target!.result)
-            });
+            reader.addEventListener('load', (event) => { resolve(event.target!.result); });
+            reader.addEventListener('error', () => { reject(); });
+            reader.addEventListener('progress', (event) => { console.log('progress: ', event.loaded, '/', event.total); });
 
             reader.readAsArrayBuffer(file);
         });

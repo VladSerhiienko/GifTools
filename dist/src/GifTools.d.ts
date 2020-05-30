@@ -68,7 +68,7 @@ export declare class GifTools {
     videoDecoderDurationSeconds(): number;
     videoDecoderFrameDurationSeconds(): number;
     videoDecoderPrepareAllFrames(): number;
-    videoDecoderPrepareFrames(framesPerSecond: number): number;
+    videoDecoderPrepareFrames(framesPerSecond: number, offsetSeconds: number, durationSeconds: number): number;
     videoDecoderPickClosestPreparedVideoFrame(durationSeconds: number): GifToolsVideoFrame | null;
     videoDecoderPickClosestVideoFrame(durationSeconds: number): GifToolsVideoFrame | null;
     videoDecoderFreeVideoFrame(frame: (GifToolsVideoFrame | null)): void;
