@@ -374,8 +374,16 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
     if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return {}; }
     
     auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
+    auto& progressToken = *getMutableProgressToken();
+    auto& cancellationToken = *getMutableCancellationToken();
+
+    progressToken.setProgress(0.0);
+    if (cancellationToken.isCancelled()) { return 0; }
+    
     auto preparedFrame = ffmpegVideoStreamPickBestFrameFromPrepared(ffmpegVideoStream, sampleTime, videoStream.frameDurationSeconds * 0.5);
     if (preparedFrame) { GIFTOOLS_LOGT("Found good prepared frame."); return preparedFrame; }
+
+    if (cancellationToken.isCancelled()) { return 0; }
     
     // clang-format off
     assert(videoStream.width > 0);
@@ -418,6 +426,8 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
     FreeFramePacketGuard freeCurrPacketGuard{currFrame};
     FreeFrameGuard freePrevFrameGuard{currFrame};
     FreeFrameGuard freeCurrFrameGuard{prevFrame};
+    
+    if (cancellationToken.isCancelled()) { return 0; }
 
     bool endOfStream = false;
     bool frameAcquired = false;
@@ -426,12 +436,15 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
     GIFTOOLS_LOGW("Reporting progress:");
     
     while (!endOfStream || frameAcquired) {
+        if (cancellationToken.isCancelled()) { return {}; }
         frameAcquired = false;
 
         while (!frameAcquired) {
             bool keepSearchingPackets = true;
             while (keepSearchingPackets && !endOfStream) {
                 GIFTOOLS_LOGT("av_read_frame");
+                
+                if (cancellationToken.isCancelled()) { return {}; }
 
                 FreeFramePacketGuard::videoFrameFreePacket(currFrame);
                 ret = av_read_frame(videoStream.fmtContext, &currFrame.packet);
@@ -455,6 +468,8 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
             // ret = avcodec_receive_frame(videoStream.primaryCodecContext, currFrame.decodedFrame);
             // if (ret < 0) { return {}; }
             // frameAcquired = true;
+            
+            if (cancellationToken.isCancelled()) { return {}; }
             
             GIFTOOLS_LOGT("avcodec_decode_video2");
             
@@ -485,7 +500,11 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         GIFTOOLS_LOGT("frame = %f.", videoStream.frameDurationSeconds);
 
         if (diff < videoStream.frameDurationSeconds) {
+            if (cancellationToken.isCancelled()) { return {}; }
+            
             GIFTOOLS_LOGT("Current frame is good (%f, %f -> %f).", sampleTime, mostAccurateTime, diff);
+
+            progressToken.setProgress(0.99);
             GIFTOOLS_LOGW("\t> Progress: 100.0%%");
     
             auto frame = ffmpegVideoFrameFromStaging(videoStream, currFrame);
@@ -493,15 +512,22 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         }
 
         if (mostAccurateTime < 0) {
+            if (cancellationToken.isCancelled()) { return {}; }
+            
             GIFTOOLS_LOGT("Last frame is the only option (%f, %f -> %f).", sampleTime, prevFrame.timeSecondsEst, fabs(sampleTime - prevFrame.timeSecondsEst));
-            GIFTOOLS_LOGW("\t> Progress: 100.0%%");
+            
+            progressToken.setProgress(0.99);
+            GIFTOOLS_LOGT("\t> Progress: 100.0%%");
             
             auto frame = ffmpegVideoFrameFromStaging(videoStream, prevFrame);
             return frame;
         }
         
         if (mostAccurateTime > sampleTime) {
-            GIFTOOLS_LOGW("\t> Progress: 100.0%%");
+            if (cancellationToken.isCancelled()) { return {}; }
+
+            progressToken.setProgress(0.99);
+            GIFTOOLS_LOGT("\t> Progress: 100.0%%");
             
             const double prevDiff = fabs(prevFrame.timeSecondsEst - sampleTime);
             const double currDiff = fabs(currFrame.timeSecondsEst - sampleTime);
@@ -520,7 +546,10 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         }
         
         GIFTOOLS_LOGT("Trying the next frame.");
-        GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (mostAccurateTime / sampleTime)));
+
+        double progress = mostAccurateTime / sampleTime;
+        progressToken.setProgress(std::min(0.99, progress));
+        GIFTOOLS_LOGT("\t> Progress: %.1f%%", std::min(99.9, 100.0 * progress));
         
         if (mostAccurateTime >= 0.0) {
             GIFTOOLS_LOGT("Swapping staing frames.");
@@ -528,7 +557,8 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
         }
     }
 
-    GIFTOOLS_LOGW("\t> Progress: 100.0%%");
+    progressToken.setProgress(0.99);
+    GIFTOOLS_LOGT("\t> Progress: 100.0%%");
     return {};
 }
 
@@ -537,6 +567,11 @@ giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideo
     if (!ffmpegVideoStream) { GIFTOOLS_LOGE("Caught null video stream."); return 0; }
 
     auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
+    auto& progressToken = *getMutableProgressToken();
+    auto& cancellationToken = *getMutableCancellationToken();
+    
+    progressToken.setProgress(0.0);
+    if (cancellationToken.isCancelled()) { return 0; }
 
     // clang-format off
     assert(videoStream.width > 0);
@@ -563,6 +598,8 @@ giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideo
     FlushBuffersGuard flushBuffersGuard{videoStream};
     FreeFramePacketGuard freeCurrPacketGuard{currFrame};
     FreeFrameGuard freePrevFrameGuard{currFrame};
+    
+    if (cancellationToken.isCancelled()) { return 0; }
 
     bool endOfStream = false;
     bool frameAcquired = false;
@@ -572,6 +609,8 @@ giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideo
     videoStream.clearPreparedFrames(false);
     
     while (!endOfStream || frameAcquired) {
+        if (cancellationToken.isCancelled()) { videoStream.clearPreparedFrames(); return 0; }
+        
         frameAcquired = false;
 
         while (!frameAcquired) {
@@ -602,6 +641,8 @@ giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideo
             // if (ret < 0) { return {}; }
             // frameAcquired = true;
             
+            if (cancellationToken.isCancelled()) { videoStream.clearPreparedFrames(); return 0; }
+            
             GIFTOOLS_LOGT("avcodec_decode_video2");
             
             int didRetrievePicture = 0;
@@ -616,6 +657,8 @@ giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideo
 
             if (endOfStream) { break; }
         }
+            
+        if (cancellationToken.isCancelled()) { videoStream.clearPreparedFrames(); return 0; }
         
         // av_frame_get_best_effort_timestamp(currFrame.decodedFrame);
         const int64_t mostAccurateTimestamp = currFrame.decodedFrame->best_effort_timestamp;
@@ -629,13 +672,17 @@ giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideo
         if (mostAccurateTime < 0) { GIFTOOLS_LOGE("mostAccurateTime is negative."); break; }
 
         videoStream.preparedFrames.emplace_back(ffmpegVideoFrameFromStaging(videoStream, currFrame));
-        GIFTOOLS_LOGW("\t> Progress: %.1f%%", 100.0 * (mostAccurateTime / videoStream.durationSeconds));
+        
+        double progress = mostAccurateTime / videoStream.durationSeconds;
+        progressToken.setProgress(std::min(0.99, progress));
+        GIFTOOLS_LOGT("\t> Progress: %.1f%%", std::min(99.9, 100.0 * progress));
     }
     
     GIFTOOLS_LOGT("Sorting prepared frames: %zu", videoStream.preparedFrames.size());
     videoStream.sortPreparedFrames();
 
-    GIFTOOLS_LOGW("\t> Progress: 100.0%%");
+    progressToken.setProgress(0.99);
+    GIFTOOLS_LOGT("\t> Progress: 100.0%%");
     return videoStream.preparedFrames.size();
 }
 
@@ -649,6 +696,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
     auto& videoStream = (FFmpegVideoStreamImpl&)*ffmpegVideoStream;
     auto& progressToken = *getMutableProgressToken();
     auto& cancellationToken = *getMutableCancellationToken();
+    
+    progressToken.setProgress(0.0);
     
     double maxFramesPerSecond = double(videoStream.frameCount_) / videoStream.durationSeconds;
     double desiredFrameTimeSeconds = 1.0 / framesPerSecond;
@@ -778,7 +827,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
         currFrame.timeSecondsEst = mostAccurateTime;
         
         if (mostAccurateTime > endTimeSeconds) {
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
+            progressToken.setProgress(std::min(0.99, sampleTime / endTimeSeconds));
+            GIFTOOLS_LOGT("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             break;
         }
         
@@ -787,7 +837,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
             std::swap(prevFrame, currFrame);
             sampleTime += desiredFrameTimeSeconds;
             
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
+            progressToken.setProgress(std::min(0.99, sampleTime / endTimeSeconds));
+            GIFTOOLS_LOGT("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             continue;
         }
         
@@ -807,7 +858,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
             if (frame) { videoStream.preparedFrames.emplace_back(std::move(frame)); }
             sampleTime += desiredFrameTimeSeconds;
             
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
+            progressToken.setProgress(std::min(0.99, sampleTime / endTimeSeconds));
+            GIFTOOLS_LOGT("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             continue;
         }
 
@@ -822,7 +874,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
             std::swap(prevFrame, currFrame);
             sampleTime += desiredFrameTimeSeconds;
             
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
+            progressToken.setProgress(std::min(0.99, sampleTime / endTimeSeconds));
+            GIFTOOLS_LOGT("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             continue;
         }
         
@@ -842,7 +895,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
                 std::swap(prevFrame, currFrame);
                 sampleTime += desiredFrameTimeSeconds;
                 
-                GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
+                progressToken.setProgress(std::min(0.99, sampleTime / endTimeSeconds));
+                GIFTOOLS_LOGT("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
                 continue;
             }
 
@@ -854,7 +908,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
             std::swap(prevFrame, currFrame);
             sampleTime += desiredFrameTimeSeconds;
         
-            GIFTOOLS_LOGW("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
+            progressToken.setProgress(std::min(0.99, sampleTime / endTimeSeconds));
+            GIFTOOLS_LOGT("\t> Progress: %.1f%%", std::min(99.9, 100.0 * (sampleTime / endTimeSeconds)));
             continue;
         }
 
@@ -869,7 +924,8 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
     GIFTOOLS_LOGT("Sorting prepared frames: %zu", videoStream.preparedFrames.size());
     videoStream.sortPreparedFrames();
 
-    GIFTOOLS_LOGW("\t> Progress: 100.0%%");
+    progressToken.setProgress(0.99);
+    GIFTOOLS_LOGT("\t> Progress: 100.0%%");
     return videoStream.preparedFrames.size();
 }
 

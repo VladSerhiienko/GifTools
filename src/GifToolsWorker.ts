@@ -337,6 +337,7 @@ class GifToolsWorker {
     worker: Worker = worker;
     gifTools = new GifTools();
     cancellationToken: Uint32Array;
+    lastMsgId = -1;
 
     postMessage(message: any, transferable?:Transferable[]) {
         console.log('GifToolsWorker.postMessage: message=', message, ', transferable=', transferable);
@@ -351,7 +352,7 @@ class GifToolsWorker {
 
     onReportedProgress(progress: number) {
         // console.log('GifToolsWorker.onReportedProgress: progress=', progress);
-        this.postMessage({msgType : 'MSG_TYPE_REPORT_PROGRESS', msgId: -1, progress: progress});
+        this.postMessage({msgType : 'MSG_TYPE_REPORT_PROGRESS', msgId: this.lastMsgId, progress: progress});
     }
 
     toBase64(arr: Uint8Array) : string {
@@ -365,7 +366,7 @@ class GifToolsWorker {
         framesPerSecond: number,
         frameDelaySeconds: number,
         loop: boolean,
-        boomerang: boolean) : (Uint8Array|null) {
+        boomerang: boolean) : (string|null) {
     
         if (!this.gifTools) { return null; }
 
@@ -376,12 +377,18 @@ class GifToolsWorker {
         if (frameDelaySeconds <= 0) { return null; }
         if (startTimeSeconds === endTimeSeconds) { return null; }
 
-        const duration = this.gifTools.videoDecoderDurationSeconds();
+        const totalDuration = this.gifTools.videoDecoderDurationSeconds();
 
         if (startTimeSeconds < 0) { return null; }
-        if (startTimeSeconds >= duration) { return null; }
+        if (startTimeSeconds >= totalDuration) { return null; }
         if (endTimeSeconds < 0) { return null; }
-        if (endTimeSeconds > duration) { return null; }
+        if (endTimeSeconds > totalDuration) { return null; }
+
+        this.onReportedProgress(0);
+
+        if (!this.gifTools.module().progressTokenSetProgressReporter({reportProgress: (progress: number) => this.onReportedProgress(progress * 0.4) })) {
+            console.log('GifToolsAsync.receiveMessage: failed to set progress reporter.');
+        }
 
         const shouldResize = width != this.gifTools.videoDecoderWidth() || height != this.gifTools.videoDecoderHeight();
 
@@ -390,9 +397,18 @@ class GifToolsWorker {
         }
 
         const imgIds: number[] = [];
-
         const dt = 1.0 / framesPerSecond;
-        for (var t = 0.0; t < duration; t += dt) {
+        const duration = endTimeSeconds - startTimeSeconds;
+        const frames = duration / dt;
+
+        let dp = 1 / frames * 0.3;
+        let p = 0.4;
+
+        if (!this.gifTools.module().progressTokenSetProgressReporter({reportProgress: (progress: number) => { /* noop */ } })) {
+            console.log('GifToolsAsync.receiveMessage: failed to set progress reporter.');
+        }
+
+        for (var t = startTimeSeconds; t <= endTimeSeconds; t += dt) {
             console.log('cycle, t=', t);
 
             const frame = this.gifTools.videoDecoderPickClosestPreparedVideoFrame(t); 
@@ -410,6 +426,9 @@ class GifToolsWorker {
             }
             
             this.gifTools.videoDecoderFreeVideoFrame(frame);
+
+            p += dp;
+            this.onReportedProgress(p);
         }
 
         console.log('imgIds=', imgIds);
@@ -433,10 +452,16 @@ class GifToolsWorker {
         if (!this.gifTools.gifEncoderBegin(width, height, loop ? frameDelaySeconds * 100 : 0)) {
             return null;
         }
+
+        dp = 1.0 / imgIndices.length * 0.25;
+        p = 0.7;
         
         for (let i = 0; i < imgIndices.length; ++i) {
             console.log('gif, i=', i, ', img=', imgIds[imgIndices[i]]);
             this.gifTools.gifEncoderAddImage(imgIds[imgIndices[i]], frameDelaySeconds * 100);
+
+            p += dp;
+            this.onReportedProgress(p);
         }
 
         console.log('free imgs');
@@ -445,7 +470,10 @@ class GifToolsWorker {
         }
 
         const gifBuffer = this.gifTools.gifEncoderEnd();
-        return gifBuffer;
+        if (!gifBuffer) { this.onReportedProgress(1); return ""; }
+
+        const gifBase64 = this.toBase64(gifBuffer);
+        return gifBase64;
     }
 
     receiveMessage(messageEvent: MessageEvent) {
@@ -458,6 +486,8 @@ class GifToolsWorker {
 
         let msgType = payload.msgType;
         let msgId = payload.msgId;
+
+        this.lastMsgId = msgId;
 
         console.log('GifToolsAsync.receiveMessage: msgType=', msgType);
         console.log('GifToolsAsync.receiveMessage: msgId=', msgId);
@@ -475,7 +505,7 @@ class GifToolsWorker {
                 console.log('GifToolsAsync.receiveMessage: vm=', vm);
                 if (!vm) { rejectGifTools(); return; }
 
-                if (!vm.progressTokenSetProgressReporter({reportProgress: (progress: number) => this.onReportedProgress(progress) })) {
+                if (!vm.progressTokenSetProgressReporter({reportProgress: (progress: number) => { /* noop */ } })) {
                     console.log('GifToolsAsync.receiveMessage: failed to set progress reporter.');
                 }
                 if (!vm.cancellationTokenSetCancellationSource({shouldCancel: () => this.shouldCancel() })) {
@@ -488,6 +518,10 @@ class GifToolsWorker {
             }, rejectGifTools);
         } else if (msgType === 'MSG_TYPE_OPEN_SESSION') {
             if(!payload.hasOwnProperty('fileBuffer')) { return; }
+
+            if (!this.gifTools.module().progressTokenSetProgressReporter({reportProgress: (progress: number) => this.onReportedProgress(progress) })) {
+                console.log('GifToolsAsync.receiveMessage: failed to set progress reporter.');
+            }
 
             let fileArrayBuffer = payload.fileBuffer as (ArrayBuffer | SharedArrayBuffer);
             if(!fileArrayBuffer) {
@@ -506,11 +540,15 @@ class GifToolsWorker {
                 return;
             }
 
+            this.onReportedProgress(0);
+
             if (!this.gifTools.videoDecoderOpenVideoStream(fileBuffer)) {
+                this.onReportedProgress(1);
                 this.postMessage({msgType : 'MSG_TYPE_OPEN_SESSION_FAILED', msgId: msgId, error: 'Failed to open video stream from provided file buffer.'});
                 return;
             }
 
+            this.onReportedProgress(1);
             this.postMessage({msgType : 'MSG_TYPE_OPEN_SESSION_SUCCEEDED', msgId: msgId, session: {
                 width: this.gifTools.videoDecoderWidth(),
                 height: this.gifTools.videoDecoderHeight(),
@@ -520,6 +558,8 @@ class GifToolsWorker {
             }});
         } else if (msgType === 'MSG_TYPE_RUN') {
             if(!payload.hasOwnProperty('runConfig')) { return; }
+
+            this.onReportedProgress(0);
             
             const width = payload.runConfig.width;
             const height = payload.runConfig.height;
@@ -530,21 +570,17 @@ class GifToolsWorker {
             const loop = payload.runConfig.loop;
             const boomerang = payload.runConfig.boomerang;
 
-            const gifBuffer = this.run(width, height, startTimeSeconds, endTimeSeconds, framesPerSecond, frameDelaySeconds, loop, boomerang);
-            if (gifBuffer == null) {
+            const gifBase64 = this.run(width, height, startTimeSeconds, endTimeSeconds, framesPerSecond, frameDelaySeconds, loop, boomerang);
+            this.gifTools.internalAddObjIds();
+
+            if (gifBase64 == null) {
+                this.onReportedProgress(1);
                 this.postMessage({msgType : 'MSG_TYPE_RUN_FAILED', msgId: msgId});
                 return;
             }
 
-            console.log('gifBuffer=', gifBuffer);
-
-            const gifBase64 = this.toBase64(gifBuffer);
-            console.log('gifBase64=', gifBase64);
-
-            this.gifTools.internalAddObjIds();
-
+            this.onReportedProgress(1);
             this.postMessage({msgType : 'MSG_TYPE_RUN_SUCCEEDED', msgId: msgId, gifBase64: gifBase64});
-            // this.postMessage({msgType : 'MSG_TYPE_RUN_SUCCEEDED', msgId: msgId, gifBuffer: gifBuffer, gifBase64: gifBase64}, [gifBuffer.buffer]);
         } else if (msgType === 'MSG_TYPE_CLOSE_SESSION') {
             if (!this.gifTools) {
                 this.postMessage({msgType : 'MSG_TYPE_CLOSE_SESSION_FAILED', msgId: msgId, error: 'Caught null GifTools instance.'});

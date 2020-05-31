@@ -175,7 +175,7 @@ export class GifToolsAsync {
             this.reject(msgId);
         } else if (msgType === 'MSG_TYPE_REPORT_PROGRESS') {
             if (!payload.hasOwnProperty('progress')) { return; }
-            console.log('GifToolsAsync.onReportedProgress: progress=', payload.progress);
+            console.log('GifToolsAsync.onReportedProgress: progress=', payload.progress * 100, '%');
         }
     }
 
