@@ -56,7 +56,12 @@ if(NOT DEFINED GIFTOOLS_BUILD_FFMPEG)
     set(GIFTOOLS_BUILD_FFMPEG FALSE)
 endif()
 
+if(NOT DEFINED GIFTOOLS_BUILD_DISABLE_DEBUG_UTILS)
+    set(GIFTOOLS_BUILD_DISABLE_DEBUG_UTILS FALSE)
+endif()
+
 message(STATUS "Seeing GIFTOOLS_BUILD_EMSCRIPTEN=${GIFTOOLS_BUILD_EMSCRIPTEN}")
+message(STATUS "Seeing GIFTOOLS_BUILD_DISABLE_DEBUG_UTILS=${GIFTOOLS_BUILD_DISABLE_DEBUG_UTILS}")
 
 if(${GIFTOOLS_BUILD_EMSCRIPTEN})
     set(GIFTOOLS_USE_EMSDK TRUE)
@@ -67,7 +72,6 @@ if(${GIFTOOLS_BUILD_FFMPEG})
 endif()
 
 message(STATUS "Seeing GIFTOOLS_USE_EMSDK=${GIFTOOLS_USE_EMSDK}")
-
 if(NOT DEFINED GIFTOOLS_EMSDK_FOLDER)
     set(GIFTOOLS_EMSDK_FOLDER "${CMAKE_SOURCE_DIR}/dependencies/emsdk")
 endif()
@@ -121,21 +125,33 @@ if(${GIFTOOLS_USE_EMSDK})
     # -s MALLOC=emmalloc \
     # -s INITIAL_MEMORY=50331648 \
 
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        --bind \
-        --no-entry \
-        --profiling \
-        --profiling-funcs \
-        --tracing \
-        --emit-symbol-map \
-        -s WASM=1 \
-        -s FILESYSTEM=0 \
-        -g4 \
-        -s DEMANGLE_SUPPORT=1 \
-        -s NO_EXIT_RUNTIME=1 \
-        -s ABORTING_MALLOC=0 \
-        -s MALLOC=emmalloc \
-        -s ALLOW_MEMORY_GROWTH=1")
+    if (${GIFTOOLS_BUILD_DISABLE_DEBUG_UTILS})
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            --bind \
+            --no-entry \
+            -s WASM=1 \
+            -s FILESYSTEM=0 \
+            -s NO_EXIT_RUNTIME=1 \
+            -s ABORTING_MALLOC=0 \
+            -s MALLOC=emmalloc \
+            -s ALLOW_MEMORY_GROWTH=1")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            --bind \
+            --no-entry \
+            --profiling \
+            --profiling-funcs \
+            --tracing \
+            --emit-symbol-map \
+            -s WASM=1 \
+            -s FILESYSTEM=0 \
+            -g4 \
+            -s DEMANGLE_SUPPORT=1 \
+            -s NO_EXIT_RUNTIME=1 \
+            -s ABORTING_MALLOC=0 \
+            -s MALLOC=emmalloc \
+            -s ALLOW_MEMORY_GROWTH=1")
+    endif()
 
     # Set optimization flags
     if(${GIFTOOLS_BUILD_SMALLEST_EMSCRIPTEN})

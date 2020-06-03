@@ -1,3 +1,4 @@
+declare type GifToolsRunProgressCallback = (progress: number) => void;
 export declare class GifToolsRunConfig {
     width: number;
     height: number;
@@ -7,6 +8,7 @@ export declare class GifToolsRunConfig {
     frameDelaySeconds: number;
     loop: boolean;
     boomerang: boolean;
+    progressCallback: GifToolsRunProgressCallback;
 }
 export declare class GifToolsRunOutput {
     gifBuffer: (Uint8Array | null);
@@ -30,6 +32,7 @@ export declare class GifToolsAsync {
     private rejects;
     private cancellationBuffer;
     private cancellationToken;
+    private lastProgressCallback;
     private constructor();
     private nextMsgId;
     private schedule;
@@ -44,3 +47,4 @@ export declare class GifToolsAsync {
     private receiveMessage;
     private postMessage;
 }
+export {};

@@ -1,4 +1,6 @@
 
+type GifToolsRunProgressCallback = (progress: number) => void;
+
 export class GifToolsRunConfig {
     width: number;
     height: number;
@@ -8,6 +10,7 @@ export class GifToolsRunConfig {
     frameDelaySeconds: number;
     loop: boolean;
     boomerang: boolean;
+    progressCallback: GifToolsRunProgressCallback;
 }
 
 export class GifToolsRunOutput {
@@ -43,6 +46,7 @@ export class GifToolsAsync {
 
     private cancellationBuffer = new ArrayBuffer(4);
     private cancellationToken = new Uint32Array(this.cancellationBuffer);
+    private lastProgressCallback: (GifToolsRunProgressCallback|null) = null;
 
     private constructor() {
         GifToolsAsync.worker.onmessage = event => {
@@ -112,6 +116,8 @@ export class GifToolsAsync {
         const msgId = this.nextMsgId();
         return new Promise((resolve, reject) => {
             this.schedule(msgId, resolve, reject);
+            this.lastProgressCallback = runConfig.progressCallback;
+            delete runConfig.progressCallback;
             let payload = { msgType: 'MSG_TYPE_RUN', msgId: msgId, runConfig: runConfig };
             this.postMessage(payload);
         });
@@ -175,6 +181,7 @@ export class GifToolsAsync {
             this.reject(msgId);
         } else if (msgType === 'MSG_TYPE_REPORT_PROGRESS') {
             if (!payload.hasOwnProperty('progress')) { return; }
+            if (this.lastProgressCallback) { this.lastProgressCallback!(payload.progress * 100); }
             console.log('GifToolsAsync.onReportedProgress: progress=', payload.progress * 100, '%');
         }
     }

@@ -24,12 +24,23 @@ function arrayBufferFromFile(file: File) {
     return file.arrayBuffer();
 }
 
-const result = document.getElementById('result');
-console.log('result ?', result);
-if (result) {
-    const button = document.getElementById('myFile');
-    if (button) {
-        button.addEventListener('change', (event) => {
+const resultImg = document.getElementById('result');
+const progressBar = document.getElementById('progress');
+const cancelBtn = document.getElementById('cancel');
+const pickFileBtn = document.getElementById('myFile');
+
+if (resultImg) {
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', (event) => {
+            console.log('Cancelling ...');
+            // TODO(vserhiienko): Implement.
+            // GifToolsAsync.get().cancel();
+        });
+    }
+
+    if (pickFileBtn) {
+        pickFileBtn.addEventListener('change', (event) => {
             console.log('button.onclick!');
 
             if (!event) { return; }
@@ -62,15 +73,24 @@ if (result) {
                 runConfig.frameDelaySeconds = 1;
                 runConfig.loop = true;
                 runConfig.boomerang = true;
+                runConfig.progressCallback = (progress: number) => { progressBar!.setAttribute('value', '' + progress); };
+
+                progressBar!.setAttribute('value', '0');
 
                 return GifToolsAsync.get().run(runConfig);
             }, () => {
                 console.log('Failed to open session from', file);
+
+                progressBar!.setAttribute('value', '100');
             }).then((output: GifToolsRunOutput) => {
                 console.log('output', output);
-                result!.setAttribute('src', 'data:image/gif;base64,' + output.gifBase64);
+
+                progressBar!.setAttribute('value', '100');
+                resultImg!.setAttribute('src', 'data:image/gif;base64,' + output.gifBase64);
             }, () => {
                 console.log('Failed to creat GIF');
+
+                progressBar!.setAttribute('value', '100');
             });;
         });
     }
