@@ -32,7 +32,7 @@ export class GifToolsSession {
 };
 
 export class GifToolsAsync {
-    private static worker = new Worker('./GifToolsWorker.ts', { type: 'module' });;
+    private static worker = new Worker('./GifToolsWorker', { type: 'module' });;
     private static instance = new GifToolsAsync()
 
     static get() { return GifToolsAsync.instance; }
