@@ -591,4 +591,4 @@ class GifToolsWorker {
     }
 };
 
-export default null as any;
+// export default null as any;

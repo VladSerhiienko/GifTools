@@ -12,8 +12,11 @@ module.exports = {
         ]
     },
     output: {
-        filename: "main.js",
-        path: path.resolve(__dirname, "dist"),
+        path: path.resolve(__dirname, "dist"),	
+        filename: "[name].js",	
+        libraryTarget: 'umd',	
+        library: 'GifTools',	
+        umdNamedDefine: true
     },
     mode: process.env.NODE_ENV || 'development',
     resolve: {
