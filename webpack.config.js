@@ -4,7 +4,6 @@ module.exports = {
     entry: "./src/index.ts",
     module: {
         rules: [
-            { test: /\.worker\.js$/, loader: 'worker-loader' },
             {
                 test: /\.ts?$/,
                 use: 'ts-loader',
@@ -12,15 +11,13 @@ module.exports = {
             }
         ]
     },
+    output: {
+        filename: "main.js",
+        path: path.resolve(__dirname, "dist"),
+    },
+    mode: process.env.NODE_ENV || 'development',
     resolve: {
         extensions: [ '.tsx', '.ts', '.js' ],
     },
     devtool: 'source-map',
-    output: {
-        path: path.resolve(__dirname, "dist"),
-        filename: "[name].js",
-        libraryTarget: 'umd',
-        library: 'GifTools',
-        umdNamedDefine: true
-    },
 };

@@ -1,6 +1,4 @@
 import * as GifToolsFactory from '../bin/web_amalgamated_ffmpeg_worker/GifTools'; // @ts-ignore
-import { start } from 'repl';
-// import * as GifToolsFactory from '../bin/web_amalgamated_ffmpeg/GifTools'; // @ts-ignore
 
 //
 // Subscribe to messages from client.
@@ -592,3 +590,5 @@ class GifToolsWorker {
         }
     }
 };
+
+export default null as any;

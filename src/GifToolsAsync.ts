@@ -1,3 +1,5 @@
+// import workerScript from './GifToolsWorker';
+const Worker = require('worker-loader?inline&fallback=false!./GifToolsWorker');
 
 type GifToolsRunProgressCallback = (progress: number) => void;
 
@@ -35,7 +37,7 @@ export class GifToolsSession {
 };
 
 export class GifToolsAsync {
-    private static worker = new Worker('./GifToolsWorker', { type: 'module' });;
+    private static worker = new Worker();
     private static instance = new GifToolsAsync()
 
     static get() { return GifToolsAsync.instance; }
@@ -49,7 +51,7 @@ export class GifToolsAsync {
     private lastProgressCallback: (GifToolsRunProgressCallback|null) = null;
 
     private constructor() {
-        GifToolsAsync.worker.onmessage = event => {
+        GifToolsAsync.worker.onmessage = (event: any) => {
             this.receiveMessage(event);
         }
     }
