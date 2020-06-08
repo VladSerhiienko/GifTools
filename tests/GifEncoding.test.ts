@@ -172,7 +172,7 @@ describe('GifTools', () => {
             expect(gifBuffer).toBeTruthy();
 
             const prefix = "dump_";
-            const fileName = path.basename(videoFilePath, '.mp4');
+            const fileName = path.basename(videoFilePath, path.extname(videoFilePath));
             const id = videoResolutionId + "_" + targetResolutionId;
             const resultName = prefix + fileName + "_" + id + ".gif";
             const actualResultPath = actualResultsDirPath + '/' + resultName;
@@ -192,6 +192,12 @@ describe('GifTools', () => {
             done();
         });
     };
+
+    test('GIF-FFMPEG-FHD-360P-RATE-MOV', done => {
+        const width = 640;
+        const height = 360;
+        baseGifToolsFFmpegTest(done, width, height, '360p', 'IMG_2041.MOV', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
+    });
 
     test('GIF-FFMPEG-360P-RATE', done => {
         const width = 360;

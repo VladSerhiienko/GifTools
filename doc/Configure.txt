@@ -59,3 +59,25 @@ sh giftools-build-for-web-es6-with-local-emsdk.sh
 sh giftools-build-for-web-single-file-with-local-emsdk.sh
 sh giftools-build-with-local-emsdk.sh
 sh giftools-run-node-tests.sh
+
+
+./configure \
+  --disable-everything \
+  --disable-network \
+  --disable-autodetect \
+  --disable-asm \
+  --disable-inline-asm \
+  --disable-x86asm \
+  --enable-small \
+  --enable-demuxer=mov \
+  --enable-demuxer=aac \
+  --enable-demuxer=mpegvideo\
+  --enable-demuxer=h264 \
+  --enable-demuxer=hevc \
+  --enable-decoder=h264 \
+  --enable-decoder=hevc \
+  --enable-parser=h264 \
+  --enable-parser=hevc \
+  --enable-muxer=h264
+
+  

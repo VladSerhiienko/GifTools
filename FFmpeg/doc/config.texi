@@ -575,7 +575,7 @@
 @c @set config-audio-frame-queue no
 @c @set config-audiodsp no
 @c @set config-blockdsp no
-@c @set config-bswapdsp no
+@set config-bswapdsp yes
 @set config-cabac yes
 @c @set config-cbs no
 @c @set config-cbs-av1 no
@@ -603,7 +603,7 @@
 @set config-h264parse yes
 @set config-h264pred yes
 @set config-h264qpel yes
-@c @set config-hevcparse no
+@set config-hevcparse yes
 @c @set config-hpeldsp no
 @c @set config-huffman no
 @c @set config-huffyuvdsp no
@@ -774,7 +774,7 @@
 @c @set config-h264-qsv-decoder no
 @c @set config-h264-rkmpp-decoder no
 @c @set config-hap-decoder no
-@c @set config-hevc-decoder no
+@set config-hevc-decoder yes
 @c @set config-hevc-qsv-decoder no
 @c @set config-hevc-rkmpp-decoder no
 @c @set config-hevc-v4l2m2m-decoder no
@@ -1485,7 +1485,7 @@
 @c @set config-h261-parser no
 @c @set config-h263-parser no
 @set config-h264-parser yes
-@c @set config-hevc-parser no
+@set config-hevc-parser yes
 @c @set config-mjpeg-parser no
 @c @set config-mlp-parser no
 @c @set config-mpeg4video-parser no
@@ -2040,7 +2040,7 @@
 @c @set config-h261-demuxer no
 @c @set config-h263-demuxer no
 @set config-h264-demuxer yes
-@c @set config-hevc-demuxer no
+@set config-hevc-demuxer yes
 @c @set config-hls-demuxer no
 @c @set config-hnm-demuxer no
 @c @set config-ico-demuxer no
