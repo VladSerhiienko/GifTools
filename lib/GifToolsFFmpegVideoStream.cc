@@ -457,6 +457,13 @@ giftools::ffmpegVideoStreamPickBestFrame(const giftools::FFmpegVideoStream* ffmp
                     break;
                 }
             }
+            
+            if (endOfStream) {
+                // null packet for bumping process
+                av_init_packet(&currFrame.packet);
+                currFrame.packet.data = nullptr;
+                currFrame.packet.size = 0;
+            }
 
             // clang-format off
             
@@ -628,6 +635,13 @@ giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideo
                     keepSearchingPackets = false;
                     break;
                 }
+            }
+            
+            if (endOfStream) {
+                // null packet for bumping process
+                av_init_packet(&currFrame.packet);
+                currFrame.packet.data = nullptr;
+                currFrame.packet.size = 0;
             }
 
             // clang-format off
