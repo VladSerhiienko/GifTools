@@ -1,4 +1,5 @@
 import {GifToolsAsync, GifToolsSession, GifToolsRunConfig, GifToolsRunOutput} from '../src/GifToolsAsync'
+import {GifToolsVersion} from '../src/GifToolsVersion'
 
 GifToolsAsync.get().init().then(() => {
     console.log("index: GifToolsAsync.init: succeeded");
@@ -28,6 +29,11 @@ const resultImg = document.getElementById('result');
 const progressBar = document.getElementById('progress');
 const cancelBtn = document.getElementById('cancel');
 const pickFileBtn = document.getElementById('myFile');
+const versionLabel = document.getElementById('version');
+
+if (versionLabel) {
+    versionLabel.innerHTML = GifToolsVersion();
+}
 
 if (resultImg) {
 
