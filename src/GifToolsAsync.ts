@@ -12,12 +12,12 @@ export class GifToolsRunConfig {
     frameDelaySeconds: number;
     loop: boolean;
     boomerang: boolean;
+    outputType: String;
     progressCallback: GifToolsRunProgressCallback;
 }
 
 export class GifToolsRunOutput {
-    gifBuffer: (Uint8Array | null);
-    gifBase64: (string | null);
+    output: (ArrayBuffer | String | null);
 }
 
 export class GifToolsSession {
@@ -175,10 +175,19 @@ export class GifToolsAsync {
         } else if (msgType === 'MSG_TYPE_CLOSE_SESSION_FAILED') {
             this.reject(msgId);
         } else if (msgType === 'MSG_TYPE_RUN_SUCCEEDED') {
-            let output = new GifToolsRunOutput();
-            output.gifBuffer = null; // payload.gifBuffer as Uint8Array;
-            output.gifBase64 = payload.gifBase64 as string;
-            this.resolve(msgId, output);
+            if (!payload.hasOwnProperty('runOutput')) { return; }
+
+            var runOutput = payload.runOutput;
+            let ret = new GifToolsRunOutput();
+            ret.output = null;
+
+            if (runOutput.hasOwnProperty('base64')) {
+                ret.output = runOutput.base64 as String;
+            } else if (runOutput.hasOwnProperty('arraybuffer')) {
+                ret.output = runOutput.arraybuffer as ArrayBuffer;
+            }
+
+            this.resolve(msgId, ret);
         } else if (msgType === 'MSG_TYPE_RUN_FAILED') {
             this.reject(msgId);
         } else if (msgType === 'MSG_TYPE_REPORT_PROGRESS') {

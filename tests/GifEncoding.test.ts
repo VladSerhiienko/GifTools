@@ -193,6 +193,12 @@ describe('GifTools', () => {
         });
     };
 
+    test('GIF-FFMPEG-360P-RATE', done => {
+        const width = 360;
+        const height = 640;
+        baseGifToolsFFmpegTest(done, width, height, '360p', 'roborock.mp4', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
+    });
+
     test('GIF-FFMPEG-360P', done => {
         const width = 0;
         const height = 0;

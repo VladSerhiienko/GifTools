@@ -353,7 +353,15 @@ class GifToolsWorker {
         this.postMessage({msgType : 'MSG_TYPE_REPORT_PROGRESS', msgId: this.lastMsgId, progress: progress});
     }
 
-    toBase64(arr: Uint8Array) : string {
+    copyToArrayBuffer(arr: Uint8Array) : ArrayBuffer {
+        var dstBuff = new ArrayBuffer(arr.byteLength);
+        var dstEncoder = new Uint8Array(dstBuff);
+        for (var i = 0; i < arr.byteLength; ++i) { dstEncoder[i] = arr[i]; }
+        console.log('copied arraybuffer');
+        return dstBuff;
+    }
+
+    copyToStringBase64(arr: Uint8Array) : String {
         return this.gifTools.vm.uint8ArrayToBase64String(arr);
     }
 
@@ -364,7 +372,8 @@ class GifToolsWorker {
         framesPerSecond: number,
         frameDelaySeconds: number,
         loop: boolean,
-        boomerang: boolean) : (string|null) {
+        boomerang: boolean,
+        outputType: string) : (ArrayBuffer|String|null) {
     
         if (!this.gifTools) { return null; }
 
@@ -470,8 +479,17 @@ class GifToolsWorker {
         const gifBuffer = this.gifTools.gifEncoderEnd();
         if (!gifBuffer) { this.onReportedProgress(1); return ""; }
 
-        const gifBase64 = this.toBase64(gifBuffer);
-        return gifBase64;
+        if (outputType === 'base64') {
+            const gifBase64 = this.copyToStringBase64(gifBuffer);
+            return gifBase64;
+        }
+
+        if (outputType !== 'arraybuffer') {
+            console.log('Invalid output type requested, returning ArrayBuffer.');
+        }
+
+        const gifArrayBuffer = this.copyToArrayBuffer(gifBuffer);
+        return gifArrayBuffer;
     }
 
     receiveMessage(messageEvent: MessageEvent) {
@@ -567,18 +585,24 @@ class GifToolsWorker {
             const frameDelaySeconds = payload.runConfig.frameDelaySeconds;
             const loop = payload.runConfig.loop;
             const boomerang = payload.runConfig.boomerang;
+            const outputType = payload.runConfig.outputType;
 
-            const gifBase64 = this.run(width, height, startTimeSeconds, endTimeSeconds, framesPerSecond, frameDelaySeconds, loop, boomerang);
-            this.gifTools.internalAddObjIds();
+            const gifOutput = this.run(width, height, startTimeSeconds, endTimeSeconds, framesPerSecond, frameDelaySeconds, loop, boomerang, outputType);
+            this.gifTools.internalFreeObjIds();
 
-            if (gifBase64 == null) {
+            if (gifOutput == null) {
                 this.onReportedProgress(1);
                 this.postMessage({msgType : 'MSG_TYPE_RUN_FAILED', msgId: msgId});
                 return;
             }
 
             this.onReportedProgress(1);
-            this.postMessage({msgType : 'MSG_TYPE_RUN_SUCCEEDED', msgId: msgId, gifBase64: gifBase64});
+            if (gifOutput instanceof String) {
+                this.postMessage({msgType : 'MSG_TYPE_RUN_SUCCEEDED', msgId: msgId, runOutput: { base64: gifOutput }});
+            } else {
+                this.postMessage({msgType : 'MSG_TYPE_RUN_SUCCEEDED', msgId: msgId, runOutput: { arraybuffer: gifOutput }}, [gifOutput]);
+            }
+
         } else if (msgType === 'MSG_TYPE_CLOSE_SESSION') {
             if (!this.gifTools) {
                 this.postMessage({msgType : 'MSG_TYPE_CLOSE_SESSION_FAILED', msgId: msgId, error: 'Caught null GifTools instance.'});

@@ -73,6 +73,7 @@ if (resultImg) {
                 runConfig.frameDelaySeconds = 1;
                 runConfig.loop = true;
                 runConfig.boomerang = true;
+                runConfig.outputType = 'arraybuffer';
                 runConfig.progressCallback = (progress: number) => { progressBar!.setAttribute('value', '' + progress); };
 
                 progressBar!.setAttribute('value', '0');
@@ -82,11 +83,22 @@ if (resultImg) {
                 console.log('Failed to open session from', file);
 
                 progressBar!.setAttribute('value', '100');
-            }).then((output: GifToolsRunOutput) => {
-                console.log('output', output);
+            }).then((runOutput: GifToolsRunOutput) => {
+                console.log('output', runOutput);
 
                 progressBar!.setAttribute('value', '100');
-                resultImg!.setAttribute('src', 'data:image/gif;base64,' + output.gifBase64);
+
+                if (!runOutput || !runOutput.output) { return; }
+
+                if (runOutput.output instanceof String) {
+                    resultImg!.setAttribute('src', 'data:image/gif;base64,' + runOutput.output);
+                } else {
+                    var arrayBufferView = new Uint8Array( runOutput.output as ArrayBuffer );
+                    var blob = new Blob( [ arrayBufferView ], { type: "image/gif" } );
+                    var urlCreator = window.URL || window.webkitURL;
+                    var imageUrl = urlCreator.createObjectURL( blob );
+                    resultImg!.setAttribute('src', imageUrl);
+                }
             }, () => {
                 console.log('Failed to creat GIF');
 

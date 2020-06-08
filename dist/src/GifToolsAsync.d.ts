@@ -8,11 +8,11 @@ export declare class GifToolsRunConfig {
     frameDelaySeconds: number;
     loop: boolean;
     boomerang: boolean;
+    outputType: String;
     progressCallback: GifToolsRunProgressCallback;
 }
 export declare class GifToolsRunOutput {
-    gifBuffer: (Uint8Array | null);
-    gifBase64: (string | null);
+    output: (ArrayBuffer | String | null);
 }
 export declare class GifToolsSession {
     width: number;

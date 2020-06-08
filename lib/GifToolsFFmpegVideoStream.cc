@@ -758,14 +758,14 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
     if (cancellationToken.isCancelled()) { return 0; }
 
     bool endOfStream = false;
-    bool frameAcquired = false;
+    bool frameAcquired = true;
     double sampleTime = 0.0f;
     
     GIFTOOLS_LOGT("Starting main loop.");
     GIFTOOLS_LOGW("Reporting progress:");
     videoStream.clearPreparedFrames(false);
     
-    while (!endOfStream || frameAcquired) {
+    while (!endOfStream && frameAcquired) {
         if (cancellationToken.isCancelled()) { videoStream.clearPreparedFrames(); return 0; }
         
         frameAcquired = false;
@@ -791,6 +791,13 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
                     break;
                 }
             }
+            
+            if (endOfStream) {
+                // null packet for bumping process
+                av_init_packet(&currFrame.packet);
+                currFrame.packet.data = nullptr;
+                currFrame.packet.size = 0;
+            }
 
             // clang-format off
             
@@ -808,11 +815,16 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
             GIFTOOLS_LOGT("avcodec_decode_video2");
             
             int didRetrievePicture = 0;
-            ret = avcodec_decode_video2(videoStream.primaryCodecContext,
-                                        currFrame.decodedFrame,
-                                        &didRetrievePicture,
-                                        &currFrame.packet);
-            if (ret < 0) { GIFTOOLS_LOGE("avcodec_decode_video2 failed."); return 0; }
+            int avcodec_decode_video2_ret = 0;
+            avcodec_decode_video2_ret = avcodec_decode_video2(videoStream.primaryCodecContext,
+                                                              currFrame.decodedFrame,
+                                                              &didRetrievePicture,
+                                                              &currFrame.packet);
+            if (avcodec_decode_video2_ret < 0) {
+                GIFTOOLS_LOGE("avcodec_decode_video2 failed.");
+                return 0;
+            }
+            
             frameAcquired = didRetrievePicture > 0;
             
             // clang-format on
