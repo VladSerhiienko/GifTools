@@ -199,6 +199,12 @@ describe('GifTools', () => {
         baseGifToolsFFmpegTest(done, width, height, '360p', 'IMG_2041.MOV', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
     });
 
+    test('GIF-FFMPEG-FHD-360P-RATE-MOV-2', done => {
+        const width = 640;
+        const height = 360;
+        baseGifToolsFFmpegTest(done, width, height, '360p', 'IMG_1015.MOV', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
+    });
+
     test('GIF-FFMPEG-360P-RATE', done => {
         const width = 360;
         const height = 640;

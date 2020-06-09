@@ -76,8 +76,10 @@ sh giftools-run-node-tests.sh
   --enable-demuxer=hevc \
   --enable-decoder=h264 \
   --enable-decoder=hevc \
+  --enable-decoder=aac \
   --enable-parser=h264 \
   --enable-parser=hevc \
+  --enable-parser=aac \
   --enable-muxer=h264
 
   

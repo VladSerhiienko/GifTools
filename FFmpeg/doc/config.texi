@@ -541,10 +541,10 @@
 @set config-error-resilience yes
 @set config-faan yes
 @c @set config-fast-unaligned no
-@c @set config-fft no
+@set config-fft yes
 @c @set config-lsp no
 @c @set config-lzo no
-@c @set config-mdct no
+@set config-mdct yes
 @c @set config-pixelutils no
 @c @set config-network no
 @c @set config-rdft no
@@ -571,7 +571,7 @@
 @c @set config-protocols no
 @c @set config-aandcttables no
 @c @set config-ac3dsp no
-@c @set config-adts-header no
+@set config-adts-header yes
 @c @set config-audio-frame-queue no
 @c @set config-audiodsp no
 @c @set config-blockdsp no
@@ -610,7 +610,7 @@
 @c @set config-huffyuvencdsp no
 @set config-idctdsp yes
 @c @set config-iirfilter no
-@c @set config-mdct15 no
+@set config-mdct15 yes
 @c @set config-intrax8 no
 @set config-iso-media yes
 @c @set config-ividsp no
@@ -642,7 +642,7 @@
 @c @set config-rtpdec no
 @c @set config-rtpenc-chain no
 @c @set config-rv34dsp no
-@c @set config-sinewin no
+@set config-sinewin yes
 @c @set config-snappy no
 @c @set config-srtp no
 @set config-startcode yes
@@ -951,7 +951,7 @@
 @c @set config-zerocodec-decoder no
 @c @set config-zlib-decoder no
 @c @set config-zmbv-decoder no
-@c @set config-aac-decoder no
+@set config-aac-decoder yes
 @c @set config-aac-fixed-decoder no
 @c @set config-aac-latm-decoder no
 @c @set config-ac3-decoder no
@@ -1462,7 +1462,7 @@
 @c @set config-wmv3-nvdec-hwaccel no
 @c @set config-wmv3-vaapi-hwaccel no
 @c @set config-wmv3-vdpau-hwaccel no
-@c @set config-aac-parser no
+@set config-aac-parser yes
 @c @set config-aac-latm-parser no
 @c @set config-ac3-parser no
 @c @set config-adx-parser no

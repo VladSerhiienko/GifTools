@@ -20,7 +20,7 @@ struct ConcreteBuffer : public giftools::Buffer {
     std::vector<uint8_t> contents;
     
     ConcreteBuffer() = default;
-    virtual ~ConcreteBuffer() override = default;
+    virtual ~ConcreteBuffer() override { contents = {}; }
     
     uint8_t* mutableData() override { return contents.data(); }
     const uint8_t* data() const override { return contents.data(); }

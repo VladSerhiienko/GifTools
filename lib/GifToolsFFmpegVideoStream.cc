@@ -95,6 +95,7 @@ struct FFmpegVideoFrameImpl : public giftools::FFmpegVideoFrame {
 struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     giftools::Buffer* contentsBufferObj = nullptr;
     const giftools::FFmpegInputStream* streamObj = nullptr;
+    void* copiedBufferPtr = nullptr;
     
     std::vector<giftools::UniqueManagedObj<giftools::FFmpegVideoFrame>> preparedFrames = {};
     
@@ -123,14 +124,20 @@ struct FFmpegVideoStreamImpl : public giftools::FFmpegVideoStream {
     
     void close() {
         clearPreparedFrames();
+
+        // Double free.
+        // av_free(copiedBufferPtr);
         
-        sws_freeContext(swsContext);
-        avcodec_close(primaryCodecContext);
-        avformat_close_input(&fmtContext);
+        if (swsContext) { sws_freeContext(swsContext); }
+        if (primaryCodecContext) { avcodec_close(primaryCodecContext); }
+        if (fmtContext) { avformat_close_input(&fmtContext); }
+        
         new (this) FFmpegVideoStreamImpl();
     }
     
     void clearPreparedFrames(bool wipePreparedFrames = true) {
+        if (!wipePreparedFrames && preparedFrames.empty()) { return; }
+        if (wipePreparedFrames && !preparedFrames.capacity()) { return; }
         if (wipePreparedFrames) { decltype(preparedFrames)().swap(preparedFrames); return; }
         preparedFrames.clear();
     }
@@ -174,9 +181,12 @@ giftools::ffmpegVideoStreamOpen(const giftools::FFmpegInputStream* ffmpegInputSt
 #else
     av_log_set_level(AV_LOG_ERROR);
 #endif
+
+    videoStream.copiedBufferPtr = av_malloc(videoStream.contentsBufferObj->size());
+    memcpy(videoStream.copiedBufferPtr, videoStream.contentsBufferObj->data(), videoStream.contentsBufferObj->size());
     
     videoStream.fmtContext = avformat_alloc_context();
-    videoStream.fmtContext->pb = avio_alloc_context(videoStream.contentsBufferObj->mutableData(),
+    videoStream.fmtContext->pb = avio_alloc_context((uint8_t*)videoStream.copiedBufferPtr,
                                                     videoStream.contentsBufferObj->size(),
                                                     0,
                                                     (void*)videoStream.streamObj,
@@ -186,12 +196,14 @@ giftools::ffmpegVideoStreamOpen(const giftools::FFmpegInputStream* ffmpegInputSt
     if (!videoStream.fmtContext->pb) { return {}; }
     
     progressToken.setProgress(0.2);
-
+    
     videoStream.probeData.filename = "stream";
+    // videoStream.probeData.buf_size = videoStream.contentsBufferObj->size();
+    // videoStream.probeData.buf = (uint8_t*)videoStream.contentsBufferObj->data();
     videoStream.probeData.buf_size = std::min<int>(videoStream.contentsBufferObj->size(), 4096);
     videoStream.probeBuffer.resize(videoStream.probeData.buf_size);
     videoStream.probeData.buf = videoStream.probeBuffer.data();
-    memcpy(videoStream.probeData.buf, videoStream.contentsBufferObj->data(), 4096);
+    memcpy(videoStream.probeData.buf, videoStream.contentsBufferObj->data(), videoStream.probeData.buf_size);
     
     progressToken.setProgress(0.3);
 
@@ -211,12 +223,19 @@ giftools::ffmpegVideoStreamOpen(const giftools::FFmpegInputStream* ffmpegInputSt
     if (ret < 0) { return {}; }
     ret = avformat_find_stream_info(videoStream.fmtContext, nullptr);
     if (ret < 0) { return {}; }
-    
-    progressToken.setProgress(0.5);
 
     videoStream.primaryStreamIndex = av_find_best_stream(videoStream.fmtContext, AVMEDIA_TYPE_VIDEO, -1, -1, &videoStream.primaryCodec, 0);
     if (videoStream.primaryStreamIndex < 0 || videoStream.primaryStreamIndex >= videoStream.fmtContext->nb_streams) { return {}; }
     // clang-format on
+    
+    for (int i = 0; i < videoStream.fmtContext->nb_streams; ++i) {
+        if (i != videoStream.primaryStreamIndex) {
+            videoStream.fmtContext->streams[i]->discard = AVDISCARD_ALL;
+            GIFTOOLS_LOGW("Discarding stream #%i", i);
+        }
+    }
+    
+    progressToken.setProgress(0.5);
 
     videoStream.primaryStream = videoStream.fmtContext->streams[videoStream.primaryStreamIndex];
     videoStream.primaryStreamTimeBase = av_q2d(videoStream.primaryStream->time_base);
@@ -700,6 +719,28 @@ giftools::ffmpegVideoStreamPrepareAllFrames(const FFmpegVideoStream* ffmpegVideo
     return videoStream.preparedFrames.size();
 }
 
+void ffmpegLogError(int ret) {
+    switch (ret) {
+        case AVERROR_BUG: GIFTOOLS_LOGE("AVERROR_BUG"); break;
+        case AVERROR_EOF: GIFTOOLS_LOGE("AVERROR_EOF"); break;
+        case AVERROR_BUG2: GIFTOOLS_LOGE("AVERROR_BUG2"); break;
+        case AVERROR_EXIT: GIFTOOLS_LOGE("AVERROR_EXIT"); break;
+        case AVERROR_UNKNOWN: GIFTOOLS_LOGE("AVERROR_UNKNOWN"); break;
+        case AVERROR_EXTERNAL: GIFTOOLS_LOGE("AVERROR_EXTERNAL"); break;
+        case AVERROR_INVALIDDATA: GIFTOOLS_LOGE("AVERROR_INVALIDDATA"); break;
+        case AVERROR_EXPERIMENTAL: GIFTOOLS_LOGE("AVERROR_EXPERIMENTAL"); break;
+        case AVERROR_PATCHWELCOME: GIFTOOLS_LOGE("AVERROR_PATCHWELCOME"); break;
+        case AVERROR_BSF_NOT_FOUND: GIFTOOLS_LOGE("AVERROR_BSF_NOT_FOUND"); break;
+        case AVERROR_INPUT_CHANGED: GIFTOOLS_LOGE("AVERROR_INPUT_CHANGED"); break;
+        case AVERROR_MUXER_NOT_FOUND: GIFTOOLS_LOGE("AVERROR_MUXER_NOT_FOUND"); break;
+        case AVERROR_DEMUXER_NOT_FOUND: GIFTOOLS_LOGE("AVERROR_DEMUXER_NOT_FOUND"); break;
+        case AVERROR_STREAM_NOT_FOUND: GIFTOOLS_LOGE("AVERROR_STREAM_NOT_FOUND"); break;
+        case AVERROR_DECODER_NOT_FOUND: GIFTOOLS_LOGE("AVERROR_STREAM_NOT_FOUND"); break;
+        default: break;
+}
+
+}
+
 size_t
 giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStream,
                                          double framesPerSecond,
@@ -796,6 +837,7 @@ giftools::ffmpegVideoStreamPrepareFrames(const FFmpegVideoStream* ffmpegVideoStr
                 if (cancellationToken.isCancelled()) { videoStream.clearPreparedFrames(); return 0; }
                 
                 ret = av_read_frame(videoStream.fmtContext, &currFrame.packet);
+                ffmpegLogError(ret);
                 endOfStream = (ret == AVERROR_EOF);
                 if (ret < 0 && ret != AVERROR_EOF) { GIFTOOLS_LOGE("av_read_frame failed."); return 0; }
 
