@@ -1,1 +1,1 @@
-export function GifToolsVersion() { return 'e6adc00dd9a438738471198fe2011749a6503e8f'; }
+export function GifToolsVersion() { return '0e8a6630e8e5d96b44ec82abeeb3ee4030fe35ee'; }
