@@ -197,7 +197,9 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
     if (params.preparedAllFrames == GifToolsPrepareAllFrames) {
         ASSERT_NE(0, ffmpegVideoStreamPrepareAllFrames(video.get()));
     } else if (params.preparedAllFrames == GifToolsPrepareFrames) {
-        ASSERT_NE(0, ffmpegVideoStreamPrepareFrames(video.get(), params.desiredFramesPerSecond));
+        auto offsetSeconds = 0.0;
+        auto durationSeconds = video->estimatedTotalDurationSeconds();
+        ASSERT_NE(0, ffmpegVideoStreamPrepareFrames(video.get(), params.desiredFramesPerSecond, offsetSeconds, durationSeconds));
     }
     
     auto width = params.width ? params.width : video->frameWidth();
@@ -230,8 +232,6 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
         printf("Progress: %.1f%%\n", 50.0 * (t / video->estimatedTotalDurationSeconds()));
     }
     
-    ffmpegVideoStreamClearPreparedFrames(video.get());
-    
     UniqueManagedObj<GifBuilder> gifBuilderObj = gifBuilderInitialize(width, height, delay);
     ASSERT_TRUE(gifBuilderObj);
     
@@ -243,6 +243,8 @@ TEST_P(GifToolsFFmpegTest, GifToolsFFmpegEncodingTest) {
 
     UniqueManagedObj<Buffer> gifBufferObj = gifBuilderFinalize(gifBuilderObj.get());
     ASSERT_TRUE(gifBufferObj);
+    
+    ffmpegVideoStreamClearPreparedFrames(video.get());
     
     auto prefix = std::string("dump_");
     auto fileName = std::filesystem::path(params.videoFilePath).stem().string();
@@ -275,8 +277,11 @@ INSTANTIATE_TEST_SUITE_P(
     resolutions,
     GifToolsFFmpegTest,
     testing::Values(
-          GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_360P.mp4", "360p", GifToolsDoNotPrepareFrames, 1.0}
-        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
+//          GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200503_154756_360P.mp4", "360p", GifToolsDoNotPrepareFrames, 1.0}
+//        , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_FHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
+        GifToolsFFmpegParams{{640, 360, "360p"}, "IMG_2041.MOV", "360p_rate", GifToolsPrepareFrames, 1.0}
+        , GifToolsFFmpegParams{{640, 360, "360p"}, "IMG_1015.MOV", "360p_rate", GifToolsPrepareFrames, 1.0}
+        , GifToolsFFmpegParams{{360, 640, "360p"}, "roborock.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
         , GifToolsFFmpegParams{{640, 360, "360p"}, "VID_20200521_193627_UHD.mp4", "360p_rate", GifToolsPrepareFrames, 1.0}
 //        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_FHD.mp4", "fhd_rate", GifToolsPrepareFrames, 1.0}
 //        , GifToolsFFmpegParams{{0, 0, "default"}, "VID_20200521_193627_UHD.mp4", "uhd_rate", GifToolsPrepareFrames, 1.0}

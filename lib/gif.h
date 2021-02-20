@@ -158,8 +158,22 @@ struct GifPalette
     // k-d tree over RGB space, organized in heap fashion
     // i.e. left child of node i is node i*2, right child is node i*2+1
     // nodes 256-511 are implicitly the leaves, containing a color
-    uint8_t treeSplitElt[255];
-    uint8_t treeSplit[255];
+    uint8_t treeSplitElt[256];
+    uint8_t treeSplit[256];
+    
+    /*
+    /Users/vserhiienko/Projects/GifTools/lib/gif.h:401:5: runtime error: index 255 out of bounds for type 'uint8_t [255]'
+    SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /Users/vserhiienko/Projects/GifTools/lib/gif.h:401:5 in
+    /Users/vserhiienko/Projects/GifTools/lib/gif.h:402:5: runtime error: index 255 out of bounds for type 'uint8_t [255]'
+    SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /Users/vserhiienko/Projects/GifTools/lib/gif.h:402:5 in
+    /Users/vserhiienko/Projects/GifTools/lib/gif.h:199:27: runtime error: index 255 out of bounds for type 'uint8_t [255]'
+    SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /Users/vserhiienko/Projects/GifTools/lib/gif.h:199:27 in
+    /Users/vserhiienko/Projects/GifTools/lib/gif.h:201:20: runtime error: index 255 out of bounds for type 'uint8_t [255]'
+    SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /Users/vserhiienko/Projects/GifTools/lib/gif.h:201:20 in
+    */
+    
+    // uint8_t treeSplitElt[255];
+    // uint8_t treeSplit[255];
 };
 
 // max, min, and abs functions

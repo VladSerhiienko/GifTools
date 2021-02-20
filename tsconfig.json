@@ -2,15 +2,15 @@
     "compilerOptions": {
         "outDir": "./dist",
         "allowJs": true,
-        "noImplicitAny": true,
         "strictNullChecks": true,
+        "allowSyntheticDefaultImports": false,
         "target": "es5",
-        "module": "commonjs",
+        "module": "CommonJS",
         "declaration": true,
         "sourceMap": true
     },
     "include": [
-        "./src/**/*"
+        "./src/**/*", "webpack.config.dev.js"
     ],
     "exclude": [
         "node_modules"

@@ -8,7 +8,8 @@
   "main": "dist/main.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "build": "webpack",
+    "start": "webpack-dev-server --mode=development --config ./webpack.config.dev.js",
+    "build": "webpack --config ./webpack.config.js",
     "test": "jest"
   },
   "repository": {
@@ -29,14 +30,20 @@
     "@types/node": "^14.0.1",
     "babel-core": "^7.0.0-bridge.0",
     "babel-jest": "^23.4.2",
+    "html-webpack-plugin": "^4.3.0",
     "jest": "^25.1.0",
+    "raw-loader": "^4.0.1",
     "ts-jest": "^25.2.1",
     "ts-loader": "^6.2.1",
     "typescript": "^3.8.3",
     "webpack": "^4.42.0",
-    "webpack-cli": "^3.3.11"
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.0",
+    "worker-loader": "^2.0.0",
+    "worker-plugin": "^4.0.3"
   },
   "dependencies": {
-    "babel-upgrade": "^1.0.1"
+    "babel-upgrade": "^1.0.1",
+    "url-loader": "^4.1.0"
   }
 }

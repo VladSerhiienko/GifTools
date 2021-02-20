@@ -69,7 +69,12 @@ Temporary Items
 # NPM
 node_modules
 bin_dist.zip
-build_emscripten_web_amalgamated_ffmpeg/cmake_install.cmake
+bin/web_amalgamated_worker
+build_emscripten_web_amalgamated_worker
+build_emscripten_web_amalgamated_ffmpeg
+build_emscripten_web_amalgamated_ffmpeg_worker
+build_emscripten_web_amalgamated_ffmpeg_ship
+build_emscripten_web_amalgamated_ffmpeg_worker_ship
 tests/bin/results_actual
-tests/bin/results_actual_ts/
-tests/bin/results_actual_cpp/
+tests/bin/results_actual_ts
+tests/bin/results_actual_cpp

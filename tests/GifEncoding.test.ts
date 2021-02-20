@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { GifTools, GifToolsVideoFrame } from '../src';
+import { GifTools, GifToolsVideoFrame } from '../src/GifTools';
 
 function areEqual(a: Uint8Array, b: Uint8Array): boolean {
     if (a.byteLength !== b.byteLength) return false;
@@ -143,7 +143,9 @@ describe('GifTools', () => {
             if (prepareFramesType == GifToolsPrepareFramesType.GifToolsPrepareAllFrames) {
                 expect(gifTools.videoDecoderPrepareAllFrames()).toBeTruthy();
             } else if (prepareFramesType == GifToolsPrepareFramesType.GifToolsPrepareFrames) {
-                expect(gifTools.videoDecoderPrepareFrames(framesPerSecond)).toBeTruthy();
+                let offset = 0;
+                let duration = gifTools.videoDecoderDurationSeconds();
+                expect(gifTools.videoDecoderPrepareFrames(framesPerSecond, offset, duration)).toBeTruthy();
             }
 
             expect(gifTools.gifEncoderBegin(targetWidth, targetHeight, delay)).toBeTruthy();
@@ -170,7 +172,7 @@ describe('GifTools', () => {
             expect(gifBuffer).toBeTruthy();
 
             const prefix = "dump_";
-            const fileName = path.basename(videoFilePath, '.mp4');
+            const fileName = path.basename(videoFilePath, path.extname(videoFilePath));
             const id = videoResolutionId + "_" + targetResolutionId;
             const resultName = prefix + fileName + "_" + id + ".gif";
             const actualResultPath = actualResultsDirPath + '/' + resultName;
@@ -190,6 +192,24 @@ describe('GifTools', () => {
             done();
         });
     };
+
+    test('GIF-FFMPEG-FHD-360P-RATE-MOV', done => {
+        const width = 640;
+        const height = 360;
+        baseGifToolsFFmpegTest(done, width, height, '360p', 'IMG_2041.MOV', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
+    });
+
+    test('GIF-FFMPEG-FHD-360P-RATE-MOV-2', done => {
+        const width = 640;
+        const height = 360;
+        baseGifToolsFFmpegTest(done, width, height, '360p', 'IMG_1015.MOV', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
+    });
+
+    test('GIF-FFMPEG-360P-RATE', done => {
+        const width = 360;
+        const height = 640;
+        baseGifToolsFFmpegTest(done, width, height, '360p', 'roborock.mp4', '360p_rate', GifToolsPrepareFramesType.GifToolsPrepareFrames, 1.0);
+    });
 
     test('GIF-FFMPEG-360P', done => {
         const width = 0;

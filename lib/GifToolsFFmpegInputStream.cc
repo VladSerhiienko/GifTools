@@ -48,7 +48,7 @@ struct FFmpegInputStreamImpl : giftools::FFmpegInputStream {
     int64_t currBufferOffset = 0;
 
     int read(uint8_t* buf, int buf_size) {
-        int bytes_read = std::max<int>(buf_size, bufferSize - currBufferOffset);
+        int bytes_read = std::min<int>(buf_size, bufferSize - currBufferOffset);
         memcpy(buf, bufferDataPtr + currBufferOffset, bytes_read);
         currBufferOffset += bytes_read;
         return bytes_read;
@@ -94,12 +94,15 @@ int64_t ffmpegInputStreamSeek(void* opaque, int64_t const pos, int32_t whence) n
         switch (action) {
             case SEEK_SET: {
                 stream.currBufferOffset = pos;
+                result = stream.currBufferOffset;
             } break;
             case SEEK_CUR: {
                 stream.currBufferOffset += pos;
+                result = stream.currBufferOffset;
             } break;
             case SEEK_END: {
                 stream.currBufferOffset = stream.bufferSize + pos;
+                result = stream.currBufferOffset;
             } break;
             case AVSEEK_SIZE: {
                 result = stream.bufferSize;
